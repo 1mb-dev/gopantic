@@ -135,7 +135,7 @@ For most backend services, the convenience justifies the overhead. For ultra-hig
 
 ## Examples
 
-See [examples/](https://github.com/vnykmshr/gopantic/tree/main/examples) for runnable code:
+See [examples/](https://github.com/1mb-dev/gopantic/tree/main/examples) for runnable code:
 
 - **quickstart/** - Basic parsing and validation
 - **api_validation/** - HTTP handler patterns

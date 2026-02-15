@@ -137,5 +137,5 @@ type TenantConfig struct {
 
 ## See Also
 
-- [Type Reference](https://vnykmshr.github.io/gopantic/reference/types/) - Supported types including json.RawMessage
-- [API Reference](https://vnykmshr.github.io/gopantic/reference/api/) - Complete API documentation
+- [Type Reference](https://1mb-dev.github.io/gopantic/reference/types/) - Supported types including json.RawMessage
+- [API Reference](https://1mb-dev.github.io/gopantic/reference/api/) - Complete API documentation

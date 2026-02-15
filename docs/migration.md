@@ -37,7 +37,7 @@ func parseUser(data []byte) (*User, error) {
 
 **After:**
 ```go
-import "github.com/vnykmshr/gopantic/pkg/model"
+import "github.com/1mb-dev/gopantic/pkg/model"
 
 func parseUser(data []byte) (User, error) {
     return model.ParseInto[User](data)
@@ -90,7 +90,7 @@ Replace `yaml.Unmarshal()` + validator with `model.ParseInto[T]()`. Format auto-
 ```go
 - import "encoding/json"
 - import "github.com/go-playground/validator/v10"
-+ import "github.com/vnykmshr/gopantic/pkg/model"
++ import "github.com/1mb-dev/gopantic/pkg/model"
 ```
 
 ### 2. Update validation tags
@@ -214,8 +214,8 @@ model.MaxValidationDepth = 32  // Default, prevents stack overflow
 If you encounter migration issues:
 
 1. Check [API documentation](reference/api.md) for function details
-2. Review [examples](https://github.com/vnykmshr/gopantic/tree/main/examples) for common patterns
-3. File issues at https://github.com/vnykmshr/gopantic/issues with:
+2. Review [examples](https://github.com/1mb-dev/gopantic/tree/main/examples) for common patterns
+3. File issues at https://github.com/1mb-dev/gopantic/issues with:
    - Current code before migration
    - Error or unexpected behavior
    - Go version and gopantic version

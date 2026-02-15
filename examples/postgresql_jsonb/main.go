@@ -8,7 +8,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // Account demonstrates PostgreSQL JSONB integration with gopantic

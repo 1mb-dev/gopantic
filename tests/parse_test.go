@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // Note: Common test structs (User, Product, Event, Config, Database) are defined in fixtures.go

@@ -34,6 +34,6 @@ go run main.go
 
 ## Documentation
 
-- [Getting Started](https://vnykmshr.github.io/gopantic/getting-started/)
-- [API Reference](https://vnykmshr.github.io/gopantic/reference/api/)
-- [Type Reference](https://vnykmshr.github.io/gopantic/reference/types/)
+- [Getting Started](https://1mb-dev.github.io/gopantic/getting-started/)
+- [API Reference](https://1mb-dev.github.io/gopantic/reference/api/)
+- [Type Reference](https://1mb-dev.github.io/gopantic/reference/types/)

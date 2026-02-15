@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // FuzzStruct is a struct used for fuzzing ParseInto

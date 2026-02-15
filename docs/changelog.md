@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Documentation site**: New documentation at [vnykmshr.github.io/gopantic](https://vnykmshr.github.io/gopantic/) with MkDocs Material theme
+- **Documentation site**: New documentation at [1mb-dev.github.io/gopantic](https://1mb-dev.github.io/gopantic/) with MkDocs Material theme
   - Dark/light mode toggle
   - Full-text search
   - Organized guide and reference sections

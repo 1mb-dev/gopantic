@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // Note: Test structures (E2EUser, Profile, Settings, APIResponse, AppConfig, etc.) are defined in fixtures.go

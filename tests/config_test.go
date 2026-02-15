@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // TestConfigGettersReturnDefaults verifies Get functions return expected defaults

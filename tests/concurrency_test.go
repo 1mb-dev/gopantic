@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // TestConcurrency_ParallelParsing tests that ParseInto is safe for concurrent use

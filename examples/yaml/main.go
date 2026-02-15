@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // DatabaseConfig demonstrates nested YAML configuration

@@ -21,7 +21,7 @@ Optional caching for repeated parsing of identical data. Provides 5x+ speedup on
 ## Basic Usage
 
 ```go
-import "github.com/vnykmshr/gopantic/pkg/model"
+import "github.com/1mb-dev/gopantic/pkg/model"
 
 // Create a cached parser with default config
 parser := model.NewCachedParser[User](nil)

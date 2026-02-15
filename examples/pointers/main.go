@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // User represents a user with optional profile information

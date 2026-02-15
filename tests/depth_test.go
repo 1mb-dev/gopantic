@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // TestMaxStructureDepth_Config verifies the configuration getter/setter

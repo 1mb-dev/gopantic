@@ -138,7 +138,7 @@ BenchmarkParallel_StdJSON_Simple-8                	  948778	      1634 ns/op	   
 
 ```bash
 # Clone the repository
-git clone https://github.com/vnykmshr/gopantic.git
+git clone https://github.com/1mb-dev/gopantic.git
 cd gopantic
 
 # Run all benchmarks

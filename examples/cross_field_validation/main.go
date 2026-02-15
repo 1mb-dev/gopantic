@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // UserRegistration demonstrates comprehensive cross-field validation

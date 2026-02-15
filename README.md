@@ -4,18 +4,18 @@
 
 Inspired by Python's Pydantic, gopantic provides type-safe parsing, coercion, and validation with idiomatic Go APIs.
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/vnykmshr/gopantic.svg)](https://pkg.go.dev/github.com/vnykmshr/gopantic)
+[![Go Reference](https://pkg.go.dev/badge/github.com/1mb-dev/gopantic.svg)](https://pkg.go.dev/github.com/1mb-dev/gopantic)
 [![Go Version](https://img.shields.io/badge/go-1.23+-blue.svg)](https://golang.org/dl/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![CI](https://github.com/vnykmshr/gopantic/actions/workflows/ci.yml/badge.svg)](https://github.com/vnykmshr/gopantic/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/vnykmshr/gopantic/branch/main/graph/badge.svg)](https://codecov.io/gh/vnykmshr/gopantic)
+[![CI](https://github.com/1mb-dev/gopantic/actions/workflows/ci.yml/badge.svg)](https://github.com/1mb-dev/gopantic/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/1mb-dev/gopantic/branch/main/graph/badge.svg)](https://codecov.io/gh/1mb-dev/gopantic)
 
-> **Full Documentation**: [vnykmshr.github.io/gopantic](https://vnykmshr.github.io/gopantic/)
+> **Full Documentation**: [1mb-dev.github.io/gopantic](https://1mb-dev.github.io/gopantic/)
 
 ## Quick Start
 
 ```bash
-go get github.com/vnykmshr/gopantic
+go get github.com/1mb-dev/gopantic
 ```
 
 ```go
@@ -24,7 +24,7 @@ package main
 import (
     "fmt"
     "log"
-    "github.com/vnykmshr/gopantic/pkg/model"
+    "github.com/1mb-dev/gopantic/pkg/model"
 )
 
 type User struct {
@@ -236,17 +236,17 @@ make hooks
 
 ## Documentation
 
-**Full documentation**: [vnykmshr.github.io/gopantic](https://vnykmshr.github.io/gopantic/)
+**Full documentation**: [1mb-dev.github.io/gopantic](https://1mb-dev.github.io/gopantic/)
 
 Quick links:
-- [Getting Started](https://vnykmshr.github.io/gopantic/getting-started/) - Installation and basic usage
-- [API Reference](https://vnykmshr.github.io/gopantic/reference/api/) - Complete API documentation
-- [Validation Guide](https://vnykmshr.github.io/gopantic/guide/validation/) - All validation options
-- [Migration Guide](https://vnykmshr.github.io/gopantic/migration/) - Coming from other libraries
+- [Getting Started](https://1mb-dev.github.io/gopantic/getting-started/) - Installation and basic usage
+- [API Reference](https://1mb-dev.github.io/gopantic/reference/api/) - Complete API documentation
+- [Validation Guide](https://1mb-dev.github.io/gopantic/guide/validation/) - All validation options
+- [Migration Guide](https://1mb-dev.github.io/gopantic/migration/) - Coming from other libraries
 - [Examples](examples/) - Runnable code examples
 
 **Resources**:
-- [Changelog](https://vnykmshr.github.io/gopantic/changelog/) - Version history
+- [Changelog](https://1mb-dev.github.io/gopantic/changelog/) - Version history
 - [Security Policy](.github/SECURITY.md) - Vulnerability reporting
 
 ## License

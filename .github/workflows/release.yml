@@ -154,7 +154,7 @@ jobs:
           ## 🔧 Installation
           
           ```bash
-          go get github.com/vnykmshr/gopantic@${{ steps.version.outputs.version }}
+          go get github.com/1mb-dev/gopantic@${{ steps.version.outputs.version }}
           ```
           
           ## ✅ Validation

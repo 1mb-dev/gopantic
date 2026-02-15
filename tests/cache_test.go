@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // Simple test struct for cache tests

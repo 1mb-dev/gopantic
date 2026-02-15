@@ -16,7 +16,7 @@ If you discover a security vulnerability in gopantic, please report it responsib
 
 **Do NOT file public issues for security vulnerabilities.**
 
-1. **Open a GitHub Security Advisory** at https://github.com/vnykmshr/gopantic/security/advisories/new
+1. **Open a GitHub Security Advisory** at https://github.com/1mb-dev/gopantic/security/advisories/new
 2. Alternatively, contact the maintainer directly via the email in the GitHub profile
 
 Please include:

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // TestLargeInput_SingleLargeObject tests parsing of a large JSON object

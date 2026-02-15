@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-go get github.com/vnykmshr/gopantic
+go get github.com/1mb-dev/gopantic
 ```
 
 ## Basic Usage
@@ -22,7 +22,7 @@ type User struct {
 Parse data:
 
 ```go
-import "github.com/vnykmshr/gopantic/pkg/model"
+import "github.com/1mb-dev/gopantic/pkg/model"
 
 data := []byte(`{"id": "123", "username": "alice", "email": "alice@example.com", "age": "25"}`)
 user, err := model.ParseInto[User](data)

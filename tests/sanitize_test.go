@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // TestIsSensitiveField tests the sensitive field detection

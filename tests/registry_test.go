@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/vnykmshr/gopantic/pkg/model"
+	"github.com/1mb-dev/gopantic/pkg/model"
 )
 
 // TestNewValidatorRegistry tests registry creation and built-in validators

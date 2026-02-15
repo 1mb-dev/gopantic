@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/1mb-dev/gopantic/pkg/model"
 	"github.com/go-playground/validator/v10"
-	"github.com/vnykmshr/gopantic/pkg/model"
 )
 
 // Benchmark test structures - use Bench prefix to avoid conflicts

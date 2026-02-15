@@ -1,4 +1,4 @@
-module github.com/vnykmshr/gopantic
+module github.com/1mb-dev/gopantic
 
 go 1.24.0
 

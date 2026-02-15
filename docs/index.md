@@ -32,7 +32,7 @@ user, err := model.ParseInto[User](data)
 ## Installation
 
 ```bash
-go get github.com/vnykmshr/gopantic
+go get github.com/1mb-dev/gopantic
 ```
 
 Requires Go 1.23+.

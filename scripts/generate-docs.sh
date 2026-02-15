@@ -38,6 +38,6 @@ read -p "Start HTML documentation server? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "Starting documentation server on http://localhost:6060"
-    echo "Visit: http://localhost:6060/pkg/github.com/vnykmshr/gopantic/pkg/model/"
+    echo "Visit: http://localhost:6060/pkg/github.com/1mb-dev/gopantic/pkg/model/"
     go doc -http :6060
 fi

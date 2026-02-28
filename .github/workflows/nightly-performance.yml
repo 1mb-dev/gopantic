@@ -86,7 +86,7 @@ jobs:
         go test -bench=BenchmarkTypeCoercion -cpuprofile=performance_profiles/concurrent_cpu.prof -memprofile=performance_profiles/concurrent_mem.prof ./tests
 
     - name: Upload performance profiles
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: performance-profiles-${{ github.sha }}
         path: |

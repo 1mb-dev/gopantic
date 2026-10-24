@@ -1,0 +1,11 @@
+# Placeholders, not credentials: a sanitisation test fixture, and example values in files
+# since removed from the tree (base64 "password123", a sequential demo API key).
+# Commit-pinned lines match CI's history scan; file-pinned lines match local runs.
+9d776c6b179ca314622c670aa279ecc1550d3b5b:tests/sanitize_test.go:generic-api-key:204
+980589cf256251a1ff06ac0ac7cf0a43713f8ce1:deployments/kubernetes/redis-cluster.yaml:kubernetes-secret-yaml:147
+980589cf256251a1ff06ac0ac7cf0a43713f8ce1:deployments/kubernetes/redis-cluster.yaml:generic-api-key:154
+b75db2f9b3ab00777923dbbdcf6eb168c4861306:examples/validation/main.go:generic-api-key:127
+tests/sanitize_test.go:generic-api-key:204
+deployments/kubernetes/redis-cluster.yaml:kubernetes-secret-yaml:147
+deployments/kubernetes/redis-cluster.yaml:generic-api-key:154
+examples/validation/main.go:generic-api-key:127

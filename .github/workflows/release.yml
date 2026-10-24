@@ -12,7 +12,7 @@ on:
         type: string
 
 env:
-  GO_VERSION: '1.25'
+  GO_VERSION: '1.27'
 
 jobs:
   validate-release:
@@ -27,6 +27,7 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version: ${{ env.GO_VERSION }}
+        check-latest: true
 
     - name: Cache Go modules
       uses: actions/cache@v5
@@ -78,6 +79,7 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version: ${{ env.GO_VERSION }}
+        check-latest: true
 
     - name: Get release version
       id: version

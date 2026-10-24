@@ -2,319 +2,35 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main]
+  # A Dependabot auto-merge is pushed by GITHUB_TOKEN, which starts no push run, so main is
+  # unverified until the next daily run. Dispatch verifies it on demand.
+  schedule:
+    - cron: "23 4 * * *"
+  workflow_dispatch:
 
-env:
-  GO_VERSION: '1.26'
+permissions:
+  contents: read
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
+  ci:
+    uses: 1mb-dev/.github/.github/workflows/ci-go.yml@main
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-
-    - name: Set up Go
-      uses: actions/setup-go@v6
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Cache Go modules
-      uses: actions/cache@v5
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Download dependencies
-      run: go mod download
-
-    - name: Verify dependencies
-      run: go mod verify
-
-    - name: Format check
-      run: |
-        go fmt ./...
-        git diff --exit-code
-
-    - name: Vet
-      run: go vet ./...
-
-    - name: Run tests
-      run: go test -v -race -coverpkg=./pkg/... -coverprofile=coverage.out ./...
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v6
-      with:
-        file: ./coverage.out
-        flags: unittests
-        name: codecov-umbrella
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-
-    - name: Set up Go
-      uses: actions/setup-go@v6
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Cache Go modules
-      uses: actions/cache@v5
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v9
-      with:
-        version: v2.9.0
-        args: --timeout=5m
-
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-
-    - name: Set up Go
-      uses: actions/setup-go@v6
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Run gosec
-      run: |
-        go install github.com/securego/gosec/v2/cmd/gosec@latest
-        gosec -fmt sarif -out gosec.sarif -exclude-dir=examples ./... || true
-
-    - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v4
-      with:
-        sarif_file: gosec.sarif
-
-  benchmarks:
-    name: Performance Benchmarks
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-
-    - name: Set up Go
-      uses: actions/setup-go@v6
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Cache Go modules
-      uses: actions/cache@v5
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Download dependencies
-      run: go mod download
-
-    - name: Run benchmark comparison
-      run: |
-        echo "## 🚀 Performance Benchmark Results" >> benchmark_results.md
-        echo "" >> benchmark_results.md
-        echo "### Parsing Performance Comparison" >> benchmark_results.md
-        echo "\`\`\`" >> benchmark_results.md
-        make bench-compare >> benchmark_results.md 2>&1 || true
-        echo "\`\`\`" >> benchmark_results.md
-        echo "" >> benchmark_results.md
-        echo "### Memory Allocation Benchmarks" >> benchmark_results.md
-        echo "\`\`\`" >> benchmark_results.md
-        make bench-memory >> benchmark_results.md 2>&1 || true
-        echo "\`\`\`" >> benchmark_results.md
-        echo "" >> benchmark_results.md
-        echo "### Cache Performance" >> benchmark_results.md
-        echo "\`\`\`" >> benchmark_results.md
-        make bench-cache >> benchmark_results.md 2>&1 || true
-        echo "\`\`\`" >> benchmark_results.md
-        echo "" >> benchmark_results.md
-        echo "### Concurrent Processing" >> benchmark_results.md
-        echo "\`\`\`" >> benchmark_results.md
-        make bench-concurrent >> benchmark_results.md 2>&1 || true
-        echo "\`\`\`" >> benchmark_results.md
-
-    - name: Comment benchmark results
-      uses: actions/github-script@v9
-      if: github.event_name == 'pull_request'
-      continue-on-error: true
-      with:
-        script: |
-          const fs = require('fs');
-          if (fs.existsSync('benchmark_results.md')) {
-            const benchmarkResults = fs.readFileSync('benchmark_results.md', 'utf8');
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: benchmarkResults
-            });
-          }
-
+  # Not required: `go test ./...` does not run the example mains.
   examples:
     name: Example Tests
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-
-    - name: Set up Go
-      uses: actions/setup-go@v6
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Cache Go modules
-      uses: actions/cache@v5
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Download dependencies
-      run: go mod download
-
-    - name: Test examples
-      run: |
-        echo "Testing examples..."
-        cd examples/quickstart && go run main.go
-        echo "Skipping api_validation (interactive server demo)"
-        cd examples/yaml && go run main.go
-        cd ../cache_demo && go run main.go
-        cd ../pointers && go run main.go
-        cd ../cross_field_validation && go run main.go
-
-  cross-platform:
-    name: Cross Platform Tests
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        go-version: ['1.25', '1.26']
-    runs-on: ${{ matrix.os }}
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-
-    - name: Set up Go
-      uses: actions/setup-go@v6
-      with:
-        go-version: ${{ matrix.go-version }}
-
-    - name: Download dependencies
-      run: go mod download
-
-    - name: Run basic tests
-      run: go test ./pkg/model/...
-
-    - name: Build examples
-      run: |
-        go build ./examples/quickstart/...
-        go build ./examples/api_validation/...
-        go build ./examples/yaml/...
-        go build ./examples/cache_demo/...
-        go build ./examples/pointers/...
-        go build ./examples/cross_field_validation/...
-
-  performance-regression:
-    name: Performance Regression Detection
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-    - name: Checkout base branch
-      uses: actions/checkout@v6
-      with:
-        ref: ${{ github.base_ref }}
-        path: base
-
-    - name: Checkout PR branch  
-      uses: actions/checkout@v6
-      with:
-        path: pr
-
-    - name: Set up Go
-      uses: actions/setup-go@v6
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Run baseline benchmarks
-      run: |
-        cd base
-        go mod download
-        go test -bench=. -benchmem -count=3 ./tests > ../baseline.txt
-
-    - name: Run PR benchmarks
-      run: |
-        cd pr
-        go mod download
-        go test -bench=. -benchmem -count=3 ./tests > ../pr.txt
-
-    - name: Install benchcmp
-      run: go install golang.org/x/tools/cmd/benchcmp@latest
-
-    - name: Compare benchmarks
-      run: |
-        echo "## 📊 Performance Regression Analysis" > comparison.md
-        echo "" >> comparison.md
-        echo "\`\`\`" >> comparison.md
-        benchcmp baseline.txt pr.txt >> comparison.md 2>&1 || true
-        echo "\`\`\`" >> comparison.md
-        
-        # Check for significant regressions (>10% slowdown)
-        if benchcmp baseline.txt pr.txt | grep -E '\+[0-9]+\.[0-9]+%.*ns/op' | awk '{print $4}' | sed 's/[+%]//g' | awk '{if($1>10) exit 1}'; then
-          echo "" >> comparison.md
-          echo "✅ **No significant performance regressions detected**" >> comparison.md
-        else
-          echo "" >> comparison.md
-          echo "⚠️ **Potential performance regression detected** - Please review the benchmark comparison above." >> comparison.md
-        fi
-
-    - name: Comment performance comparison
-      uses: actions/github-script@v9
-      continue-on-error: true
-      with:
-        script: |
-          const fs = require('fs');
-          if (fs.existsSync('comparison.md')) {
-            const comparison = fs.readFileSync('comparison.md', 'utf8');
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comparison
-            });
-          }
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.26"
+          check-latest: true
+      - name: Run examples
+        run: |
+          # api_validation is an interactive server demo.
+          for ex in quickstart yaml cache_demo pointers cross_field_validation; do
+            (cd "examples/$ex" && go run main.go)
+          done

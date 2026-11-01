@@ -535,7 +535,7 @@ func structRules(structType reflect.Type) ([]FieldValidation, []error) {
 		}
 
 		// Parse JSON key
-		jsonKey := getFieldKey(field, FormatJSON)
+		jsonKey := getFieldKey(field)
 
 		// Parse validation rules
 		rules, err := parseValidationRules(validateTag)

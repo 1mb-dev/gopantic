@@ -107,44 +107,14 @@ func checkInputSize(raw []byte) error {
 	return nil
 }
 
-// getFieldKey extracts the appropriate field key based on the data format
-func getFieldKey(field reflect.StructField, format Format) string {
-	var tagName string
-
-	// Determine which tag to use based on format
-	switch format {
-	case FormatYAML:
-		tagName = "yaml"
-	default:
-		tagName = "json"
-	}
-
-	tag := field.Tag.Get(tagName)
+// getFieldKey returns the JSON key a validation rule reports under.
+func getFieldKey(field reflect.StructField) string {
+	tag := field.Tag.Get("json")
 	if tag == "" {
-		// Fallback to json tag if yaml tag is not present
-		if tagName == "yaml" {
-			tag = field.Tag.Get("json")
-		}
-
-		// If still empty, use field name
-		if tag == "" {
-			return field.Name
-		}
+		return field.Name
 	}
-
-	// Handle tag options like "name,omitempty"
-	if tag == "-" {
-		return "-"
-	}
-
-	// Split on comma and take first part (the name)
-	for i, char := range tag {
-		if char == ',' {
-			return tag[:i]
-		}
-	}
-
-	return tag
+	name, _, _ := strings.Cut(tag, ",")
+	return name
 }
 
 // Validate validates a struct using gopantic validation rules defined in struct tags.
@@ -283,6 +253,11 @@ type validationWalk struct {
 	// Their containers stay closed: a back-pointer would cycle, and a foreign type's tags are
 	// not ours to check.
 	populated bool
+
+	// owner is the struct holding the unexported embed being walked, if any. reflect marks an
+	// unexported embed read-only, so a cross-field rule inside it gets the owner, where the
+	// same fields are promoted.
+	owner reflect.Value
 }
 
 func (w validationWalk) run(val reflect.Value) error {
@@ -293,7 +268,8 @@ func (w validationWalk) run(val reflect.Value) error {
 		}
 		return w.errs.AsError()
 	}
-	if !validation.holdsRules {
+	// A root that failed to decode is all zero, so its rules would only repeat that failure.
+	if !validation.holdsRules || w.skip[""] {
 		return w.errs.AsError()
 	}
 
@@ -385,8 +361,8 @@ func (w *validationWalk) field(parent reflect.Value, i int, validation *StructVa
 	}
 
 	// The exported fields of an unexported embedded struct stay reachable.
-	if field.Anonymous && !field.IsExported() && fieldVal.Kind() == reflect.Struct {
-		w.value(fieldVal, path.hiddenIf(access.jsonHidden), depth+1)
+	if field.Anonymous && !field.IsExported() && embedsStruct(field.Type) {
+		w.embedded(parent, fieldVal, path.hiddenIf(access.jsonHidden), depth)
 		return
 	}
 
@@ -404,15 +380,39 @@ func (w *validationWalk) field(parent reflect.Value, i int, validation *StructVa
 		return
 	}
 	if walkable {
-		w.value(fieldVal, here, depth+1)
+		w.descend(fieldVal, here, depth+1)
 	}
-
 	if len(rules) > 0 {
-		err := ValidateValueWithStruct(field.Name, fieldVal.Interface(), rules, parent)
-		if err != nil {
-			w.errs.addCapped(withFieldPath(err, here.String(), here.sensitive()))
-		}
+		w.applyRules(fieldVal, rules, parent, here)
 	}
+}
+
+func (w *validationWalk) descend(val reflect.Value, path *fieldPath, depth int) {
+	owner := w.owner
+	w.owner = reflect.Value{}
+	w.value(val, path, depth)
+	w.owner = owner
+}
+
+func (w *validationWalk) applyRules(val reflect.Value, rules []ValidationRule, parent reflect.Value, path *fieldPath) {
+	if w.owner.IsValid() {
+		parent = w.owner
+	}
+	if err := ValidateValueWithStruct(path.name, val.Interface(), rules, parent); err != nil {
+		w.errs.addCapped(withFieldPath(err, path.String(), path.sensitive()))
+	}
+}
+
+func (w *validationWalk) embedded(parent, embed reflect.Value, path *fieldPath, depth int) {
+	if !w.owner.IsValid() {
+		w.owner = parent
+		defer func() { w.owner = reflect.Value{} }()
+	}
+	w.value(embed, path, depth+1)
+}
+
+func embedsStruct(typ reflect.Type) bool {
+	return typ.Kind() == reflect.Struct || (typ.Kind() == reflect.Ptr && typ.Elem().Kind() == reflect.Struct)
 }
 
 // enters reports whether the walk descends into a field. An embedded struct counts as the

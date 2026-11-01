@@ -210,8 +210,12 @@ func (el *ErrorList) addCapped(err error) {
 	if el.full() {
 		return
 	}
+	if len(*el) == maxErrors {
+		*el = append(*el, errTooManyErrors)
+		return
+	}
 	el.Add(err)
-	if len(*el) >= maxErrors {
+	if len(*el) > maxErrors {
 		*el = append((*el)[:maxErrors:maxErrors], errTooManyErrors)
 	}
 }

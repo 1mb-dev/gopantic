@@ -53,7 +53,11 @@ func coerceValue(value interface{}, targetType reflect.Type, fieldName string, f
 	targetKind := targetType.Kind()
 	switch targetKind {
 	case reflect.String:
-		return coerceToString(value, fieldName)
+		coerced, err := coerceToString(value, fieldName)
+		if err == nil && targetType == jsonNumberType && !isJSONNumber(coerced) {
+			return nil, NewParseError(fieldName, value, targetType.String(), fmt.Sprintf("%q is not a number", coerced))
+		}
+		return coerced, err
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return coerceToInt(value, targetType, fieldName)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -68,6 +72,10 @@ func coerceValue(value interface{}, targetType reflect.Type, fieldName string, f
 		return nil, NewParseError(fieldName, value, targetType.String(),
 			fmt.Sprintf("coercion to %s not supported", targetType))
 	}
+}
+
+func isJSONNumber(s string) bool {
+	return s != "" && (s[0] == '-' || (s[0] >= '0' && s[0] <= '9')) && json.Valid([]byte(s))
 }
 
 // coerceToString converts scalars to string. Containers are rejected, since formatting one
@@ -322,7 +330,7 @@ func coerceToBool(value interface{}, fieldName string) (bool, error) {
 		return rv.Int() != 0, nil
 	case rv.CanUint():
 		return rv.Uint() != 0, nil
-	case rv.CanFloat():
+	case rv.CanFloat() && !math.IsNaN(rv.Float()):
 		return rv.Float() != 0, nil
 	}
 	return false, NewParseError(fieldName, value, "bool", fmt.Sprintf("cannot coerce %T to bool", value))

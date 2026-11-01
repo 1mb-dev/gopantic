@@ -341,6 +341,8 @@ var (
 		UnmarshalYAML(func(interface{}) error) error
 	})(nil)).Elem()
 	yamlNodeType = reflect.TypeOf(yaml.Node{})
+
+	jsonNumberType = reflect.TypeOf(json.Number(""))
 )
 
 // decodesItself reports whether typ owns its decoding, which makes it a leaf whatever its Kind.
@@ -363,7 +365,12 @@ type walker struct {
 }
 
 func (w *walker) fail(path *fieldPath, n *node, typ reflect.Type, message string) {
-	w.report(path, n.value(), typ.String(), message)
+	// Sensitivity is judged on the path down to n, so keys inside n must not reach Value.
+	var value interface{} = n.describe()
+	if n.kind == nodeScalar {
+		value = n.value()
+	}
+	w.report(path, value, typ.String(), message)
 }
 
 func (w *walker) report(path *fieldPath, value interface{}, typ, message string) {
@@ -416,10 +423,12 @@ func (w *walker) assign(n *node, out reflect.Value, path *fieldPath) {
 	}
 }
 
-// assignNull follows encoding/json: an addressable UnmarshalJSON sees the null, and a pointer
-// is cleared without calling it.
+// assignNull follows the decoders: an addressable UnmarshalJSON sees the null, a pointer is
+// cleared without calling it, and a yaml.Node keeps the null node. The format has to be read
+// from the walker, since an empty YAML document is a null with no yaml.Node behind it.
 func (w *walker) assignNull(n *node, out reflect.Value, path *fieldPath) {
-	if n.yml == nil && out.Kind() != reflect.Ptr && reflect.PointerTo(out.Type()).Implements(jsonUnmarshalerType) {
+	seesNull := w.format == FormatJSON && out.Kind() != reflect.Ptr && reflect.PointerTo(out.Type()).Implements(jsonUnmarshalerType)
+	if seesNull || (n.yml != nil && out.Type() == yamlNodeType) {
 		w.assignSelfDecoding(n, out, path)
 		return
 	}
@@ -448,15 +457,23 @@ func (w *walker) assignScalar(n *node, out reflect.Value, path *fieldPath) {
 		w.fail(path, n, out.Type(), fmt.Sprintf("cannot coerce %s to %s", n.describe(), out.Type()))
 		return
 	}
-	// yaml.v3 truncates floats into integers and does not range-check floats, so for numbers
-	// it cannot go first: coercion would never see the value.
-	isNumber := out.CanInt() || out.CanUint() || out.CanFloat()
-	if n.yml == nil || !isNumber {
+	if !isYAMLFloatForNumber(n, out) {
 		if err := n.decodeInto(out.Addr().Interface()); err == nil {
 			return
 		}
 	}
 	w.coerceScalar(n, out, path)
+}
+
+// isYAMLFloatForNumber picks out the one case yaml.v3 gets wrong: it truncates a float into an
+// integer and does not range-check a float. Its other number handling has to stay, since it
+// also parses "30s" into a time.Duration.
+func isYAMLFloatForNumber(n *node, out reflect.Value) bool {
+	if n.yml == nil || !(out.CanInt() || out.CanUint() || out.CanFloat()) {
+		return false
+	}
+	_, isFloat := n.value().(float64)
+	return isFloat
 }
 
 func (w *walker) coerceScalar(n *node, out reflect.Value, path *fieldPath) {
@@ -522,14 +539,19 @@ func (w *walker) assignStruct(n *node, out reflect.Value, path *fieldPath) {
 	}
 }
 
-// unquoted undoes the json ",string" option, which wraps a value in a JSON string. Text that
-// does not parse stays as it is, for coercion to judge.
+// unquoted undoes the json ",string" option, which wraps a scalar in a JSON string. Anything
+// else stays as it is, for coercion to judge. The depth scan skips string contents, so nesting
+// here must be refused before it reaches the recursive node builder.
 func unquoted(n *node) *node {
 	text, isString := n.scalar.(string)
 	if n.kind != nodeScalar || !isString {
 		return n
 	}
-	inner, err := parseJSONNode([]byte(text))
+	raw := bytes.TrimSpace([]byte(text))
+	if len(raw) == 0 || raw[0] == '{' || raw[0] == '[' || !json.Valid(raw) {
+		return n
+	}
+	inner, err := parseJSONNode(raw)
 	if err != nil {
 		return n
 	}
@@ -557,15 +579,16 @@ func (w *walker) assignInline(table *fieldTable, key string, value *node, out re
 	if table.inlineMap == nil {
 		return
 	}
+	here := &fieldPath{parent: path, kind: pathField, name: table.inlinePath, hidden: table.inlineHidden}
 	dst, err := fieldByIndex(out, table.inlineMap)
 	if err != nil {
-		w.report(path, nil, out.Type().String(), err.Error())
+		w.report(here, nil, out.Type().String(), err.Error())
 		return
 	}
 	if dst.IsNil() {
 		dst.Set(reflect.MakeMap(dst.Type()))
 	}
-	w.assignMapEntry(key, value, dst, path.hiddenIf(table.inlineHidden))
+	w.assignMapEntry(key, value, dst, here)
 }
 
 func (w *walker) assignSlice(n *node, out reflect.Value, path *fieldPath) {
@@ -606,6 +629,13 @@ func (w *walker) assignMap(n *node, out reflect.Value, path *fieldPath) {
 	typ := out.Type()
 	if n.kind != nodeObject {
 		w.fail(path, n, typ, fmt.Sprintf("cannot coerce %s to %s", n.describe(), typ))
+		return
+	}
+	// The node tree keeps keys as strings, and only yaml.v3 has their real types.
+	if n.yml != nil && typ.Key().Kind() == reflect.Interface {
+		if err := n.decodeInto(out.Addr().Interface()); err != nil {
+			w.fail(path, n, typ, err.Error())
+		}
 		return
 	}
 	if out.IsNil() {
@@ -679,6 +709,7 @@ type fieldTable struct {
 	ordered   []*fieldEntry
 	inlineMap []int
 
+	inlinePath   string
 	inlineHidden bool // The inline map is kept out of JSON
 }
 
@@ -859,6 +890,7 @@ func buildYAMLFields(typ reflect.Type) *fieldTable {
 
 	built := newFieldTable(fields)
 	built.inlineMap = table.inlineMap
+	built.inlinePath = table.inlinePath
 	built.inlineHidden = table.inlineHidden
 	return built
 }
@@ -878,7 +910,10 @@ func collectYAMLFields(typ reflect.Type, index []int, path string, hidden bool, 
 		}
 
 		fieldIndex := append(append([]int(nil), index...), i)
-		fieldPath := joinFieldNames(path, sf.Name)
+		fieldPath := path
+		if sf.IsExported() {
+			fieldPath = joinFieldNames(path, sf.Name)
+		}
 		_, jsonHidden := jsonFieldName(sf)
 		jsonHidden = jsonHidden || hidden
 		if inline {
@@ -890,8 +925,9 @@ func collectYAMLFields(typ reflect.Type, index []int, path string, hidden bool, 
 			case reflect.Struct:
 				collectYAMLFields(elem, fieldIndex, fieldPath, jsonHidden, active, fields, table)
 			case reflect.Map:
-				if sf.IsExported() {
+				if sf.IsExported() && sf.Type.Kind() == reflect.Map {
 					table.inlineMap = fieldIndex
+					table.inlinePath = fieldPath
 					table.inlineHidden = jsonHidden
 				}
 			}
@@ -947,10 +983,14 @@ func coerceContainer(value interface{}, targetType reflect.Type, fieldName strin
 		path = &fieldPath{kind: pathField, name: fieldName}
 	}
 	w.assign(root, out, path)
-	if err := validateParsed(out, w.errs, failedPaths(w.errs)); err != nil {
-		if list, isList := err.(ErrorList); isList && len(list) == 1 {
-			return nil, list[0]
-		}
+	err = w.errs.AsError()
+	if err == nil {
+		err = validateParsed(out, nil, nil)
+	}
+	if list, isList := err.(ErrorList); isList && len(list) == 1 {
+		return nil, list[0]
+	}
+	if err != nil {
 		return nil, err
 	}
 	return out.Interface(), nil

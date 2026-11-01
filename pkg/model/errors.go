@@ -182,6 +182,11 @@ func (el ErrorList) Error() string {
 	return fmt.Sprintf("multiple errors: %s", strings.Join(messages, "; "))
 }
 
+// Unwrap lets errors.Is and errors.As see each error in the list.
+func (el ErrorList) Unwrap() []error {
+	return el
+}
+
 // Add appends an error to the ErrorList
 // If the error is itself an ErrorList, it flattens the errors to avoid nesting
 func (el *ErrorList) Add(err error) {

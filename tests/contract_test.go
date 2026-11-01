@@ -1485,6 +1485,22 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
+		{"errors", "errors.As reaches a ParseError inside the list", 0, func() error {
+			_, err := model.ParseInto[ctInt]([]byte(`{"v":"x"}`))
+			var parseErr *model.ParseError
+			if !errors.As(err, &parseErr) {
+				return fmt.Errorf("got %T: %v", err, err)
+			}
+			return nil
+		}},
+		{"errors", "errors.As reaches a ValidationError inside the list", 0, func() error {
+			_, err := model.ParseInto[ctItem]([]byte(`{"name":""}`))
+			var validationErr *model.ValidationError
+			if !errors.As(err, &validationErr) {
+				return fmt.Errorf("got %T: %v", err, err)
+			}
+			return nil
+		}},
 		{"errors", "ordinary field keeps the value in the message", 0, func() error {
 			_, err := model.ParseInto[ctInt]([]byte(`{"v":"not-a-number-4321"}`))
 			if err == nil || !strings.Contains(err.Error(), "4321") {

@@ -75,7 +75,7 @@ func walkInto[T any](root *node, format Format) (T, error) {
 	out := reflect.ValueOf(&result).Elem()
 	w.assign(root, out, nil)
 
-	if err := validateParsed(out, w.errs, failedPaths(w.errs)); err != nil {
+	if err := validateParsed(out, w.errs, failedPaths(w.errs, "")); err != nil {
 		return zero, err
 	}
 	return result, nil
@@ -136,6 +136,8 @@ type node struct {
 	values []*node
 	raw    []byte
 	yml    *yaml.Node
+
+	keyNodes []*yaml.Node // Parallel to keys, for YAML mappings
 }
 
 func (n *node) decodeInto(out interface{}) error {
@@ -305,6 +307,7 @@ func addYAMLMapping(n *node, y *yaml.Node, seen map[string]bool) {
 		}
 		seen[key.Value] = true
 		n.keys = append(n.keys, key.Value)
+		n.keyNodes = append(n.keyNodes, key)
 		n.values = append(n.values, yamlToNode(value))
 	}
 
@@ -335,6 +338,14 @@ var (
 	jsonUnmarshalerType = reflect.TypeOf((*json.Unmarshaler)(nil)).Elem()
 	textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 	yamlUnmarshalerType = reflect.TypeOf((*yaml.Unmarshaler)(nil)).Elem()
+
+	// yaml.v3 still honours the func-signature form, through an unexported interface.
+	yamlFuncUnmarshalerType = reflect.TypeOf((*interface {
+		UnmarshalYAML(func(interface{}) error) error
+	})(nil)).Elem()
+	yamlNodeType = reflect.TypeOf(yaml.Node{})
+
+	jsonNumberType = reflect.TypeOf(json.Number(""))
 )
 
 // decodesItself reports whether typ owns its decoding, which makes it a leaf whatever its Kind.
@@ -344,7 +355,7 @@ func decodesItself(typ reflect.Type, n *node) bool {
 		return true
 	}
 	if n.yml != nil {
-		return ptr.Implements(yamlUnmarshalerType)
+		return typ == yamlNodeType || ptr.Implements(yamlUnmarshalerType) || ptr.Implements(yamlFuncUnmarshalerType)
 	}
 	return ptr.Implements(jsonUnmarshalerType)
 }
@@ -357,7 +368,12 @@ type walker struct {
 }
 
 func (w *walker) fail(path *fieldPath, n *node, typ reflect.Type, message string) {
-	w.report(path, n.value(), typ.String(), message)
+	// Sensitivity is judged on the path down to n, so keys inside n must not reach Value.
+	var value interface{} = n.describe()
+	if n.kind == nodeScalar {
+		value = n.value()
+	}
+	w.report(path, value, typ.String(), message)
 }
 
 func (w *walker) report(path *fieldPath, value interface{}, typ, message string) {
@@ -375,10 +391,7 @@ func (w *walker) assign(n *node, out reflect.Value, path *fieldPath) {
 
 	typ := out.Type()
 	if n.kind == nodeNull {
-		switch out.Kind() {
-		case reflect.Ptr, reflect.Map, reflect.Slice, reflect.Interface:
-			out.Set(reflect.Zero(typ))
-		}
+		w.assignNull(n, out, path)
 		return
 	}
 
@@ -413,6 +426,21 @@ func (w *walker) assign(n *node, out reflect.Value, path *fieldPath) {
 	}
 }
 
+// assignNull follows the decoders: an addressable UnmarshalJSON sees the null, a pointer is
+// cleared without calling it, and a yaml.Node keeps the null node. The format has to be read
+// from the walker, since an empty YAML document is a null with no yaml.Node behind it.
+func (w *walker) assignNull(n *node, out reflect.Value, path *fieldPath) {
+	seesNull := w.format == FormatJSON && out.Kind() != reflect.Ptr && reflect.PointerTo(out.Type()).Implements(jsonUnmarshalerType)
+	if seesNull || (n.yml != nil && out.Type() == yamlNodeType) {
+		w.assignSelfDecoding(n, out, path)
+		return
+	}
+	switch out.Kind() {
+	case reflect.Ptr, reflect.Map, reflect.Slice, reflect.Interface:
+		out.Set(reflect.Zero(out.Type()))
+	}
+}
+
 func (w *walker) assignSelfDecoding(n *node, out reflect.Value, path *fieldPath) {
 	err := n.decodeInto(out.Addr().Interface())
 	if err == nil {
@@ -432,10 +460,38 @@ func (w *walker) assignScalar(n *node, out reflect.Value, path *fieldPath) {
 		w.fail(path, n, out.Type(), fmt.Sprintf("cannot coerce %s to %s", n.describe(), out.Type()))
 		return
 	}
-	if err := n.decodeInto(out.Addr().Interface()); err == nil {
+	if n.yml != nil && out.Type() == jsonNumberType {
+		w.assignYAMLNumber(n, out, path)
 		return
 	}
+	if !yamlTruncates(n, out) {
+		if err := n.decodeInto(out.Addr().Interface()); err == nil {
+			return
+		}
+	}
 	w.coerceScalar(n, out, path)
+}
+
+// yamlTruncates picks out the case yaml.v3 gets wrong: it truncates a float into an integer and
+// does not range-check a float. Its other number handling has to stay, since it also parses
+// "30s" into a time.Duration.
+func yamlTruncates(n *node, out reflect.Value) bool {
+	return n.yml != nil && (out.CanInt() || out.CanUint() || out.CanFloat()) && n.yml.ShortTag() == "!!float"
+}
+
+// assignYAMLNumber keeps the digits as written, which is the reason json.Number exists.
+// yaml.v3 would store any scalar in it, since it is a string kind.
+func (w *walker) assignYAMLNumber(n *node, out reflect.Value, path *fieldPath) {
+	if isJSONNumber(n.yml.Value) {
+		out.SetString(n.yml.Value)
+		return
+	}
+	// Spellings only YAML has, like 0x10, go through their value.
+	if tag := n.yml.ShortTag(); tag == "!!int" || tag == "!!float" {
+		w.coerceScalar(n, out, path)
+		return
+	}
+	w.fail(path, n, out.Type(), fmt.Sprintf("%q is not a number", n.yml.Value))
 }
 
 func (w *walker) coerceScalar(n *node, out reflect.Value, path *fieldPath) {
@@ -493,7 +549,46 @@ func (w *walker) assignStruct(n *node, out reflect.Value, path *fieldPath) {
 			w.report(here, nil, out.Type().String(), err.Error())
 			continue
 		}
-		w.assign(n.values[i], dst, here)
+		value := n.values[i]
+		if entry.quoted {
+			value = unquoted(value)
+		}
+		w.assign(value, dst, here)
+	}
+}
+
+// unquoted undoes the json ",string" option, which wraps a scalar in a JSON string. Anything
+// else stays as it is, for coercion to judge. The depth scan skips string contents, so nesting
+// here must be refused before it reaches the recursive node builder.
+func unquoted(n *node) *node {
+	text, isString := n.scalar.(string)
+	if n.kind != nodeScalar || !isString {
+		return n
+	}
+	raw := []byte(text)
+	if len(raw) == 0 || len(bytes.TrimSpace(raw)) != len(raw) || raw[0] == '{' || raw[0] == '[' || !json.Valid(raw) {
+		return n
+	}
+	inner, err := parseJSONNode(raw)
+	if err != nil {
+		return n
+	}
+	return inner
+}
+
+// isQuoted reports the ",string" option, which encoding/json honours only on scalars.
+func isQuoted(sf reflect.StructField, target reflect.Type) bool {
+	_, options, _ := strings.Cut(sf.Tag.Get("json"), ",")
+	if !strings.Contains(","+options+",", ",string,") {
+		return false
+	}
+	switch target.Kind() {
+	case reflect.Bool, reflect.String, reflect.Float32, reflect.Float64,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -502,11 +597,16 @@ func (w *walker) assignInline(table *fieldTable, key string, value *node, out re
 	if table.inlineMap == nil {
 		return
 	}
-	dst := out.FieldByIndex(table.inlineMap)
+	here := &fieldPath{parent: path, kind: pathField, name: table.inlinePath, hidden: table.inlineHidden}
+	dst, err := fieldByIndex(out, table.inlineMap)
+	if err != nil {
+		w.report(here, nil, out.Type().String(), err.Error())
+		return
+	}
 	if dst.IsNil() {
 		dst.Set(reflect.MakeMap(dst.Type()))
 	}
-	w.assignMapEntry(key, value, dst, path.hiddenIf(table.inlineHidden))
+	w.assignMapEntry(key, value, dst, here)
 }
 
 func (w *walker) assignSlice(n *node, out reflect.Value, path *fieldPath) {
@@ -553,8 +653,36 @@ func (w *walker) assignMap(n *node, out reflect.Value, path *fieldPath) {
 		out.Set(reflect.MakeMapWithSize(typ, len(n.keys)))
 	}
 	for i, key := range n.keys {
+		if n.yml != nil && typ.Key().Kind() == reflect.Interface {
+			w.assignTypedKeyEntry(n.keyNodes[i], key, n.values[i], out, path)
+			continue
+		}
 		w.assignMapEntry(key, n.values[i], out, path)
 	}
+}
+
+// assignTypedKeyEntry keeps the type of a YAML key for an interface-keyed map. Only the key goes
+// to yaml.v3: the value stays on the walker, or it would lose coercion, json tags and redaction.
+func (w *walker) assignTypedKeyEntry(keyNode *yaml.Node, key string, value *node, out reflect.Value, path *fieldPath) {
+	keyType := out.Type().Key()
+
+	var typed interface{}
+	if err := keyNode.Decode(&typed); err != nil {
+		w.report(&fieldPath{parent: path, kind: pathKey, key: key}, key, keyType.String(), err.Error())
+		return
+	}
+
+	// The validation walk labels entries this way, and it skips failed paths by label.
+	here := &fieldPath{parent: path, kind: pathKey, key: fmt.Sprint(typed)}
+	mapKey := reflect.New(keyType).Elem()
+	if typed != nil {
+		if !reflect.TypeOf(typed).AssignableTo(keyType) {
+			w.report(here, key, keyType.String(), fmt.Sprintf("cannot use %T as a map key", typed))
+			return
+		}
+		mapKey.Set(reflect.ValueOf(typed))
+	}
+	w.setMapEntry(mapKey, value, out, here)
 }
 
 func (w *walker) assignMapEntry(key string, value *node, out reflect.Value, path *fieldPath) {
@@ -566,7 +694,11 @@ func (w *walker) assignMapEntry(key string, value *node, out reflect.Value, path
 		w.report(here, key, typ.Key().String(), err.Error())
 		return
 	}
-	elem := reflect.New(typ.Elem()).Elem()
+	w.setMapEntry(mapKey, value, out, here)
+}
+
+func (w *walker) setMapEntry(mapKey reflect.Value, value *node, out reflect.Value, here *fieldPath) {
+	elem := reflect.New(out.Type().Elem()).Elem()
 	w.assign(value, elem, here)
 	out.SetMapIndex(mapKey, elem)
 }
@@ -612,6 +744,7 @@ type fieldEntry struct {
 	depth  int
 	tag    bool
 	hidden bool // Kept out of JSON, so set only by YAML
+	quoted bool // Has the json ",string" option
 }
 
 type fieldTable struct {
@@ -619,6 +752,7 @@ type fieldTable struct {
 	ordered   []*fieldEntry
 	inlineMap []int
 
+	inlinePath   string
 	inlineHidden bool // The inline map is kept out of JSON
 }
 
@@ -706,7 +840,7 @@ func buildJSONFields(typ reflect.Type) *fieldTable {
 					continue
 				}
 
-				entry := &fieldEntry{name: name, index: index, path: path, depth: depth, tag: name != ""}
+				entry := &fieldEntry{name: name, index: index, path: path, depth: depth, tag: name != "", quoted: isQuoted(sf, elem)}
 				if entry.name == "" {
 					entry.name = sf.Name
 				}
@@ -799,6 +933,7 @@ func buildYAMLFields(typ reflect.Type) *fieldTable {
 
 	built := newFieldTable(fields)
 	built.inlineMap = table.inlineMap
+	built.inlinePath = table.inlinePath
 	built.inlineHidden = table.inlineHidden
 	return built
 }
@@ -818,7 +953,10 @@ func collectYAMLFields(typ reflect.Type, index []int, path string, hidden bool, 
 		}
 
 		fieldIndex := append(append([]int(nil), index...), i)
-		fieldPath := joinFieldNames(path, sf.Name)
+		fieldPath := path
+		if sf.IsExported() {
+			fieldPath = joinFieldNames(path, sf.Name)
+		}
 		_, jsonHidden := jsonFieldName(sf)
 		jsonHidden = jsonHidden || hidden
 		if inline {
@@ -830,8 +968,11 @@ func collectYAMLFields(typ reflect.Type, index []int, path string, hidden bool, 
 			case reflect.Struct:
 				collectYAMLFields(elem, fieldIndex, fieldPath, jsonHidden, active, fields, table)
 			case reflect.Map:
-				table.inlineMap = fieldIndex
-				table.inlineHidden = jsonHidden
+				if sf.IsExported() && sf.Type.Kind() == reflect.Map {
+					table.inlineMap = fieldIndex
+					table.inlinePath = fieldPath
+					table.inlineHidden = jsonHidden
+				}
 			}
 			continue
 		}
@@ -847,7 +988,8 @@ func yamlFieldName(sf reflect.StructField) (name string, inline, skip bool) {
 	name, options, _ := strings.Cut(tag, ",")
 	inline = strings.Contains(","+options+",", ",inline,")
 
-	if !sf.IsExported() && !inline {
+	// As in yaml.v3, only an embedded struct is reachable when unexported.
+	if !sf.IsExported() && !(inline && sf.Anonymous) {
 		return "", false, true
 	}
 	if name != "" || inline {
@@ -884,10 +1026,11 @@ func coerceContainer(value interface{}, targetType reflect.Type, fieldName strin
 		path = &fieldPath{kind: pathField, name: fieldName}
 	}
 	w.assign(root, out, path)
-	if len(w.errs) == 1 {
-		return nil, w.errs[0]
+	err = validateParsed(out, w.errs, failedPaths(w.errs, fieldName))
+	if list, isList := err.(ErrorList); isList && len(list) == 1 {
+		return nil, list[0]
 	}
-	if err := w.errs.AsError(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 	return out.Interface(), nil

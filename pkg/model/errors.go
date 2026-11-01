@@ -211,7 +211,7 @@ func (el *ErrorList) addCapped(err error) {
 		return
 	}
 	el.Add(err)
-	if len(*el) >= maxErrors {
+	if len(*el) > maxErrors {
 		*el = append((*el)[:maxErrors:maxErrors], errTooManyErrors)
 	}
 }

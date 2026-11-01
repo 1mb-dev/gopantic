@@ -53,7 +53,11 @@ func coerceValue(value interface{}, targetType reflect.Type, fieldName string, f
 	targetKind := targetType.Kind()
 	switch targetKind {
 	case reflect.String:
-		return coerceToString(value, fieldName)
+		coerced, err := coerceToString(value, fieldName)
+		if err == nil && targetType == jsonNumberType && !isJSONNumber(coerced) {
+			return nil, NewParseError(fieldName, value, targetType.String(), fmt.Sprintf("%q is not a number", coerced))
+		}
+		return coerced, err
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return coerceToInt(value, targetType, fieldName)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -68,6 +72,18 @@ func coerceValue(value interface{}, targetType reflect.Type, fieldName string, f
 		return nil, NewParseError(fieldName, value, targetType.String(),
 			fmt.Sprintf("coercion to %s not supported", targetType))
 	}
+}
+
+// isJSONNumber checks both ends as well, since json.Valid allows surrounding whitespace.
+func isJSONNumber(s string) bool {
+	if s == "" || !json.Valid([]byte(s)) {
+		return false
+	}
+	return (s[0] == '-' || isDigit(s[0])) && isDigit(s[len(s)-1])
+}
+
+func isDigit(c byte) bool {
+	return c >= '0' && c <= '9'
 }
 
 // coerceToString converts scalars to string. Containers are rejected, since formatting one
@@ -322,7 +338,7 @@ func coerceToBool(value interface{}, fieldName string) (bool, error) {
 		return rv.Int() != 0, nil
 	case rv.CanUint():
 		return rv.Uint() != 0, nil
-	case rv.CanFloat():
+	case rv.CanFloat() && !math.IsNaN(rv.Float()):
 		return rv.Float() != 0, nil
 	}
 	return false, NewParseError(fieldName, value, "bool", fmt.Sprintf("cannot coerce %T to bool", value))
@@ -336,8 +352,7 @@ func coerceToTime(value interface{}, fieldName string) (time.Time, error) {
 	case string:
 		return parseTimeFromString(v, fieldName)
 	case int64:
-		// Unix timestamp (seconds)
-		return time.Unix(v, 0), nil
+		return unixTime(float64(v), value, fieldName)
 	case json.Number:
 		f, err := v.Float64()
 		if err != nil {
@@ -345,17 +360,28 @@ func coerceToTime(value interface{}, fieldName string) (time.Time, error) {
 		}
 		return coerceToTime(f, fieldName)
 	case float64:
-		// Unix timestamp (seconds, may have fractional part)
-		sec := int64(v)
-		nsec := int64((v - float64(sec)) * 1e9)
-		return time.Unix(sec, nsec), nil
+		return unixTime(v, value, fieldName)
 	case int:
-		// Unix timestamp (seconds)
-		return time.Unix(int64(v), 0), nil
+		return unixTime(float64(v), value, fieldName)
 	default:
 		return time.Time{}, NewParseError(fieldName, value, "time.Time",
 			fmt.Sprintf("cannot coerce %T to time.Time", value))
 	}
+}
+
+// Unix seconds at the start of year 1 and the end of year 9999, the years RFC 3339 can write.
+const (
+	minUnixSeconds = -62135596800
+	maxUnixSeconds = 253402300799
+)
+
+// unixTime converts Unix seconds, which may be fractional.
+func unixTime(seconds float64, value interface{}, fieldName string) (time.Time, error) {
+	if math.IsNaN(seconds) || seconds < minUnixSeconds || seconds > maxUnixSeconds {
+		return time.Time{}, NewParseError(fieldName, value, "time.Time", "timestamp is out of range")
+	}
+	whole, fraction := math.Modf(seconds)
+	return time.Unix(int64(whole), int64(fraction*1e9)), nil
 }
 
 // parseTimeFromString attempts to parse time from string using multiple formats.

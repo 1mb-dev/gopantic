@@ -742,6 +742,36 @@ type ctCoerceTwo struct {
 	Name string `json:"name" validate:"required"`
 }
 
+type ctInnerPass struct {
+	Pass string
+}
+
+type ctPtrEmbedRule struct {
+	*ctInnerPass
+	Confirm string `validate:"ct_same_pass"`
+}
+
+type ctPtrEmbedOuter struct {
+	ctPtrEmbedRule
+}
+
+type ctSiblingRule struct {
+	secret  string
+	Confirm string `validate:"ct_same_secret"`
+}
+
+type ctSiblingOuter struct {
+	ctSiblingRule
+}
+
+type ctAnyKeyItems struct {
+	M map[interface{}]ctItem `yaml:"m"`
+}
+
+type ctAnyKeyAges struct {
+	M map[interface{}]ctYExtraItem `yaml:"m"`
+}
+
 type ctMinOverride struct {
 	A string `json:"a" validate:"ct_override=abc"`
 }
@@ -1091,6 +1121,25 @@ func contractRows() []contractRow {
 			}
 			return wantError[ctNumber](`{"n":"12\n"}`)
 		}},
+		{"numeric", "a YAML json.Number keeps its digits", 0, func() error {
+			for _, want := range []string{"123456789012345678901234567890", "1.10", "1e3"} {
+				got, err := model.ParseIntoWithFormat[ctNumber]([]byte("n: "+want+"\n"), model.FormatYAML)
+				if err != nil || string(got.N) != want {
+					return fmt.Errorf("%s: got %+v, err %v", want, got, err)
+				}
+			}
+			return nil
+		}},
+		{"numeric", "a YAML json.Number takes every number YAML reads", 0, func() error {
+			for input, want := range map[string]string{"0x10": "16", "1_000": "1000", "0o17": "15", ".5": "0.5", "007": "7", "+5": "5"} {
+				got, err := model.ParseIntoWithFormat[ctNumber]([]byte("n: "+input+"\n"), model.FormatYAML)
+				if err != nil || string(got.N) != want {
+					return fmt.Errorf("%s: got %+v, err %v", input, got, err)
+				}
+			}
+			return wantYAMLError[ctNumber]("n: .inf\n")
+		}},
+		{"numeric", ",string rejects padding", 0, func() error { return wantError[ctQuotedInt](`{"a":" 12 "}`) }},
 		{"numeric", "uint rejects a negative", 0, func() error { return wantError[ctUint](`{"v":-1}`) }},
 		{"numeric", "minimum int8 still fits", 0, func() error { return wantValue(`{"v":-128}`, ctI8{V: -128}) }},
 		{"numeric", "maximum uint8 still fits", 0, func() error { return wantValue(`{"v":"255"}`, ctU8{V: 255}) }},
@@ -1324,6 +1373,16 @@ func contractRows() []contractRow {
 		}},
 		{"yaml", "interface map rejects a key that cannot be hashed", 0, func() error {
 			return wantYAMLError[ctAnyKeyInts]("meta:\n  ? [1, 2]\n  : 1\n")
+		}},
+		{"yaml", "typed interface keys report a failed entry once", 0, func() error {
+			for _, key := range []string{"0x10", "~", "1.50"} {
+				_, err := model.ParseIntoWithFormat[ctAnyKeyAges]([]byte("m:\n  "+key+": {age: x}\n"), model.FormatYAML)
+				var list model.ErrorList
+				if !errors.As(err, &list) || len(list) != 1 {
+					return fmt.Errorf("%s: got %v", key, err)
+				}
+			}
+			return nil
 		}},
 		{"yaml", "plain alias", 0, func() error {
 			const body = "x: &x {a: 1, b: 2}\nv: *x\n"
@@ -1638,6 +1697,21 @@ func contractRows() []contractRow {
 				return errors.New("mismatch passed")
 			}
 			return nil
+		}},
+		{"validation", "cross-field rule sees an embedded pointer in its embed", 0, func() error {
+			outer := ctPtrEmbedOuter{ctPtrEmbedRule{&ctInnerPass{Pass: "a"}, "a"}}
+			return model.Validate(&outer)
+		}},
+		{"validation", "cross-field rule sees an unexported sibling in its embed", 0, func() error {
+			outer := ctSiblingOuter{ctSiblingRule{"s", "s"}}
+			return model.Validate(&outer)
+		}},
+		{"validation", "cross-field rule in an embed under a map value", 0, func() error {
+			_, err := model.ParseInto[map[string]ctEmbedCross]([]byte(`{"k":{"a":"x"}}`))
+			return err
+		}},
+		{"validation", "a NaN map key cannot hide its entry from the rules", 0, func() error {
+			return wantYAMLError[ctAnyKeyItems]("m: {.nan: {}}\n")
 		}},
 		{"validation", "rules behind an unexported embedded pointer run", 0, func() error {
 			if err := model.Validate(&ctEmbedPtr{&ctEmbedPtrBase{}}); err == nil {
@@ -2088,6 +2162,12 @@ func TestContract(t *testing.T) {
 	model.RegisterGlobalCrossFieldFunc("ct_same_pass", func(field string, value interface{}, parent reflect.Value, _ map[string]interface{}) error {
 		if parent.Interface() == nil || parent.FieldByName("Pass").String() != value.(string) {
 			return model.NewValidationError(field, value, "ct_same_pass", "fields differ")
+		}
+		return nil
+	})
+	model.RegisterGlobalCrossFieldFunc("ct_same_secret", func(field string, value interface{}, parent reflect.Value, _ map[string]interface{}) error {
+		if parent.FieldByName("secret").String() != value.(string) {
+			return model.NewValidationError(field, value, "ct_same_secret", "fields differ")
 		}
 		return nil
 	})

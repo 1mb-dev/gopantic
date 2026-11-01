@@ -460,7 +460,11 @@ func (w *walker) assignScalar(n *node, out reflect.Value, path *fieldPath) {
 		w.fail(path, n, out.Type(), fmt.Sprintf("cannot coerce %s to %s", n.describe(), out.Type()))
 		return
 	}
-	if !yamlDecoderMisreads(n, out) {
+	if n.yml != nil && out.Type() == jsonNumberType {
+		w.assignYAMLNumber(n, out, path)
+		return
+	}
+	if !yamlTruncates(n, out) {
 		if err := n.decodeInto(out.Addr().Interface()); err == nil {
 			return
 		}
@@ -468,21 +472,26 @@ func (w *walker) assignScalar(n *node, out reflect.Value, path *fieldPath) {
 	w.coerceScalar(n, out, path)
 }
 
-// yamlDecoderMisreads picks out what yaml.v3 gets wrong: it truncates a float into an integer,
-// does not range-check a float, and stores any scalar into a json.Number, which is a string
-// kind. Its other number handling has to stay, since it also parses "30s" into a time.Duration.
-func yamlDecoderMisreads(n *node, out reflect.Value) bool {
-	if n.yml == nil {
-		return false
+// yamlTruncates picks out the case yaml.v3 gets wrong: it truncates a float into an integer and
+// does not range-check a float. Its other number handling has to stay, since it also parses
+// "30s" into a time.Duration.
+func yamlTruncates(n *node, out reflect.Value) bool {
+	return n.yml != nil && (out.CanInt() || out.CanUint() || out.CanFloat()) && n.yml.ShortTag() == "!!float"
+}
+
+// assignYAMLNumber keeps the digits as written, which is the reason json.Number exists.
+// yaml.v3 would store any scalar in it, since it is a string kind.
+func (w *walker) assignYAMLNumber(n *node, out reflect.Value, path *fieldPath) {
+	if isJSONNumber(n.yml.Value) {
+		out.SetString(n.yml.Value)
+		return
 	}
-	if out.Type() == jsonNumberType {
-		return true
+	// Spellings only YAML has, like 0x10, go through their value.
+	if tag := n.yml.ShortTag(); tag == "!!int" || tag == "!!float" {
+		w.coerceScalar(n, out, path)
+		return
 	}
-	if !(out.CanInt() || out.CanUint() || out.CanFloat()) {
-		return false
-	}
-	_, isFloat := n.value().(float64)
-	return isFloat
+	w.fail(path, n, out.Type(), fmt.Sprintf("%q is not a number", n.yml.Value))
 }
 
 func (w *walker) coerceScalar(n *node, out reflect.Value, path *fieldPath) {
@@ -556,8 +565,8 @@ func unquoted(n *node) *node {
 	if n.kind != nodeScalar || !isString {
 		return n
 	}
-	raw := bytes.TrimSpace([]byte(text))
-	if len(raw) == 0 || raw[0] == '{' || raw[0] == '[' || !json.Valid(raw) {
+	raw := []byte(text)
+	if len(raw) == 0 || len(bytes.TrimSpace(raw)) != len(raw) || raw[0] == '{' || raw[0] == '[' || !json.Valid(raw) {
 		return n
 	}
 	inner, err := parseJSONNode(raw)
@@ -655,20 +664,20 @@ func (w *walker) assignMap(n *node, out reflect.Value, path *fieldPath) {
 // assignTypedKeyEntry keeps the type of a YAML key for an interface-keyed map. Only the key goes
 // to yaml.v3: the value stays on the walker, or it would lose coercion, json tags and redaction.
 func (w *walker) assignTypedKeyEntry(keyNode *yaml.Node, key string, value *node, out reflect.Value, path *fieldPath) {
-	here := &fieldPath{parent: path, kind: pathKey, key: key}
 	keyType := out.Type().Key()
 
 	var typed interface{}
 	if err := keyNode.Decode(&typed); err != nil {
-		w.report(here, key, keyType.String(), err.Error())
+		w.report(&fieldPath{parent: path, kind: pathKey, key: key}, key, keyType.String(), err.Error())
 		return
 	}
 
+	// The validation walk labels entries this way, and it skips failed paths by label.
+	here := &fieldPath{parent: path, kind: pathKey, key: fmt.Sprint(typed)}
 	mapKey := reflect.New(keyType).Elem()
 	if typed != nil {
-		typedType := reflect.TypeOf(typed)
-		if !typedType.Comparable() || !typedType.AssignableTo(keyType) {
-			w.report(here, key, keyType.String(), fmt.Sprintf("cannot use %s as a map key", typedType))
+		if !reflect.TypeOf(typed).AssignableTo(keyType) {
+			w.report(here, key, keyType.String(), fmt.Sprintf("cannot use %T as a map key", typed))
 			return
 		}
 		mapKey.Set(reflect.ValueOf(typed))

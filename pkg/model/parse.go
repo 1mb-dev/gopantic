@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unsafe"
 )
 
 // Performance optimization caches
@@ -312,17 +313,21 @@ func reachesRules(typ reflect.Type) bool {
 func (w *validationWalk) mapValues(val reflect.Value, path *fieldPath, depth int) {
 	type entry struct {
 		label string
-		key   reflect.Value
+		value reflect.Value
 	}
 	entries := make([]entry, 0, val.Len())
-	for _, key := range val.MapKeys() {
-		entries = append(entries, entry{label: fmt.Sprint(key.Interface()), key: key})
+	// MapRange, because MapIndex cannot find a NaN key. Each value is copied into addressable
+	// memory, which applyRules needs for a read-only embed.
+	for iter := val.MapRange(); iter.Next(); {
+		value := reflect.New(val.Type().Elem()).Elem()
+		value.SetIterValue(iter)
+		entries = append(entries, entry{label: fmt.Sprint(iter.Key().Interface()), value: value})
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].label < entries[j].label })
 
 	for i := 0; i < len(entries) && !w.errs.full(); i++ {
 		segment := &fieldPath{parent: path, kind: pathKey, key: entries[i].label}
-		w.value(val.MapIndex(entries[i].key), segment, depth)
+		w.value(entries[i].value, segment, depth)
 	}
 }
 
@@ -384,42 +389,14 @@ func (w *validationWalk) field(parent reflect.Value, i int, validation *StructVa
 }
 
 func (w *validationWalk) applyRules(val reflect.Value, rules []ValidationRule, parent reflect.Value, path *fieldPath) {
-	if !parent.CanInterface() && hasCrossFieldRule(rules) {
-		parent = readableCopy(parent)
+	// reflect marks an unexported embed read-only, and a cross-field rule has to be able to
+	// call Interface on the struct it is given. The outer struct will not do: promotion would
+	// let its fields shadow the ones the rule means.
+	if !parent.CanInterface() && parent.CanAddr() {
+		parent = reflect.NewAt(parent.Type(), unsafe.Pointer(parent.UnsafeAddr())).Elem() //nolint:gosec // Same memory and type, only the read-only flag differs.
 	}
 	if err := ValidateValueWithStruct(path.name, val.Interface(), rules, parent); err != nil {
 		w.errs.addCapped(withFieldPath(err, path.String(), path.sensitive()))
-	}
-}
-
-func hasCrossFieldRule(rules []ValidationRule) bool {
-	for i := range rules {
-		if _, ok := rules[i].Validator.(*CrossFieldValidator); ok {
-			return true
-		}
-	}
-	return false
-}
-
-// readableCopy rebuilds an unexported embed from its exported fields. reflect marks the embed
-// read-only, and a cross-field rule has to be able to call Interface on the struct it is given.
-// Handing it the outer struct instead would resolve names through promotion, where a field of
-// the outer struct can shadow the one the rule means.
-func readableCopy(embed reflect.Value) reflect.Value {
-	out := reflect.New(embed.Type()).Elem()
-	copyExported(out, embed)
-	return out
-}
-
-func copyExported(dst, src reflect.Value) {
-	for i := 0; i < src.NumField(); i++ {
-		field := src.Type().Field(i)
-		switch {
-		case field.IsExported():
-			dst.Field(i).Set(src.Field(i))
-		case field.Anonymous && field.Type.Kind() == reflect.Struct:
-			copyExported(dst.Field(i), src.Field(i))
-		}
 	}
 }
 

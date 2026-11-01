@@ -2,6 +2,7 @@ package tests
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"reflect"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/1mb-dev/gopantic/pkg/model"
+	"gopkg.in/yaml.v3"
 )
 
 type ctCacheLeaf struct {
@@ -85,6 +87,78 @@ type ctCacheKid struct {
 
 func (k *ctCacheKid) UnmarshalJSON([]byte) error {
 	k.kids = make([]ctCacheKid, 1)
+	return nil
+}
+
+// ctCacheBranch hides a value of the type that holds it, a cycle whose back edge is a struct.
+type ctCacheBranch struct {
+	sub ctCacheTree
+}
+
+func (b *ctCacheBranch) UnmarshalJSON([]byte) error {
+	b.sub.Kids = make([]ctCacheBranch, 1)
+	return nil
+}
+
+type ctCacheTree struct {
+	Kids []ctCacheBranch `json:"kids"`
+}
+
+// ctCacheDag shares its children, so a copy that follows every path takes 2^depth steps.
+type ctCacheDag struct {
+	L, R *ctCacheDag
+}
+
+type ctCacheDagRoot struct {
+	N *ctCacheDag
+}
+
+func (r *ctCacheDagRoot) UnmarshalJSON([]byte) error {
+	for i := 0; i < 40; i++ {
+		r.N = &ctCacheDag{L: r.N, R: r.N}
+	}
+	return nil
+}
+
+// ctCacheLoop points at itself.
+type ctCacheLoop struct {
+	Self *ctCacheLoop
+	Name string
+}
+
+func (l *ctCacheLoop) UnmarshalJSON([]byte) error {
+	l.Self, l.Name = l, "loop"
+	return nil
+}
+
+// ctCacheChain is too deep to copy.
+type ctCacheChain struct {
+	Next *ctCacheChain
+}
+
+func (c *ctCacheChain) UnmarshalJSON([]byte) error {
+	for i := 0; i < 5000; i++ {
+		c.Next = &ctCacheChain{Next: c.Next}
+	}
+	return nil
+}
+
+type ctCacheYAMLNode struct {
+	Cfg yaml.Node `yaml:"cfg"`
+}
+
+// ctCacheOrdered can only be copied when map iteration happens to visit "b" first, so a stored
+// value may fail to copy on a later hit.
+type ctCacheOrdered struct {
+	M map[string]*ctCacheChain
+}
+
+func (o *ctCacheOrdered) UnmarshalJSON([]byte) error {
+	nodes := make([]ctCacheChain, 800)
+	for i := 0; i+1 < len(nodes); i++ {
+		nodes[i].Next = &nodes[i+1]
+	}
+	o.M = map[string]*ctCacheChain{"a": &nodes[0], "b": &nodes[400]}
 	return nil
 }
 
@@ -258,6 +332,24 @@ func TestCachedParserBypassesUncopyableTypes(t *testing.T) {
 		}
 	})
 
+	t.Run("unexported field reaching back through a struct", func(t *testing.T) {
+		cached := model.NewCachedParser[ctCacheTree](nil)
+		defer cached.Close()
+
+		input := []byte(`{"kids":[{}]}`)
+		first, err := cached.Parse(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := cached.Parse(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if &first.Kids[0].sub.Kids[0] == &second.Kids[0].sub.Kids[0] {
+			t.Fatal("results share a backing array")
+		}
+	})
+
 	t.Run("big.Int behind a pointer", func(t *testing.T) {
 		cached := model.NewCachedParser[ctCacheBig](nil)
 		defer cached.Close()
@@ -276,6 +368,112 @@ func TestCachedParserBypassesUncopyableTypes(t *testing.T) {
 			t.Fatalf("got %v", second.N)
 		}
 	})
+}
+
+func TestCachedParserCopiesSharedPointersOnce(t *testing.T) {
+	cached := model.NewCachedParser[ctCacheDagRoot](nil)
+	defer cached.Close()
+
+	input := []byte(`{}`)
+	if _, err := cached.Parse(input); err != nil {
+		t.Fatal(err)
+	}
+	hit, err := cached.Parse(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hit.N.L != hit.N.R {
+		t.Fatal("copy lost the sharing in the original")
+	}
+}
+
+func TestCachedParserCopiesACycle(t *testing.T) {
+	cached := model.NewCachedParser[ctCacheLoop](nil)
+	defer cached.Close()
+
+	input := []byte(`{}`)
+	if _, err := cached.Parse(input); err != nil {
+		t.Fatal(err)
+	}
+	first, err := cached.Parse(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := cached.Parse(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Self == second.Self {
+		t.Fatal("results share a node")
+	}
+	if first.Self.Self != first.Self || first.Self.Name != "loop" {
+		t.Fatal("copy did not keep the loop")
+	}
+}
+
+func TestCachedParserLeavesTooDeepValuesUncached(t *testing.T) {
+	cached := model.NewCachedParser[ctCacheChain](nil)
+	defer cached.Close()
+
+	got, err := cached.Parse([]byte(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Next == nil {
+		t.Fatal("no chain")
+	}
+	if size, _, _ := cached.Stats(); size != 0 {
+		t.Fatalf("size %d: a value past the copy depth must not be stored", size)
+	}
+}
+
+// Copying depends on map order here, so one stored value succeeds on some hits and fails on
+// others. A failed copy must not hand back the cached map.
+func TestCachedParserNeverReturnsAFailedCopy(t *testing.T) {
+	input := []byte(`{}`)
+	for i := 0; i < 200; i++ {
+		cached := model.NewCachedParser[ctCacheOrdered](&model.CacheConfig{TTL: time.Hour, MaxEntries: 10})
+		for j := 0; j < 8; j++ {
+			got, err := cached.Parse(input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(got.M) != 2 {
+				t.Fatalf("parser %d, call %d: a caller's write reached the cache: %d entries", i, j, len(got.M))
+			}
+			got.M["mutated"] = nil
+		}
+		cached.Close()
+	}
+}
+
+func TestCachedParserAliasesStaySmall(t *testing.T) {
+	// The plain values keep yaml.v3's alias ratio check quiet, so the aliases reach the cache.
+	input := strings.Builder{}
+	input.WriteString("pad: [" + strings.Repeat("1, ", 1000) + "1]\n")
+	input.WriteString("base: &a0 {k: v}\n")
+	for i := 1; i < 7; i++ {
+		fmt.Fprintf(&input, "l%d: &a%d [*a%d, *a%d, *a%d, *a%d]\n", i, i, i-1, i-1, i-1, i-1)
+	}
+	input.WriteString("cfg: *a6\n")
+
+	cached := model.NewCachedParser[ctCacheYAMLNode](nil)
+	defer cached.Close()
+
+	data := []byte(input.String())
+	for i := 0; i < 2; i++ {
+		if _, err := cached.ParseWithFormat(data, model.FormatYAML); err != nil {
+			t.Fatal(err)
+		}
+	}
+	allocs := testing.AllocsPerRun(5, func() {
+		if _, err := cached.ParseWithFormat(data, model.FormatYAML); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if allocs > 2000 {
+		t.Fatalf("a hit made %v allocations: aliases were expanded", allocs)
+	}
 }
 
 func TestCachedParserKeysOnFormat(t *testing.T) {

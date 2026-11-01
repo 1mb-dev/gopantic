@@ -1324,12 +1324,12 @@ func contractRows() []contractRow {
 		{"panics", "null element in []map", 0, func() error {
 			return wantNoPanicOrError[ctNullElem](`{"trigger":"1","items":[null]}`)
 		}},
-		{"panics", "CachedParser of an interface type", 8, func() error {
+		{"panics", "CachedParser of an interface type", 0, func() error {
 			cached := model.NewCachedParser[any](nil)
 			cached.Close()
 			return nil
 		}},
-		{"panics", "CachedParser closed twice", 8, func() error {
+		{"panics", "CachedParser closed twice", 0, func() error {
 			cached := model.NewCachedParser[ctItem](nil)
 			cached.Close()
 			cached.Close()
@@ -1337,7 +1337,7 @@ func contractRows() []contractRow {
 		}},
 
 		// Cache isolation.
-		{"cache", "mutating a hit does not reach the next caller", 8, func() error {
+		{"cache", "mutating a hit does not reach the next caller", 0, func() error {
 			cached := model.NewCachedParser[ctTagged](nil)
 			defer cached.Close()
 			input := []byte(`{"trigger":1,"tags":["a"]}`)
@@ -1358,7 +1358,7 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
-		{"cache", "mutating a miss does not reach the next caller", 8, func() error {
+		{"cache", "mutating a miss does not reach the next caller", 0, func() error {
 			cached := model.NewCachedParser[ctTagged](nil)
 			defer cached.Close()
 			input := []byte(`{"trigger":2,"tags":["a"]}`)

@@ -58,10 +58,9 @@ var MaxStructureDepth = 64
 //	}
 func ParseInto[T any](raw []byte) (T, error) {
 	// Check input size
-	var zero T
-	maxSize := GetMaxInputSize()
-	if maxSize > 0 && len(raw) > maxSize {
-		return zero, fmt.Errorf("input size %d bytes exceeds maximum allowed size %d bytes", len(raw), maxSize)
+	if err := checkInputSize(raw); err != nil {
+		var zero T
+		return zero, err
 	}
 
 	// Auto-detect format and use appropriate parser
@@ -86,9 +85,8 @@ func ParseIntoWithFormat[T any](raw []byte, format Format) (T, error) {
 	var zero T
 
 	// Check input size
-	maxSize := GetMaxInputSize()
-	if maxSize > 0 && len(raw) > maxSize {
-		return zero, fmt.Errorf("input size %d bytes exceeds maximum allowed size %d bytes", len(raw), maxSize)
+	if err := checkInputSize(raw); err != nil {
+		return zero, err
 	}
 
 	switch format {
@@ -99,6 +97,14 @@ func ParseIntoWithFormat[T any](raw []byte, format Format) (T, error) {
 	default:
 		return zero, fmt.Errorf("unsupported format: %v", format)
 	}
+}
+
+func checkInputSize(raw []byte) error {
+	maxSize := GetMaxInputSize()
+	if maxSize > 0 && len(raw) > maxSize {
+		return fmt.Errorf("input size %d bytes exceeds maximum allowed size %d bytes", len(raw), maxSize)
+	}
+	return nil
 }
 
 // getFieldKey extracts the appropriate field key based on the data format

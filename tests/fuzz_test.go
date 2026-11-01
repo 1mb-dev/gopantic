@@ -1,7 +1,9 @@
 package tests
 
 import (
+	"math"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -230,4 +232,45 @@ func FuzzCoerceSlice(f *testing.F) {
 			_, _ = model.CoerceValue(parsed, sliceType, "fuzz_slice")
 		}
 	})
+}
+
+// FuzzNumericRoundTrip holds the numeric contract: a parse that returns no error returned the
+// number it was given.
+func FuzzNumericRoundTrip(f *testing.F) {
+	for _, seed := range []float64{0, 1, -1, 4.7, 127, 128, -129, 255, 256, 300, 1e3, 1e16, 1e30, 1.79e308, 2147483648, 9007199254740992} {
+		f.Add(seed)
+	}
+
+	f.Fuzz(func(t *testing.T, n float64) {
+		if math.IsNaN(n) || math.IsInf(n, 0) {
+			t.Skip("not representable in JSON")
+		}
+		literal := strconv.FormatFloat(n, 'g', -1, 64)
+		for _, input := range [][]byte{
+			[]byte(`{"v":` + literal + `}`),
+			[]byte(`{"v":"` + literal + `"}`),
+		} {
+			checkRoundTrip[ctI8](t, input, n, func(v ctI8) float64 { return float64(v.V) })
+			checkRoundTrip[ctU8](t, input, n, func(v ctU8) float64 { return float64(v.V) })
+			checkRoundTrip[ctInt](t, input, n, func(v ctInt) float64 { return float64(v.V) })
+			checkRoundTrip[ctUint](t, input, n, func(v ctUint) float64 { return float64(v.V) })
+		}
+		checkRoundTrip[ctI8Slice](t, []byte(`{"v":[`+literal+`]}`), n, func(v ctI8Slice) float64 {
+			if len(v.V) != 1 {
+				return math.NaN()
+			}
+			return float64(v.V[0])
+		})
+	})
+}
+
+func checkRoundTrip[T any](t *testing.T, input []byte, want float64, value func(T) float64) {
+	t.Helper()
+	got, err := model.ParseInto[T](input)
+	if err != nil {
+		return
+	}
+	if value(got) != want {
+		t.Errorf("%s into %T: got %v, want %v", input, got, value(got), want)
+	}
 }

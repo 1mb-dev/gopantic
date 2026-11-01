@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"reflect"
@@ -46,11 +47,11 @@ func CoerceValueWithFormat(value interface{}, targetType reflect.Type, fieldName
 	case reflect.String:
 		return coerceToString(value, fieldName)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return coerceToInt(value, fieldName)
+		return coerceToInt(value, targetType, fieldName)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return coerceToUint(value, fieldName)
+		return coerceToUint(value, targetType, fieldName)
 	case reflect.Float32, reflect.Float64:
-		return coerceToFloat(value, targetKind, fieldName)
+		return coerceToFloat(value, targetType, fieldName)
 	case reflect.Bool:
 		return coerceToBool(value, fieldName)
 	case reflect.Slice:
@@ -67,60 +68,72 @@ func CoerceValueWithFormat(value interface{}, targetType reflect.Type, fieldName
 	}
 }
 
-// coerceToString converts various types to string
-func coerceToString(value interface{}, _ string) (string, error) {
+// coerceToString converts scalars to string. Containers are rejected, since formatting one
+// would hand back Go syntax as if it were the input.
+func coerceToString(value interface{}, fieldName string) (string, error) {
 	switch v := value.(type) {
 	case string:
 		return v, nil
-	case int, int8, int16, int32, int64:
-		return fmt.Sprintf("%d", v), nil
-	case uint, uint8, uint16, uint32, uint64:
-		return fmt.Sprintf("%d", v), nil
-	case float32, float64:
-		return fmt.Sprintf("%g", v), nil
+	case json.Number:
+		return v.String(), nil
 	case bool:
-		if v {
-			return "true", nil
-		}
-		return "false", nil
-	default:
-		return fmt.Sprintf("%v", v), nil
+		return strconv.FormatBool(v), nil
 	}
+
+	rv := reflect.ValueOf(value)
+	switch {
+	case rv.CanInt():
+		return strconv.FormatInt(rv.Int(), 10), nil
+	case rv.CanUint():
+		return strconv.FormatUint(rv.Uint(), 10), nil
+	case rv.CanFloat():
+		return strconv.FormatFloat(rv.Float(), 'f', -1, rv.Type().Bits()), nil
+	}
+
+	switch rv.Kind() {
+	case reflect.Map, reflect.Slice, reflect.Array:
+		return "", NewParseError(fieldName, value, "string", fmt.Sprintf("cannot coerce %T to string", value))
+	}
+	return fmt.Sprintf("%v", value), nil
 }
 
-// coerceToInt converts various types to int64
-func coerceToInt(value interface{}, fieldName string) (int64, error) {
+// coerceToInt converts value to an integer that fits target.
+func coerceToInt(value interface{}, target reflect.Type, fieldName string) (int64, error) {
+	n, err := toInt64(value, fieldName)
+	if err != nil {
+		return 0, err
+	}
+	if target.OverflowInt(n) {
+		return 0, NewParseError(fieldName, value, target.String(), fmt.Sprintf("value %d overflows %s", n, target))
+	}
+	return n, nil
+}
+
+func toInt64(value interface{}, fieldName string) (int64, error) {
+	rv := reflect.ValueOf(value)
+	switch {
+	case rv.CanInt():
+		return rv.Int(), nil
+	case rv.CanUint():
+		u := rv.Uint()
+		if u > math.MaxInt64 {
+			return 0, NewParseError(fieldName, value, "int64", "value too large for int64")
+		}
+		return int64(u), nil
+	case rv.CanFloat():
+		return floatToInt64(rv.Float(), value, fieldName)
+	}
+
 	switch v := value.(type) {
-	case int:
-		return int64(v), nil
-	case int8:
-		return int64(v), nil
-	case int16:
-		return int64(v), nil
-	case int32:
-		return int64(v), nil
-	case int64:
-		return v, nil
-	case uint:
-		if v > math.MaxInt64 {
-			return 0, NewParseError(fieldName, value, "int64", "value too large for int64")
+	case json.Number:
+		if n, err := strconv.ParseInt(v.String(), 10, 64); err == nil {
+			return n, nil
 		}
-		return int64(v), nil
-	case uint8:
-		return int64(v), nil
-	case uint16:
-		return int64(v), nil
-	case uint32:
-		return int64(v), nil
-	case uint64:
-		if v > math.MaxInt64 {
-			return 0, NewParseError(fieldName, value, "int64", "value too large for int64")
+		f, err := v.Float64()
+		if err != nil {
+			return 0, NewParseError(fieldName, value, "int64", fmt.Sprintf("cannot parse number %q: %v", v, err))
 		}
-		return int64(v), nil
-	case float32:
-		return int64(v), nil
-	case float64:
-		return int64(v), nil
+		return floatToInt64(f, value, fieldName)
 	case string:
 		parsed, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
@@ -139,54 +152,64 @@ func coerceToInt(value interface{}, fieldName string) (int64, error) {
 	}
 }
 
-// coerceToUint converts various types to uint64
-func coerceToUint(value interface{}, fieldName string) (uint64, error) {
+func floatToInt64(f float64, value interface{}, fieldName string) (int64, error) {
+	if err := checkIntegralFloat(f, value, "int64", fieldName); err != nil {
+		return 0, err
+	}
+	return int64(f), nil
+}
+
+// checkIntegralFloat rejects floats with no exact integer value. The 2^53 bound also keeps
+// the later conversion in range, so no comparison against a rounded MaxInt64 is needed.
+func checkIntegralFloat(f float64, value interface{}, targetType, fieldName string) error {
+	switch {
+	case math.IsNaN(f) || math.IsInf(f, 0):
+		return NewParseError(fieldName, value, targetType, "value is not a finite number")
+	case f != math.Trunc(f):
+		return NewParseError(fieldName, value, targetType, "value has a fractional part")
+	case math.Abs(f) >= 1<<53:
+		return NewParseError(fieldName, value, targetType, "value is too large to convert exactly")
+	}
+	return nil
+}
+
+// coerceToUint converts value to an unsigned integer that fits target.
+func coerceToUint(value interface{}, target reflect.Type, fieldName string) (uint64, error) {
+	n, err := toUint64(value, fieldName)
+	if err != nil {
+		return 0, err
+	}
+	if target.OverflowUint(n) {
+		return 0, NewParseError(fieldName, value, target.String(), fmt.Sprintf("value %d overflows %s", n, target))
+	}
+	return n, nil
+}
+
+func toUint64(value interface{}, fieldName string) (uint64, error) {
+	rv := reflect.ValueOf(value)
+	switch {
+	case rv.CanInt():
+		n := rv.Int()
+		if n < 0 {
+			return 0, NewParseError(fieldName, value, "uint64", "negative value cannot be coerced to uint64")
+		}
+		return uint64(n), nil
+	case rv.CanUint():
+		return rv.Uint(), nil
+	case rv.CanFloat():
+		return floatToUint64(rv.Float(), value, fieldName)
+	}
+
 	switch v := value.(type) {
-	case uint:
-		return uint64(v), nil
-	case uint8:
-		return uint64(v), nil
-	case uint16:
-		return uint64(v), nil
-	case uint32:
-		return uint64(v), nil
-	case uint64:
-		return v, nil
-	case int:
-		if v < 0 {
-			return 0, NewParseError(fieldName, value, "uint64", "negative value cannot be coerced to uint64")
+	case json.Number:
+		if n, err := strconv.ParseUint(v.String(), 10, 64); err == nil {
+			return n, nil
 		}
-		return uint64(v), nil
-	case int8:
-		if v < 0 {
-			return 0, NewParseError(fieldName, value, "uint64", "negative value cannot be coerced to uint64")
+		f, err := v.Float64()
+		if err != nil {
+			return 0, NewParseError(fieldName, value, "uint64", fmt.Sprintf("cannot parse number %q: %v", v, err))
 		}
-		return uint64(v), nil
-	case int16:
-		if v < 0 {
-			return 0, NewParseError(fieldName, value, "uint64", "negative value cannot be coerced to uint64")
-		}
-		return uint64(v), nil
-	case int32:
-		if v < 0 {
-			return 0, NewParseError(fieldName, value, "uint64", "negative value cannot be coerced to uint64")
-		}
-		return uint64(v), nil
-	case int64:
-		if v < 0 {
-			return 0, NewParseError(fieldName, value, "uint64", "negative value cannot be coerced to uint64")
-		}
-		return uint64(v), nil
-	case float32:
-		if v < 0 {
-			return 0, NewParseError(fieldName, value, "uint64", "negative value cannot be coerced to uint64")
-		}
-		return uint64(v), nil
-	case float64:
-		if v < 0 {
-			return 0, NewParseError(fieldName, value, "uint64", "negative value cannot be coerced to uint64")
-		}
-		return uint64(v), nil
+		return floatToUint64(f, value, fieldName)
 	case string:
 		parsed, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
@@ -205,42 +228,56 @@ func coerceToUint(value interface{}, fieldName string) (uint64, error) {
 	}
 }
 
-// coerceToFloat converts various types to float32/float64
-func coerceToFloat(value interface{}, targetKind reflect.Kind, fieldName string) (float64, error) {
+func floatToUint64(f float64, value interface{}, fieldName string) (uint64, error) {
+	if f < 0 {
+		return 0, NewParseError(fieldName, value, "uint64", "negative value cannot be coerced to uint64")
+	}
+	if err := checkIntegralFloat(f, value, "uint64", fieldName); err != nil {
+		return 0, err
+	}
+	return uint64(f), nil
+}
+
+// coerceToFloat converts value to a float that fits target. NaN and infinity are refused from
+// strings: they compare false against every bound, so a validator could not reject them.
+func coerceToFloat(value interface{}, target reflect.Type, fieldName string) (float64, error) {
+	f, err := toFloat(value, target, fieldName)
+	if err != nil {
+		return 0, err
+	}
+	if target.OverflowFloat(f) {
+		return 0, NewParseError(fieldName, value, target.String(), fmt.Sprintf("value %g overflows %s", f, target))
+	}
+	return f, nil
+}
+
+func toFloat(value interface{}, target reflect.Type, fieldName string) (float64, error) {
+	rv := reflect.ValueOf(value)
+	switch {
+	case rv.CanFloat():
+		return rv.Float(), nil
+	case rv.CanInt():
+		return float64(rv.Int()), nil
+	case rv.CanUint():
+		return float64(rv.Uint()), nil
+	}
+
 	switch v := value.(type) {
-	case float32:
-		return float64(v), nil
-	case float64:
-		return v, nil
-	case int:
-		return float64(v), nil
-	case int8:
-		return float64(v), nil
-	case int16:
-		return float64(v), nil
-	case int32:
-		return float64(v), nil
-	case int64:
-		return float64(v), nil
-	case uint:
-		return float64(v), nil
-	case uint8:
-		return float64(v), nil
-	case uint16:
-		return float64(v), nil
-	case uint32:
-		return float64(v), nil
-	case uint64:
-		return float64(v), nil
-	case string:
-		bitSize := 64
-		if targetKind == reflect.Float32 {
-			bitSize = 32
+	case json.Number:
+		f, err := v.Float64()
+		if err != nil {
+			return 0, NewParseError(fieldName, value, "float64", fmt.Sprintf("cannot parse number %q: %v", v, err))
 		}
-		parsed, err := strconv.ParseFloat(v, bitSize)
+		return f, nil
+	case string:
+		parsed, err := strconv.ParseFloat(v, target.Bits())
 		if err != nil {
 			return 0, NewParseError(fieldName, value, "float64",
 				fmt.Sprintf("cannot parse string %q as float: %v", v, err))
+		}
+		if math.IsNaN(parsed) || math.IsInf(parsed, 0) {
+			return 0, NewParseError(fieldName, value, "float64",
+				fmt.Sprintf("string %q is not a finite number", v))
 		}
 		return parsed, nil
 	case bool:
@@ -259,6 +296,12 @@ func coerceToBool(value interface{}, fieldName string) (bool, error) {
 	switch v := value.(type) {
 	case bool:
 		return v, nil
+	case json.Number:
+		f, err := v.Float64()
+		if err != nil {
+			return false, NewParseError(fieldName, value, "bool", fmt.Sprintf("cannot parse number %q: %v", v, err))
+		}
+		return f != 0, nil
 	case string:
 		switch v {
 		case "true", "True", "TRUE", "1", "yes", "Yes", "YES", "on", "On", "ON":
@@ -269,16 +312,18 @@ func coerceToBool(value interface{}, fieldName string) (bool, error) {
 			return false, NewParseError(fieldName, value, "bool",
 				fmt.Sprintf("cannot parse string %q as boolean", v))
 		}
-	case int, int8, int16, int32, int64:
-		return v != 0, nil
-	case uint, uint8, uint16, uint32, uint64:
-		return v != 0, nil
-	case float32, float64:
-		return v != 0.0, nil
-	default:
-		return false, NewParseError(fieldName, value, "bool",
-			fmt.Sprintf("cannot coerce %T to bool", value))
 	}
+
+	rv := reflect.ValueOf(value)
+	switch {
+	case rv.CanInt():
+		return rv.Int() != 0, nil
+	case rv.CanUint():
+		return rv.Uint() != 0, nil
+	case rv.CanFloat():
+		return rv.Float() != 0, nil
+	}
+	return false, NewParseError(fieldName, value, "bool", fmt.Sprintf("cannot coerce %T to bool", value))
 }
 
 // coerceToTime converts various types to time.Time

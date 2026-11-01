@@ -414,25 +414,25 @@ type contractRow struct {
 func contractRows() []contractRow {
 	return []contractRow{
 		// Numeric values that do not fit the target.
-		{"numeric", "int8 rejects 300", 4, func() error { return wantError[ctI8](`{"v":300}`) }},
-		{"numeric", "int8 rejects string 300", 4, func() error { return wantError[ctI8](`{"v":"300"}`) }},
-		{"numeric", "uint8 rejects 300", 4, func() error { return wantError[ctU8](`{"v":300}`) }},
-		{"numeric", "int rejects 20 digits", 4, func() error { return wantError[ctInt](`{"v":99999999999999999999}`) }},
-		{"numeric", "int rejects 1e30", 4, func() error { return wantError[ctInt](`{"v":1e30}`) }},
-		{"numeric", "int rejects 4.7", 4, func() error { return wantError[ctInt](`{"v":4.7}`) }},
-		{"numeric", "uint rejects 3.7", 4, func() error { return wantError[ctUint](`{"v":3.7}`) }},
-		{"numeric", "uint rejects 1e30", 4, func() error { return wantError[ctUint](`{"v":1e30}`) }},
-		{"numeric", "float32 rejects 1e60", 4, func() error { return wantError[ctFloat32](`{"v":1e60}`) }},
-		{"numeric", "[]int8 rejects 300", 4, func() error { return wantError[ctI8Slice](`{"v":[300]}`) }},
-		{"numeric", "[1]int8 rejects 300", 4, func() error { return wantError[ctI8Array](`{"v":[300]}`) }},
-		{"numeric", "*int8 rejects 300", 4, func() error { return wantError[ctI8Ptr](`{"v":300}`) }},
-		{"numeric", "string NaN rejected", 4, func() error { return wantError[ctBounded](`{"v":"NaN"}`) }},
-		{"numeric", "string Inf rejected", 4, func() error { return wantError[ctFloat64](`{"v":"Inf"}`) }},
-		{"numeric", "number keeps its text in a string", 4, func() error {
+		{"numeric", "int8 rejects 300", 0, func() error { return wantError[ctI8](`{"v":300}`) }},
+		{"numeric", "int8 rejects string 300", 0, func() error { return wantError[ctI8](`{"v":"300"}`) }},
+		{"numeric", "uint8 rejects 300", 0, func() error { return wantError[ctU8](`{"v":300}`) }},
+		{"numeric", "int rejects 20 digits", 0, func() error { return wantError[ctInt](`{"v":99999999999999999999}`) }},
+		{"numeric", "int rejects 1e30", 0, func() error { return wantError[ctInt](`{"v":1e30}`) }},
+		{"numeric", "int rejects 4.7", 0, func() error { return wantError[ctInt](`{"v":4.7}`) }},
+		{"numeric", "uint rejects 3.7", 0, func() error { return wantError[ctUint](`{"v":3.7}`) }},
+		{"numeric", "uint rejects 1e30", 0, func() error { return wantError[ctUint](`{"v":1e30}`) }},
+		{"numeric", "float32 rejects 1e60", 0, func() error { return wantError[ctFloat32](`{"v":1e60}`) }},
+		{"numeric", "[]int8 rejects 300", 0, func() error { return wantError[ctI8Slice](`{"v":[300]}`) }},
+		{"numeric", "[1]int8 rejects 300", 0, func() error { return wantError[ctI8Array](`{"v":[300]}`) }},
+		{"numeric", "*int8 rejects 300", 0, func() error { return wantError[ctI8Ptr](`{"v":300}`) }},
+		{"numeric", "string NaN rejected", 0, func() error { return wantError[ctBounded](`{"v":"NaN"}`) }},
+		{"numeric", "string Inf rejected", 0, func() error { return wantError[ctFloat64](`{"v":"Inf"}`) }},
+		{"numeric", "number keeps its text in a string", 0, func() error {
 			return wantValue(`{"v":12345678}`, ctStringField{V: "12345678"})
 		}},
-		{"numeric", "object is not a string", 4, func() error { return wantError[ctStringField](`{"v":{"a":1}}`) }},
-		{"numeric", "int64 zero coerces to false", 4, func() error {
+		{"numeric", "object is not a string", 0, func() error { return wantError[ctStringField](`{"v":{"a":1}}`) }},
+		{"numeric", "int64 zero coerces to false", 0, func() error {
 			got, err := model.CoerceValue(int64(0), reflect.TypeOf(true), "f")
 			if err != nil || got != false {
 				return fmt.Errorf("got %v, err %v", got, err)
@@ -441,6 +441,10 @@ func contractRows() []contractRow {
 		}},
 		{"numeric", "integral float still coerces", 0, func() error { return wantValue(`{"v":4.0}`, ctInt{V: 4}) }},
 		{"numeric", "exponent still coerces", 0, func() error { return wantValue(`{"v":1e3}`, ctInt{V: 1000}) }},
+		{"numeric", "exponent integer past 2^53 rejected", 0, func() error { return wantError[ctInt](`{"v":1e16}`) }},
+		{"numeric", "uint rejects a negative", 0, func() error { return wantError[ctUint](`{"v":-1}`) }},
+		{"numeric", "minimum int8 still fits", 0, func() error { return wantValue(`{"v":-128}`, ctI8{V: -128}) }},
+		{"numeric", "maximum uint8 still fits", 0, func() error { return wantValue(`{"v":"255"}`, ctU8{V: 255}) }},
 		{"numeric", "maximum int8 still fits", 0, func() error { return wantValue(`{"v":127}`, ctI8{V: 127}) }},
 		{"numeric", "string float32 overflow rejected", 0, func() error { return wantError[ctFloat32](`{"v":"1e60"}`) }},
 

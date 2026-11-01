@@ -506,7 +506,7 @@ func (w *walker) assignInline(table *fieldTable, key string, value *node, out re
 	if dst.IsNil() {
 		dst.Set(reflect.MakeMap(dst.Type()))
 	}
-	w.assignMapEntry(key, value, dst, path)
+	w.assignMapEntry(key, value, dst, path.hiddenIf(table.inlineHidden))
 }
 
 func (w *walker) assignSlice(n *node, out reflect.Value, path *fieldPath) {
@@ -618,6 +618,8 @@ type fieldTable struct {
 	byName    map[string]*fieldEntry
 	ordered   []*fieldEntry
 	inlineMap []int
+
+	inlineHidden bool // The inline map is kept out of JSON
 }
 
 // lookup matches like the format's decoder: encoding/json falls back to case folding, and
@@ -793,15 +795,15 @@ func joinFieldNames(path, name string) string {
 func buildYAMLFields(typ reflect.Type) *fieldTable {
 	table := &fieldTable{}
 	var fields []*fieldEntry
-	collectYAMLFields(typ, nil, "", map[reflect.Type]bool{}, &fields, table)
+	collectYAMLFields(typ, nil, "", false, map[reflect.Type]bool{}, &fields, table)
 
-	inlineMap := table.inlineMap
-	table = newFieldTable(fields)
-	table.inlineMap = inlineMap
-	return table
+	built := newFieldTable(fields)
+	built.inlineMap = table.inlineMap
+	built.inlineHidden = table.inlineHidden
+	return built
 }
 
-func collectYAMLFields(typ reflect.Type, index []int, path string, active map[reflect.Type]bool, fields *[]*fieldEntry, table *fieldTable) {
+func collectYAMLFields(typ reflect.Type, index []int, path string, hidden bool, active map[reflect.Type]bool, fields *[]*fieldEntry, table *fieldTable) {
 	if active[typ] {
 		return
 	}
@@ -817,6 +819,8 @@ func collectYAMLFields(typ reflect.Type, index []int, path string, active map[re
 
 		fieldIndex := append(append([]int(nil), index...), i)
 		fieldPath := joinFieldNames(path, sf.Name)
+		_, jsonHidden := jsonFieldName(sf)
+		jsonHidden = jsonHidden || hidden
 		if inline {
 			elem := sf.Type
 			if elem.Kind() == reflect.Ptr {
@@ -824,13 +828,13 @@ func collectYAMLFields(typ reflect.Type, index []int, path string, active map[re
 			}
 			switch elem.Kind() {
 			case reflect.Struct:
-				collectYAMLFields(elem, fieldIndex, fieldPath, active, fields, table)
+				collectYAMLFields(elem, fieldIndex, fieldPath, jsonHidden, active, fields, table)
 			case reflect.Map:
 				table.inlineMap = fieldIndex
+				table.inlineHidden = jsonHidden
 			}
 			continue
 		}
-		_, jsonHidden := jsonFieldName(sf)
 		*fields = append(*fields, &fieldEntry{name: name, index: fieldIndex, path: fieldPath, hidden: jsonHidden})
 	}
 }

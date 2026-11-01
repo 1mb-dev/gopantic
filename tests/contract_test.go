@@ -511,6 +511,26 @@ type ctDashYAMLInt struct {
 	N int `json:"-" yaml:"n"`
 }
 
+type ctDashEmbedHash struct {
+	Code string `yaml:"code" validate:"min=5"`
+}
+
+type ctDashHiddenEmbedHash struct {
+	ctDashEmbedHash `json:"-" yaml:",inline"`
+}
+
+type ctDashInt struct {
+	N int `yaml:"n"`
+}
+
+type ctDashInlineInt struct {
+	Inner ctDashInt `json:"-" yaml:",inline"`
+}
+
+type ctDashInlineMap struct {
+	Extra map[string]int `json:"-" yaml:",inline"`
+}
+
 type ctMinOverride struct {
 	A string `json:"a" validate:"ct_override=abc"`
 }
@@ -707,6 +727,17 @@ func wantRedacted[T any](input string) error {
 		return fmt.Errorf("not a ParseError: %v", list[0])
 	}
 	if got := parseErr.SanitizedValue(); got != model.RedactedValue {
+		return fmt.Errorf("SanitizedValue returned %v", got)
+	}
+	return nil
+}
+
+func wantValidationRedacted(err error) error {
+	var list model.ErrorList
+	if !errors.As(err, &list) || len(list.ValidationErrors()) != 1 {
+		return fmt.Errorf("unexpected error %v", err)
+	}
+	if got := list.ValidationErrors()[0].SanitizedValue(); got != model.RedactedValue {
 		return fmt.Errorf("SanitizedValue returned %v", got)
 	}
 	return nil
@@ -1403,6 +1434,41 @@ func contractRows() []contractRow {
 		}},
 		{"errors", "a json:\"-\" value stays out of a YAML ParseError", 0, func() error {
 			_, err := model.ParseIntoWithFormat[ctDashYAMLInt]([]byte("n: not-a-number-4321\n"), model.FormatYAML)
+			if err == nil || strings.Contains(err.Error(), "4321") {
+				return fmt.Errorf("got %v", err)
+			}
+			return nil
+		}},
+		{"errors", "a value in a hidden embedded struct is redacted", 0, func() error {
+			if err := wantValidationRedacted(model.Validate(&ctDashHiddenEmbedHash{ctDashEmbedHash{Code: "abc"}})); err != nil {
+				return fmt.Errorf("Validate: %w", err)
+			}
+			_, err := model.ParseIntoWithFormat[ctDashHiddenEmbedHash]([]byte("code: abc\n"), model.FormatYAML)
+			if err := wantValidationRedacted(err); err != nil {
+				return fmt.Errorf("YAML: %w", err)
+			}
+			return nil
+		}},
+		{"errors", "a hidden embedded path renders without a segment", 0, func() error {
+			err := model.Validate(&ctDashHiddenEmbedHash{ctDashEmbedHash{Code: "abc"}})
+			var list model.ErrorList
+			if !errors.As(err, &list) || len(list.ValidationErrors()) != 1 {
+				return fmt.Errorf("unexpected error %v", err)
+			}
+			if got := list.ValidationErrors()[0].FieldPath; got != "Code" {
+				return fmt.Errorf("FieldPath %q", got)
+			}
+			return nil
+		}},
+		{"errors", "a value in a hidden inline struct stays out of ParseError", 0, func() error {
+			_, err := model.ParseIntoWithFormat[ctDashInlineInt]([]byte("n: not-a-number-4321\n"), model.FormatYAML)
+			if err == nil || strings.Contains(err.Error(), "4321") {
+				return fmt.Errorf("got %v", err)
+			}
+			return nil
+		}},
+		{"errors", "a value in a hidden inline map stays out of ParseError", 0, func() error {
+			_, err := model.ParseIntoWithFormat[ctDashInlineMap]([]byte("other: not-a-number-4321\n"), model.FormatYAML)
 			if err == nil || strings.Contains(err.Error(), "4321") {
 				return fmt.Errorf("got %v", err)
 			}

@@ -198,6 +198,7 @@ const (
 	pathField pathKind = iota
 	pathIndex
 	pathKey
+	pathMark // Renders nothing: carries hidden through a field that adds no name to the path
 )
 
 func (p *fieldPath) String() string {
@@ -230,6 +231,14 @@ func boundedKey(key string) string {
 		return strings.ToValidUTF8(key[:maxPathKey], "") + "..."
 	}
 	return key
+}
+
+// hiddenIf marks everything below p as kept out of JSON.
+func (p *fieldPath) hiddenIf(hidden bool) *fieldPath {
+	if !hidden {
+		return p
+	}
+	return &fieldPath{parent: p, kind: pathMark, hidden: true}
 }
 
 // sensitive reports whether any segment is kept out of JSON or names a sensitive field, by Go
@@ -363,7 +372,7 @@ func (w *validationWalk) field(parent reflect.Value, i int, validation *StructVa
 
 	// The exported fields of an unexported embedded struct stay reachable.
 	if field.Anonymous && !field.IsExported() && fieldVal.Kind() == reflect.Struct {
-		w.value(fieldVal, path, depth+1)
+		w.value(fieldVal, path.hiddenIf(access.jsonHidden), depth+1)
 		return
 	}
 

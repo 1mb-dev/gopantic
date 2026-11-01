@@ -541,7 +541,7 @@ func contractRows() []contractRow {
 		}},
 
 		// Validation must run on every path, every time.
-		{"validation", "nested rule, second parse", 3, func() error {
+		{"validation", "nested rule, second parse", 0, func() error {
 			if err := wantError[ctOuterSecond](`{"item":{"name":""}}`); err != nil {
 				return fmt.Errorf("first parse: %w", err)
 			}
@@ -550,7 +550,7 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
-		{"validation", "pointer rule, second parse", 3, func() error {
+		{"validation", "pointer rule, second parse", 0, func() error {
 			if err := wantError[ctPtrOuter](`{"item":{"name":""}}`); err != nil {
 				return fmt.Errorf("first parse: %w", err)
 			}

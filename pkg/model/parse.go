@@ -12,9 +12,6 @@ import (
 
 // Performance optimization caches
 var (
-	// noValidationTypes tracks types that have no validation tags for fast-path
-	noValidationTypes sync.Map // map[reflect.Type]bool
-
 	// fieldKeyCache stores pre-computed field keys per type and format
 	fieldKeyCache sync.Map // map[fieldKeyCacheKey]map[int]string
 )
@@ -42,32 +39,6 @@ var MaxInputSize = 10 * 1024 * 1024 // 10MB
 // WARNING: Direct modification of this variable is NOT thread-safe.
 // For concurrent access, use GetMaxStructureDepth() and SetMaxStructureDepth().
 var MaxStructureDepth = 64
-
-// getOrCacheValidation retrieves cached validation tags or parses and caches them
-func getOrCacheValidation(typ reflect.Type) *StructValidation {
-	if cached, ok := validationCache.Load(typ); ok {
-		return cached.(*StructValidation)
-	}
-
-	validation := ParseValidationTags(typ)
-
-	// Check if this type has any validation rules
-	hasValidation := false
-	for _, field := range validation.Fields {
-		if len(field.Rules) > 0 {
-			hasValidation = true
-			break
-		}
-	}
-
-	// Cache the "no validation" state for fast-path
-	if !hasValidation {
-		noValidationTypes.Store(typ, true)
-	}
-
-	validationCache.Store(typ, validation)
-	return validation
-}
 
 // ParseInto parses raw data into a struct of type T with automatic format detection, type coercion, and validation.
 // The format is automatically detected (JSON or YAML) based on the content structure.
@@ -213,7 +184,7 @@ func parseWithMapCoercion[T any](raw []byte, format Format) (T, error) {
 	}
 
 	// Parse validation rules for this struct type (cached for performance)
-	validation := getOrCacheValidation(resultType)
+	validation := ParseValidationTags(resultType)
 
 	// Process each field in the struct (parsing and coercion pass)
 	for i := 0; i < resultType.NumField(); i++ {
@@ -420,11 +391,6 @@ func Validate[T any](v *T) error {
 		return fmt.Errorf("Validate: expected struct, got %v", typ.Kind())
 	}
 
-	// Fast path: Skip validation entirely for types with no validation tags
-	if hasNo, ok := noValidationTypes.Load(typ); ok && hasNo.(bool) {
-		return nil
-	}
-
 	return validateStructValue(val, typ)
 }
 
@@ -442,7 +408,7 @@ func validateStructValueDepth(val reflect.Value, typ reflect.Type, depth int) er
 		return fmt.Errorf("validation depth exceeded maximum of %d levels", maxDepth)
 	}
 
-	validation := getOrCacheValidation(typ)
+	validation := ParseValidationTags(typ)
 	var errors ErrorList
 
 	for i := 0; i < val.NumField(); i++ {
@@ -474,6 +440,11 @@ func validateStructValueDepth(val reflect.Value, typ reflect.Type, depth int) er
 					errors.Add(err)
 				}
 			}
+		}
+
+		// Boxing a field allocates, so skip it when the type has no rules to apply.
+		if len(validation.Fields) == 0 {
+			continue
 		}
 
 		// Apply validation rules (including cross-field validators)

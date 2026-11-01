@@ -229,6 +229,16 @@ type ctCoercedItem struct {
 	Name string `json:"name" validate:"required"`
 }
 
+type ctDeepRule struct {
+	Name string      `json:"name" validate:"required"`
+	Next *ctDeepRule `json:"next"`
+}
+
+type ctDeepNoRules struct {
+	ID   int            `json:"id"`
+	Next *ctDeepNoRules `json:"next"`
+}
+
 type ctEmbeddedRule struct {
 	ctItem
 }
@@ -240,6 +250,103 @@ type ctPathSlice struct {
 type ctTwoFields struct {
 	Bad  int    `json:"bad"`
 	Name string `json:"name" validate:"required"`
+}
+
+type ctYPoint struct {
+	A int `yaml:"a"`
+	B int `yaml:"b"`
+}
+
+type ctYMerge struct {
+	Trigger int      `yaml:"trigger"`
+	V       ctYPoint `yaml:"v"`
+}
+
+type ctYInlineBase struct {
+	Host string `yaml:"host"`
+}
+
+type ctYInline struct {
+	Trigger       int `yaml:"trigger"`
+	ctYInlineBase `yaml:",inline"`
+	Extra         map[string]string `yaml:",inline"`
+}
+
+type ctYRecursive struct {
+	C []ctYRecursive `yaml:"c" json:"c"`
+}
+
+type ctDupKeys struct {
+	Trigger int    `json:"trigger"`
+	Name    string `json:"name"`
+	Nested  struct {
+		A int `json:"a"`
+		B int `json:"b"`
+	} `json:"nested"`
+}
+
+type ctBytes struct {
+	Trigger int    `json:"trigger"`
+	Data    []byte `json:"data"`
+}
+
+type ctIntKeys struct {
+	Trigger int            `json:"trigger"`
+	ByID    map[int]string `json:"by_id"`
+}
+
+type ctTagForms struct {
+	Trigger int    `json:"trigger"`
+	Ignored string `json:"-"`
+	Dash    string `json:"-,"`
+	Legacy  string
+}
+
+// CtShadow is embedded for its Name, which the outer struct's field must shadow.
+type CtShadow struct {
+	Name string `json:"name"`
+	Only string `json:"only"`
+}
+
+// CtShadowWrap adds a level, since vet reports a repeated tag one level down as a mistake.
+type CtShadowWrap struct {
+	CtShadow
+}
+
+// CtAmbiguousA and CtAmbiguousB both claim Name at one depth, so neither decodes. The fields
+// are untagged because vet reports a repeated tag on embedded fields as a mistake.
+type CtAmbiguousA struct {
+	Name string
+}
+
+// CtAmbiguousB is the other half of the ambiguity.
+type CtAmbiguousB struct {
+	Name string
+}
+
+type ctEmbedForms struct {
+	*ctExportedPtr
+	CtShadowWrap
+	Trigger int    `json:"trigger"`
+	Name    string `json:"name"`
+}
+
+type ctExportedPtr struct {
+	Via string `json:"via"`
+}
+
+type ctAmbiguous struct {
+	CtAmbiguousA
+	CtAmbiguousB
+	Trigger int `json:"trigger"`
+}
+
+type ctNulls struct {
+	Trigger int      `json:"trigger"`
+	I       int      `json:"i"`
+	P       *int     `json:"p"`
+	S       []string `json:"s"`
+	A       any      `json:"a"`
 }
 
 type ctTypo struct {
@@ -471,37 +578,37 @@ func contractRows() []contractRow {
 			const body = `"b":true,"i8":1,"i16":2,"i32":3,"i64":4,"u":5,"u8":6,"u16":7,"u32":8,"u64":9,"f32":1.5,"f64":2.5,"s":"x"}`
 			return wantSameAsJSON[ctScalars](`{"trigger":1,`+body, `{"trigger":"1",`+body)
 		}},
-		{"divergence", "containers present", 5, func() error {
+		{"divergence", "containers present", 0, func() error {
 			const body = `"slice":["a"],"array":[1,2],"map":{"k":"v"},"ptr":3,"any":{"x":1.5},"nested":{"value":4}}`
 			return wantSameAsJSON[ctContainers](`{"trigger":1,`+body, `{"trigger":"1",`+body)
 		}},
-		{"divergence", "containers absent", 5, func() error {
+		{"divergence", "containers absent", 0, func() error {
 			return wantSameAsJSON[ctContainers](`{"trigger":1}`, `{"trigger":"1"}`)
 		}},
-		{"divergence", "map field present", 5, func() error {
+		{"divergence", "map field present", 0, func() error {
 			return wantSameAsJSON[ctDeepTrigger](`{"map":{"a":1}}`, `{"map":{"a":"1"}}`)
 		}},
-		{"divergence", "exported embedded fields", 5, func() error {
+		{"divergence", "exported embedded fields", 0, func() error {
 			return wantSameAsJSON[ctEmbeddedExported](
 				`{"trigger":1,"base":7,"promoted":"p"}`, `{"trigger":"1","base":7,"promoted":"p"}`)
 		}},
-		{"divergence", "embedded field keeps its value", 5, func() error {
+		{"divergence", "embedded field keeps its value", 0, func() error {
 			return wantSameAsJSON[ctEmbedded](`{"trigger":1,"base":7}`, `{"trigger":"1","base":7}`)
 		}},
-		{"divergence", "tag with no name", 5, func() error {
+		{"divergence", "tag with no name", 0, func() error {
 			return wantSameAsJSON[ctEmptyName](`{"trigger":1,"Name":"n"}`, `{"trigger":"1","Name":"n"}`)
 		}},
-		{"divergence", "Unmarshaler field", 5, func() error {
+		{"divergence", "Unmarshaler field", 0, func() error {
 			return wantSameAsJSON[ctUnmarshaler](`{"trigger":1,"ip":"1.2.3.4"}`, `{"trigger":"1","ip":"1.2.3.4"}`)
 		}},
-		{"divergence", "RawMessage keeps its bytes", 5, func() error {
+		{"divergence", "RawMessage keeps its bytes", 0, func() error {
 			const meta = `{"b": 1,  "a": [ 2 ]}`
 			return wantSameAsJSON[ctRaw](`{"trigger":1,"meta":`+meta+`}`, `{"trigger":"1","meta":`+meta+`}`)
 		}},
-		{"divergence", "case-insensitive key", 5, func() error {
+		{"divergence", "case-insensitive key", 0, func() error {
 			return wantSameAsJSON[ctCase](`{"trigger":1,"NAME":"n"}`, `{"trigger":"1","NAME":"n"}`)
 		}},
-		{"divergence", "Kelvin sign folds like encoding/json", 5, func() error {
+		{"divergence", "Kelvin sign folds like encoding/json", 0, func() error {
 			return wantSameAsJSON[ctKelvin](`{"trigger":1,"\u212Aind":"n"}`, `{"trigger":"1","\u212Aind":"n"}`)
 		}},
 		{"divergence", "time field", 0, func() error {
@@ -519,15 +626,15 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
-		{"divergence", "int64 above 2^53 stays exact", 5, func() error {
+		{"divergence", "int64 above 2^53 stays exact", 0, func() error {
 			return wantSameAsJSON[ctBig](`{"trigger":1,"big":9007199254740993}`, `{"trigger":"1","big":9007199254740993}`)
 		}},
-		{"divergence", "trigger inside a nested object", 5, func() error {
+		{"divergence", "trigger inside a nested object", 0, func() error {
 			return wantSameAsJSON[ctDeepTrigger](
 				`{"nested":{"trigger":1,"name":"n"},"map":{"a":1}}`,
 				`{"nested":{"trigger":"1","name":"n"},"map":{"a":1}}`)
 		}},
-		{"divergence", "trigger inside a slice element", 5, func() error {
+		{"divergence", "trigger inside a slice element", 0, func() error {
 			return wantSameAsJSON[ctSliceTrigger](`{"items":[{"trigger":1}],"map":{"a":1}}`, `{"items":[{"trigger":"1"}],"map":{"a":1}}`)
 		}},
 		{"divergence", "nested cross-field validator accepts valid input", 0, func() error {
@@ -536,18 +643,18 @@ func contractRows() []contractRow {
 		}},
 
 		// YAML.
-		{"yaml", "json tag honoured without coercion", 5, func() error {
+		{"yaml", "json tag honoured without coercion", 0, func() error {
 			got, err := model.ParseIntoWithFormat[ctYAMLJSONTag]([]byte("user_name: x\n"), model.FormatYAML)
 			if err != nil || got.UserName != "x" {
 				return fmt.Errorf("got %+v, err %v", got, err)
 			}
 			return nil
 		}},
-		{"yaml", "yaml tag honoured inside []struct", 5, func() error {
+		{"yaml", "yaml tag honoured inside []struct", 0, func() error {
 			return wantSameAsYAML[ctYAMLList](
 				"trigger: 1\nitems:\n  - full_name: a\n", "trigger: \"1\"\nitems:\n  - full_name: a\n")
 		}},
-		{"yaml", "depth limit covers integer keys", 5, func() error {
+		{"yaml", "depth limit covers integer keys", 0, func() error {
 			deep := strings.Repeat("{1: ", 200) + "x" + strings.Repeat("}", 200)
 			if _, err := model.GetParser(model.FormatYAML).Parse([]byte(deep)); err == nil {
 				return errors.New("depth 200 accepted with limit 64")
@@ -558,6 +665,98 @@ func contractRows() []contractRow {
 			deep := strings.Repeat("{a: ", 200) + "x" + strings.Repeat("}", 200)
 			if _, err := model.GetParser(model.FormatYAML).Parse([]byte(deep)); err == nil {
 				return errors.New("depth 200 accepted with limit 64")
+			}
+			return nil
+		}},
+
+		{"yaml", "explicit key beats a merged one", 0, func() error {
+			const body = "base: &b {a: 1, b: 2}\nv:\n  <<: *b\n  b: 3\n"
+			return wantSameAsYAML[ctYMerge]("trigger: 1\n"+body, "trigger: \"1\"\n"+body)
+		}},
+		{"yaml", "explicit key after the merge also wins", 0, func() error {
+			const body = "base: &b {a: 1, b: 2}\nv:\n  b: 3\n  <<: *b\n"
+			return wantSameAsYAML[ctYMerge]("trigger: 1\n"+body, "trigger: \"1\"\n"+body)
+		}},
+		{"yaml", "earlier source wins in a merge list", 0, func() error {
+			const body = "x: &x {a: 1}\ny: &y {a: 9, b: 2}\nv:\n  <<: [*x, *y]\n"
+			return wantSameAsYAML[ctYMerge]("trigger: 1\n"+body, "trigger: \"1\"\n"+body)
+		}},
+		{"yaml", "plain alias", 0, func() error {
+			const body = "x: &x {a: 1, b: 2}\nv: *x\n"
+			return wantSameAsYAML[ctYMerge]("trigger: 1\n"+body, "trigger: \"1\"\n"+body)
+		}},
+		{"yaml", "inline struct and map", 0, func() error {
+			const body = "host: h\nother: o\n"
+			return wantSameAsYAML[ctYInline]("trigger: 1\n"+body, "trigger: \"1\"\n"+body)
+		}},
+		{"yaml", "alias bomb errors with the depth limit off", 0, func() error {
+			orig := model.GetMaxStructureDepth()
+			model.SetMaxStructureDepth(0)
+			defer model.SetMaxStructureDepth(orig)
+			var b strings.Builder
+			b.WriteString("a0: &a0 {c: [{c: []}, {c: []}, {c: []}, {c: []}, {c: []}, {c: []}, {c: []}, {c: []}, {c: []}]}\n")
+			for i := 1; i < 9; i++ {
+				fmt.Fprintf(&b, "a%d: &a%d {c: [*a%d, *a%d, *a%d, *a%d, *a%d, *a%d, *a%d, *a%d, *a%d]}\n", i, i, i-1, i-1, i-1, i-1, i-1, i-1, i-1, i-1, i-1)
+			}
+			b.WriteString("c: [*a8]\n")
+			_, err := model.ParseIntoWithFormat[ctYRecursive]([]byte(b.String()), model.FormatYAML)
+			if err == nil || !strings.Contains(err.Error(), "aliasing") {
+				return fmt.Errorf("got %.120v", err)
+			}
+			return nil
+		}},
+		{"yaml", "self-reference errors with the depth limit off", 0, func() error {
+			orig := model.GetMaxStructureDepth()
+			model.SetMaxStructureDepth(0)
+			defer model.SetMaxStructureDepth(orig)
+			_, err := model.ParseIntoWithFormat[ctYRecursive]([]byte("c: &x\n  - c: *x\n"), model.FormatYAML)
+			if err == nil {
+				return errors.New("no error")
+			}
+			return nil
+		}},
+
+		// Decoder details the walker has to match.
+		{"parity", "last duplicate key wins", 0, func() error {
+			const body = `"name":"a","name":"b"}`
+			return wantSameAsJSON[ctDupKeys](`{"trigger":1,`+body, `{"trigger":"1",`+body)
+		}},
+		{"parity", "duplicate object key merges", 0, func() error {
+			const body = `"nested":{"a":1},"nested":{"b":2}}`
+			return wantSameAsJSON[ctDupKeys](`{"trigger":1,`+body, `{"trigger":"1",`+body)
+		}},
+		{"parity", "escaped key", 0, func() error {
+			const body = `"na\u006de":"x"}`
+			return wantSameAsJSON[ctDupKeys](`{"trigger":1,`+body, `{"trigger":"1",`+body)
+		}},
+		{"parity", "[]byte from base64", 0, func() error {
+			const body = `"data":"aGk="}`
+			return wantSameAsJSON[ctBytes](`{"trigger":1,`+body, `{"trigger":"1",`+body)
+		}},
+		{"parity", "int map keys", 0, func() error {
+			const body = `"by_id":{"1":"a","2":"b"}}`
+			return wantSameAsJSON[ctIntKeys](`{"trigger":1,`+body, `{"trigger":"1",`+body)
+		}},
+		{"parity", "tag forms", 0, func() error {
+			const body = `"Ignored":"no","-":"dash","Legacy":"l"}`
+			return wantSameAsJSON[ctTagForms](`{"trigger":1,`+body, `{"trigger":"1",`+body)
+		}},
+		{"parity", "embedded precedence and pointers", 0, func() error {
+			const body = `"name":"outer","only":"o"}`
+			return wantSameAsJSON[ctEmbedForms](`{"trigger":1,`+body, `{"trigger":"1",`+body)
+		}},
+		{"parity", "ambiguous embedded fields stay zero", 0, func() error {
+			const body = `"Name":"x"}`
+			return wantSameAsJSON[ctAmbiguous](`{"trigger":1,`+body, `{"trigger":"1",`+body)
+		}},
+		{"parity", "nulls", 0, func() error {
+			const body = `"i":null,"p":null,"s":null,"a":null}`
+			return wantSameAsJSON[ctNulls](`{"trigger":1,`+body, `{"trigger":"1",`+body)
+		}},
+		{"parity", "depth scan ignores brackets in strings", 0, func() error {
+			value := strings.Repeat("[", 200) + `\"` + strings.Repeat("{", 200)
+			if _, err := model.ParseInto[ctStringField]([]byte(`{"v":"` + value + `"}`)); err != nil {
+				return err
 			}
 			return nil
 		}},
@@ -671,6 +870,18 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
+		{"validation", "rule below the depth limit fails closed", 0, func() error {
+			input := strings.Repeat(`{"next":`, 40) + `{"name":""}` + strings.Repeat(`}`, 40)
+			return wantError[ctDeepRule](input)
+		}},
+		{"validation", "rule-free nesting past the depth limit decodes", 7, func() error {
+			levels := model.GetMaxValidationDepth() + 8
+			input := strings.Repeat(`{"id":"1","next":`, levels) + `null` + strings.Repeat(`}`, levels)
+			if _, err := model.ParseInto[ctDeepNoRules]([]byte(input)); err != nil {
+				return err
+			}
+			return nil
+		}},
 		{"validation", "error count is capped on []struct", 0, func() error {
 			input := `{"trigger":1,"items":[` + strings.Repeat(`{},`, 5000) + `{}]}`
 			_, err := model.ParseInto[ctSliceOuter]([]byte(input))
@@ -711,16 +922,16 @@ func contractRows() []contractRow {
 		}},
 
 		// Parsing must not panic.
-		{"panics", "map target with a bad value", 5, func() error {
+		{"panics", "map target with a bad value", 0, func() error {
 			return wantNoPanicOrError[map[string]int](`{"a":"x"}`)
 		}},
-		{"panics", "map target with a coercible value", 5, func() error {
+		{"panics", "map target with a coercible value", 0, func() error {
 			return wantValue(`{"a":"1"}`, map[string]int{"a": 1})
 		}},
-		{"panics", "pointer target needing coercion", 5, func() error {
+		{"panics", "pointer target needing coercion", 0, func() error {
 			return wantNoPanicOrError[*ctInt](`{"v":"1"}`)
 		}},
-		{"panics", "null element in []map", 5, func() error {
+		{"panics", "null element in []map", 0, func() error {
 			return wantNoPanicOrError[ctNullElem](`{"trigger":"1","items":[null]}`)
 		}},
 		{"panics", "CachedParser of an interface type", 8, func() error {

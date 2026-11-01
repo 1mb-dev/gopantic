@@ -54,14 +54,8 @@ func CoerceValueWithFormat(value interface{}, targetType reflect.Type, fieldName
 		return coerceToFloat(value, targetType, fieldName)
 	case reflect.Bool:
 		return coerceToBool(value, fieldName)
-	case reflect.Slice:
-		return coerceToSlice(value, targetType, fieldName)
-	case reflect.Array:
-		return coerceToArray(value, targetType, fieldName)
-	case reflect.Struct:
-		return coerceToStructWithFormat(value, targetType, fieldName, format)
-	case reflect.Ptr:
-		return coerceToPointer(value, targetType, fieldName)
+	case reflect.Slice, reflect.Array, reflect.Struct, reflect.Ptr, reflect.Map:
+		return coerceContainer(value, targetType, fieldName, format)
 	default:
 		return nil, NewParseError(fieldName, value, targetType.String(),
 			fmt.Sprintf("coercion to %s not supported", targetType))
@@ -336,6 +330,12 @@ func coerceToTime(value interface{}, fieldName string) (time.Time, error) {
 	case int64:
 		// Unix timestamp (seconds)
 		return time.Unix(v, 0), nil
+	case json.Number:
+		f, err := v.Float64()
+		if err != nil {
+			return time.Time{}, NewParseError(fieldName, value, "time.Time", fmt.Sprintf("cannot parse number %q: %v", v, err))
+		}
+		return coerceToTime(f, fieldName)
 	case float64:
 		// Unix timestamp (seconds, may have fractional part)
 		sec := int64(v)
@@ -387,145 +387,6 @@ func parseTimeFromString(s, fieldName string) (time.Time, error) {
 		fmt.Sprintf("cannot parse string %q as time.Time using standard formats", s))
 }
 
-// coerceToSlice converts JSON arrays to Go slices with element coercion
-func coerceToSlice(value interface{}, targetType reflect.Type, fieldName string) (interface{}, error) {
-	if value == nil {
-		// Return zero slice for nil
-		return reflect.Zero(targetType).Interface(), nil
-	}
-
-	// Handle JSON arrays ([]interface{})
-	sourceSlice, ok := value.([]interface{})
-	if !ok {
-		return nil, NewParseError(fieldName, value, targetType.String(),
-			fmt.Sprintf("cannot coerce %T to slice", value))
-	}
-
-	elementType := targetType.Elem()
-	sliceLen := len(sourceSlice)
-
-	// Create new slice with proper type
-	resultSlice := reflect.MakeSlice(targetType, sliceLen, sliceLen)
-
-	// Coerce each element
-	for i, elem := range sourceSlice {
-		coercedElem, err := CoerceValue(elem, elementType, fmt.Sprintf("%s[%d]", fieldName, i))
-		if err != nil {
-			return nil, err
-		}
-
-		// Set the element in the result slice
-		elemValue := reflect.ValueOf(coercedElem)
-		if elemValue.Type().ConvertibleTo(elementType) {
-			elemValue = elemValue.Convert(elementType)
-		}
-		resultSlice.Index(i).Set(elemValue)
-	}
-
-	return resultSlice.Interface(), nil
-}
-
-// coerceToArray converts JSON arrays to Go arrays with element coercion
-func coerceToArray(value interface{}, targetType reflect.Type, fieldName string) (interface{}, error) {
-	if value == nil {
-		// Return zero array for nil
-		return reflect.Zero(targetType).Interface(), nil
-	}
-
-	// Handle JSON arrays ([]interface{})
-	sourceSlice, ok := value.([]interface{})
-	if !ok {
-		return nil, NewParseError(fieldName, value, targetType.String(),
-			fmt.Sprintf("cannot coerce %T to array", value))
-	}
-
-	elementType := targetType.Elem()
-	arrayLen := targetType.Len()
-	sourceLen := len(sourceSlice)
-
-	if sourceLen != arrayLen {
-		return nil, NewParseError(fieldName, value, targetType.String(),
-			fmt.Sprintf("array length mismatch: expected %d, got %d", arrayLen, sourceLen))
-	}
-
-	// Create new array with proper type
-	resultArray := reflect.New(targetType).Elem()
-
-	// Coerce each element
-	for i, elem := range sourceSlice {
-		coercedElem, err := CoerceValue(elem, elementType, fmt.Sprintf("%s[%d]", fieldName, i))
-		if err != nil {
-			return nil, err
-		}
-
-		// Set the element in the result array
-		elemValue := reflect.ValueOf(coercedElem)
-		if elemValue.Type().ConvertibleTo(elementType) {
-			elemValue = elemValue.Convert(elementType)
-		}
-		resultArray.Index(i).Set(elemValue)
-	}
-
-	return resultArray.Interface(), nil
-}
-
-// coerceToStructWithFormat converts objects to Go structs recursively with format awareness
-func coerceToStructWithFormat(value interface{}, targetType reflect.Type, fieldName string, format Format) (interface{}, error) {
-	if value == nil {
-		// Return zero value for nil
-		return reflect.Zero(targetType).Interface(), nil
-	}
-
-	// Handle data objects (map[string]interface{})
-	sourceMap, ok := value.(map[string]interface{})
-	if !ok {
-		return nil, NewParseError(fieldName, value, targetType.String(),
-			fmt.Sprintf("cannot coerce %T to struct", value))
-	}
-
-	// Create new instance of the target struct
-	resultValue := reflect.New(targetType).Elem()
-
-	var errors ErrorList
-
-	// Process each field in the nested struct
-	for i := 0; i < targetType.NumField(); i++ {
-		field := targetType.Field(i)
-		fieldValue := resultValue.Field(i)
-
-		// Skip unexported fields
-		if !fieldValue.CanSet() {
-			continue
-		}
-
-		// Get field key from appropriate tag (json or yaml), fallback to field name
-		fieldKey := getFieldKey(field, format)
-		if fieldKey == "-" {
-			continue // Skip fields with tag:"-"
-		}
-
-		// Get value from data map
-		rawValue, exists := sourceMap[fieldKey]
-		nestedFieldName := fmt.Sprintf("%s.%s", fieldName, field.Name)
-
-		if !exists {
-			// Field not present in data, leave as zero value
-			rawValue = nil
-		}
-
-		// Recursively coerce and set the value
-		if err := setFieldValue(fieldValue, rawValue, nestedFieldName, format); err != nil {
-			errors.Add(err)
-		}
-	}
-
-	if errors.HasErrors() {
-		return nil, errors.AsError()
-	}
-
-	return resultValue.Interface(), nil
-}
-
 // getZeroValueForType returns the zero value for the given type
 func getZeroValueForType(t reflect.Type) interface{} {
 	if t == reflect.TypeOf(time.Time{}) {
@@ -565,44 +426,4 @@ func getZeroValue(kind reflect.Kind) interface{} {
 	default:
 		return nil
 	}
-}
-
-// coerceToPointer handles pointer types by coercing to the underlying type and creating a pointer
-func coerceToPointer(value interface{}, targetType reflect.Type, fieldName string) (interface{}, error) {
-	// If value is nil, return a nil pointer
-	if value == nil {
-		return reflect.Zero(targetType).Interface(), nil
-	}
-
-	// Get the element type (what the pointer points to)
-	elemType := targetType.Elem()
-
-	// Coerce the value to the element type
-	coercedValue, err := CoerceValue(value, elemType, fieldName)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create a pointer to the coerced value
-	ptrValue := reflect.New(elemType)
-
-	// Convert coercedValue to reflect.Value and ensure it matches the target type exactly
-	coercedReflectValue := reflect.ValueOf(coercedValue)
-
-	// Handle type conversion for numeric types if needed
-	if coercedReflectValue.Type() != elemType {
-		// If both are numeric types, convert
-		if coercedReflectValue.Kind() >= reflect.Int && coercedReflectValue.Kind() <= reflect.Float64 &&
-			elemType.Kind() >= reflect.Int && elemType.Kind() <= reflect.Float64 {
-			convertedValue := coercedReflectValue.Convert(elemType)
-			ptrValue.Elem().Set(convertedValue)
-		} else {
-			return nil, NewParseError(fieldName, value, targetType.String(),
-				fmt.Sprintf("cannot assign %s to %s", coercedReflectValue.Type(), elemType))
-		}
-	} else {
-		ptrValue.Elem().Set(coercedReflectValue)
-	}
-
-	return ptrValue.Interface(), nil
 }

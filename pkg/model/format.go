@@ -219,6 +219,15 @@ func checkDepth(v interface{}, currentDepth, maxDepth int) error {
 				return err
 			}
 		}
+	case map[interface{}]interface{}:
+		if currentDepth > maxDepth {
+			return fmt.Errorf("structure depth %d exceeds maximum allowed depth of %d", currentDepth, maxDepth)
+		}
+		for _, child := range val {
+			if err := checkDepth(child, currentDepth+1, maxDepth); err != nil {
+				return err
+			}
+		}
 	case []interface{}:
 		if currentDepth > maxDepth {
 			return fmt.Errorf("structure depth %d exceeds maximum allowed depth of %d", currentDepth, maxDepth)

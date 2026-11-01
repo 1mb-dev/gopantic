@@ -1,21 +1,17 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
 	"strings"
 	"sync"
-	"time"
-
-	"gopkg.in/yaml.v3"
 )
 
 // Performance optimization caches
 var (
-	// fieldKeyCache stores pre-computed field keys per type and format
-	fieldKeyCache sync.Map // map[fieldKeyCacheKey]map[int]string
+	// fieldKeyCache stores resolved struct fields per type and format
+	fieldKeyCache sync.Map // map[fieldKeyCacheKey]*fieldTable
 )
 
 // Note: validationCache is declared in validate.go
@@ -95,185 +91,14 @@ func ParseIntoWithFormat[T any](raw []byte, format Format) (T, error) {
 		return zero, fmt.Errorf("input size %d bytes exceeds maximum allowed size %d bytes", len(raw), maxSize)
 	}
 
-	// Check structure depth to prevent resource exhaustion from deeply nested input
-	if err := checkRawStructureDepth(raw, format); err != nil {
-		return zero, err
-	}
-
-	// Strategy: Try standard unmarshal first (handles json.RawMessage, custom UnmarshalJSON, etc.)
-	// If that succeeds, apply selective coercion only where needed
-	// If it fails (due to type mismatches), fall back to map-based coercion
-
-	var result T
-	unmarshalErr := unmarshalByFormat(raw, &result, format)
-
-	if unmarshalErr == nil {
-		if err := validateParsed(reflect.ValueOf(&result).Elem(), nil, nil); err != nil {
-			return zero, err
-		}
-		return result, nil
-	}
-
-	// Standard unmarshal failed, fall back to map-based coercion approach
-	// This handles cases where the input has type mismatches that need coercion
-	return parseWithMapCoercion[T](raw, format)
-}
-
-// unmarshalByFormat unmarshals raw bytes into a value using the appropriate decoder
-func unmarshalByFormat(raw []byte, v interface{}, format Format) error {
 	switch format {
 	case FormatJSON:
-		return json.Unmarshal(raw, v)
+		return parseJSON[T](raw)
 	case FormatYAML:
-		return yaml.Unmarshal(raw, v)
+		return parseYAML[T](raw)
 	default:
-		return fmt.Errorf("unsupported format: %v", format)
+		return zero, fmt.Errorf("unsupported format: %v", format)
 	}
-}
-
-// checkRawStructureDepth parses raw bytes and checks if the structure depth exceeds the limit.
-// This is called early in parsing to reject deeply nested input before expensive processing.
-func checkRawStructureDepth(raw []byte, format Format) error {
-	maxDepth := GetMaxStructureDepth()
-	if maxDepth <= 0 {
-		return nil // depth checking disabled
-	}
-
-	// Parse into generic interface{} to check structure depth
-	// Note: parser.Parse already calls checkStructureDepth internally,
-	// so this will return the depth error if the structure is too deep
-	parser := GetParser(format)
-	_, err := parser.Parse(raw)
-	return err
-}
-
-// parseWithMapCoercion is the fallback parser that uses map-based coercion
-// This is the original gopantic parsing logic
-func parseWithMapCoercion[T any](raw []byte, format Format) (T, error) {
-	var zero T
-	var errors ErrorList
-
-	// Get the appropriate parser for the format
-	parser := GetParser(format)
-
-	// Parse into a generic interface{} structure
-	data, err := parser.Parse(raw)
-	if err != nil {
-		errors.Add(err)
-		return zero, errors.AsError()
-	}
-
-	// Create new instance of T
-	resultValue := reflect.New(reflect.TypeOf(zero)).Elem()
-	resultType := resultValue.Type()
-
-	// Handle different target types
-	if resultType.Kind() == reflect.Slice || resultType.Kind() == reflect.Array {
-		// Handle array/slice parsing
-		result, err := parseIntoSlice[T](data, resultType, format)
-		if err != nil {
-			return zero, err
-		}
-		if err := validateParsed(reflect.ValueOf(&result).Elem(), nil, nil); err != nil {
-			return zero, err
-		}
-		return result, nil
-	}
-
-	// Ensure data is a map for struct parsing
-	dataMap, ok := data.(map[string]interface{})
-	if !ok {
-		errors.Add(fmt.Errorf("cannot parse non-object data into struct"))
-		return zero, errors.AsError()
-	}
-
-	// Process each field in the struct (parsing and coercion pass)
-	for i := 0; i < resultType.NumField(); i++ {
-		field := resultType.Field(i)
-		fieldValue := resultValue.Field(i)
-
-		// Skip unexported fields
-		if !fieldValue.CanSet() {
-			continue
-		}
-
-		// Get field key from appropriate tag (json or yaml), fallback to field name
-		fieldKey := getFieldKey(field, format)
-		if fieldKey == "-" {
-			continue // Skip fields with tag:"-"
-		}
-
-		// Get value from data map
-		rawValue, exists := dataMap[fieldKey]
-		if !exists {
-			// Field not present in data, leave as zero value
-			rawValue = nil
-		}
-
-		// Coerce and set the value
-		if err := setFieldValue(fieldValue, rawValue, field.Name, format); err != nil {
-			errors.Add(err)
-		}
-	}
-
-	if err := validateParsed(resultValue, errors, failedPaths(errors)); err != nil {
-		return zero, err
-	}
-
-	return resultValue.Interface().(T), nil
-}
-
-// setFieldValue coerces and sets a value on a struct field
-func setFieldValue(fieldValue reflect.Value, rawValue interface{}, fieldName string, format Format) error {
-	fieldType := fieldValue.Type()
-	fieldKind := fieldType.Kind()
-
-	// Handle direct assignment for matching types first
-	if rawValue != nil && reflect.TypeOf(rawValue).AssignableTo(fieldType) {
-		fieldValue.Set(reflect.ValueOf(rawValue))
-		return nil
-	}
-
-	// Handle specific types that need special treatment
-	if fieldType == reflect.TypeOf(time.Time{}) {
-		coercedValue, err := CoerceValueWithFormat(rawValue, fieldType, fieldName, format)
-		if err != nil {
-			return err
-		}
-		fieldValue.Set(reflect.ValueOf(coercedValue))
-		return nil
-	}
-
-	// Use coercion for basic type conversion
-	coercedValue, err := CoerceValueWithFormat(rawValue, fieldType, fieldName, format)
-	if err != nil {
-		return err
-	}
-
-	// Set the coerced value based on the field kind
-	switch fieldKind {
-	case reflect.String:
-		fieldValue.SetString(coercedValue.(string))
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		fieldValue.SetInt(coercedValue.(int64))
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		fieldValue.SetUint(coercedValue.(uint64))
-	case reflect.Float32, reflect.Float64:
-		fieldValue.SetFloat(coercedValue.(float64))
-	case reflect.Bool:
-		fieldValue.SetBool(coercedValue.(bool))
-	case reflect.Slice, reflect.Array:
-		fieldValue.Set(reflect.ValueOf(coercedValue))
-	case reflect.Struct:
-		fieldValue.Set(reflect.ValueOf(coercedValue))
-	case reflect.Ptr:
-		fieldValue.Set(reflect.ValueOf(coercedValue))
-	default:
-		return NewParseError(fieldName, rawValue, fieldType.String(),
-			fmt.Sprintf("unsupported field type: %s", fieldType))
-	}
-
-	return nil
 }
 
 // getFieldKey extracts the appropriate field key based on the data format
@@ -431,7 +256,7 @@ func (w *validationWalk) value(val reflect.Value, path *fieldPath, depth int) {
 
 	switch val.Kind() {
 	case reflect.Struct:
-		if val.Type() != reflect.TypeOf(time.Time{}) {
+		if val.Type() != timeType {
 			w.structFields(val, path, depth)
 		}
 	case reflect.Ptr:
@@ -553,60 +378,4 @@ func withFieldPath(err error, path string) error {
 	default:
 		return err
 	}
-}
-
-// parseIntoSlice handles parsing of array/slice data into slice/array types
-func parseIntoSlice[T any](data interface{}, resultType reflect.Type, format Format) (T, error) {
-	var zero T
-	var errors ErrorList
-
-	// Ensure data is an array
-	dataSlice, ok := data.([]interface{})
-	if !ok {
-		errors.Add(fmt.Errorf("cannot parse non-array data into slice/array"))
-		return zero, errors.AsError()
-	}
-
-	if resultType.Kind() == reflect.Slice {
-		// Handle slice parsing
-		slice := reflect.MakeSlice(resultType, len(dataSlice), len(dataSlice))
-
-		for i, item := range dataSlice {
-			elemValue := slice.Index(i)
-			if err := setFieldValue(elemValue, item, fmt.Sprintf("[%d]", i), format); err != nil {
-				errors.Add(err)
-			}
-		}
-
-		if len(errors) > 0 {
-			return zero, errors.AsError()
-		}
-
-		return slice.Interface().(T), nil
-	} else if resultType.Kind() == reflect.Array {
-		// Handle array parsing
-		arrayLen := resultType.Len()
-		if len(dataSlice) != arrayLen {
-			errors.Add(fmt.Errorf("array length mismatch: expected %d elements, got %d", arrayLen, len(dataSlice)))
-			return zero, errors.AsError()
-		}
-
-		array := reflect.New(resultType).Elem()
-
-		for i, item := range dataSlice {
-			elemValue := array.Index(i)
-			if err := setFieldValue(elemValue, item, fmt.Sprintf("[%d]", i), format); err != nil {
-				errors.Add(err)
-			}
-		}
-
-		if len(errors) > 0 {
-			return zero, errors.AsError()
-		}
-
-		return array.Interface().(T), nil
-	}
-
-	errors.Add(fmt.Errorf("unsupported type: %s", resultType.Kind()))
-	return zero, errors.AsError()
 }

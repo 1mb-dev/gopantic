@@ -1,6 +1,6 @@
 site_name: gopantic
 site_url: https://1mb-dev.github.io/gopantic/
-site_description: Type-safe JSON/YAML parsing with validation for Go
+site_description: Parse, coerce and validate JSON and YAML in one call
 repo_url: https://github.com/1mb-dev/gopantic
 repo_name: 1mb-dev/gopantic
 
@@ -46,16 +46,17 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Why gopantic: building-gopantic.md
-  - Getting Started: getting-started.md
+  - Getting started: getting-started.md
   - Guide:
     - Validation: guide/validation.md
+    - Coercion: guide/coercion.md
     - Caching: guide/caching.md
   - Reference:
     - API: reference/api.md
     - Types: reference/types.md
-  - Migration: migration.md
-  - Architecture: architecture.md
+  - From encoding/json and validator: migration.md
+  - Known limitations: known-limitations.md
+  - How it works: architecture.md
   - Benchmarks: benchmarks.md
   - Changelog: changelog.md
 

@@ -1,10 +1,6 @@
 # gopantic
 
-Type-safe JSON/YAML parsing with validation for Go.
-
-Automatic format detection, type coercion, and struct tag validation in a single `ParseInto[T]()` call.
-
-## Quick Example
+Parse JSON or YAML into a Go struct, convert what can be converted exactly, and run the rules in its `validate` tags, in one call. You get back the value the input meant, or an error.
 
 ```go
 type User struct {
@@ -13,46 +9,26 @@ type User struct {
     Email string `json:"email" validate:"required,email"`
 }
 
-data := []byte(`{"id": "123", "name": "Alice", "email": "alice@example.com"}`)
-
-user, err := model.ParseInto[User](data)
-// String "123" coerced to int 123, validation applied
+user, err := model.ParseInto[User]([]byte(`{"id": "42", "name": "Alice", "email": "alice@example.com"}`))
+// user.ID == 42
 ```
 
-## Features
+The string `"42"` becomes the int `42` because that conversion loses nothing. `"42.5"` wouldn't fit an int, so it's an error. The same struct reads YAML with no other change.
 
-| Feature | Description |
-|---------|-------------|
-| Format Detection | JSON or YAML detected automatically |
-| Type Coercion | `"123"` to `123`, `"true"` to `true` |
-| Validation | Struct tags: `validate:"required,email,min=5"` |
-| Cross-Field | Compare fields: `validate:"gtfield=Min"` |
-| Caching | Optional, 5x+ speedup on repeated data |
+## Who it is for
 
-## Installation
+gopantic suits code that reads input it doesn't control: API payloads where numbers arrive as strings, config files that may be JSON or YAML, data imports. You write one struct and get decoding, conversion and validation together, with every problem reported at once.
+
+If your input is already well typed and JSON only, use `encoding/json` with [go-playground/validator](https://github.com/go-playground/validator). It has far more rules, and you wouldn't be using what gopantic adds. The two are within 25% of each other on correctly typed JSON, so speed won't decide it. Input that needs converting takes about 3.5 times as long; see [Benchmarks](benchmarks.md).
+
+## Install
 
 ```bash
 go get github.com/1mb-dev/gopantic
 ```
 
-Requires Go 1.23+.
+Requires Go 1.24 or later. The one dependency is `gopkg.in/yaml.v3`.
 
-## When to Use
+## Where to go next
 
-Good fit:
-
-- API request parsing with validation
-- Configuration files (JSON/YAML)
-- Data import with type conversion
-
-Not ideal:
-
-- Latency-critical hot paths
-- Simple JSON without validation
-- Binary protocols
-
-## Next
-
-- [Getting Started](getting-started.md)
-- [Validation Guide](guide/validation.md)
-- [API Reference](reference/api.md)
+Start with [Getting started](getting-started.md). The [Validation](guide/validation.md) and [Coercion](guide/coercion.md) guides are the two pages you will return to. [Known limitations](known-limitations.md) lists what gopantic doesn't do, and the [changelog](changelog.md) lists what v1.5.0 changed.

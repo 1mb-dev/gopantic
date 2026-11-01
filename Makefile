@@ -1,4 +1,4 @@
-.PHONY: help dev test audit build release clean install deps fmt vet lint coverage check complexity deadcode vulncheck tidy
+.PHONY: help dev test audit build release clean install deps fmt vet lint coverage check complexity deadcode vulncheck tidy examples docs
 
 # Default target
 help: ## Show this help message
@@ -11,6 +11,9 @@ check: deps fmt vet lint test ## Run full development cycle (deps, fmt, vet, lin
 test: ## Run tests with coverage
 	go test -v -race -coverpkg=./pkg/... -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
+
+test-contract: ## Run the contract suite the way CI does: repeated, shuffled, under the race detector
+	go test -race -count=2 -shuffle=on ./tests/...
 
 build: ## Build the library (check compilation)
 	go build ./...

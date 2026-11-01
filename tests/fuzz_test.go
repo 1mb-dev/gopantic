@@ -1,7 +1,11 @@
 package tests
 
 import (
+	"bytes"
+	"encoding/json"
+	"math"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -228,6 +232,139 @@ func FuzzCoerceSlice(f *testing.F) {
 		for _, sliceType := range sliceTypes {
 			// Must not panic
 			_, _ = model.CoerceValue(parsed, sliceType, "fuzz_slice")
+		}
+	})
+}
+
+// FuzzNumericRoundTrip holds the numeric contract: a parse that returns no error returned the
+// number it was given.
+func FuzzNumericRoundTrip(f *testing.F) {
+	for _, seed := range []float64{0, 1, -1, 4.7, 127, 128, -129, 255, 256, 300, 1e3, 1e16, 1e30, 1.79e308, 2147483648, 9007199254740992} {
+		f.Add(seed)
+	}
+
+	f.Fuzz(func(t *testing.T, n float64) {
+		if math.IsNaN(n) || math.IsInf(n, 0) {
+			t.Skip("not representable in JSON")
+		}
+		literal := strconv.FormatFloat(n, 'g', -1, 64)
+		for _, input := range []struct {
+			data   []byte
+			format model.Format
+		}{
+			{[]byte(`{"v":` + literal + `}`), model.FormatJSON},
+			{[]byte(`{"v":"` + literal + `"}`), model.FormatJSON},
+			// The oracle is the number itself. A differential test against yaml.v3 cannot see
+			// these, since yaml.v3 truncates floats into integers.
+			{[]byte("v: " + literal + "\n"), model.FormatYAML},
+		} {
+			checkRoundTrip[ctI8](t, input.data, input.format, n, func(v ctI8) float64 { return float64(v.V) })
+			checkRoundTrip[ctU8](t, input.data, input.format, n, func(v ctU8) float64 { return float64(v.V) })
+			checkRoundTrip[ctInt](t, input.data, input.format, n, func(v ctInt) float64 { return float64(v.V) })
+			checkRoundTrip[ctUint](t, input.data, input.format, n, func(v ctUint) float64 { return float64(v.V) })
+		}
+		checkRoundTrip[ctI8Slice](t, []byte(`{"v":[`+literal+`]}`), model.FormatJSON, n, func(v ctI8Slice) float64 {
+			if len(v.V) != 1 {
+				return math.NaN()
+			}
+			return float64(v.V[0])
+		})
+	})
+}
+
+func checkRoundTrip[T any](t *testing.T, input []byte, format model.Format, want float64, value func(T) float64) {
+	t.Helper()
+	got, err := model.ParseIntoWithFormat[T](input, format)
+	if err != nil {
+		return
+	}
+	if value(got) != want {
+		t.Errorf("%s into %T: got %v, want %v", input, got, value(got), want)
+	}
+}
+
+// fuzzZoo carries every shape the walker treats specially.
+type fuzzZoo struct {
+	Trigger int `json:"trigger"`
+	CtPromoted
+	Name  string            `json:"name"`
+	Num   int64             `json:"num"`
+	Flt   float64           `json:"flt"`
+	Ok    bool              `json:"ok"`
+	Tags  []string          `json:"tags"`
+	Pair  [2]int            `json:"pair"`
+	Attrs map[string]int    `json:"attrs"`
+	ByID  map[int]string    `json:"by_id"`
+	Ptr   *int              `json:"ptr"`
+	Any   any               `json:"any"`
+	Raw   json.RawMessage   `json:"raw"`
+	Data  []byte            `json:"data"`
+	Kids  []fuzzZoo         `json:"kids"`
+	Next  *fuzzZoo          `json:"next"`
+	Named map[string]CtItem `json:"named"`
+}
+
+// CtItem is a nested type with no rules, so a differential compares decoding alone.
+type CtItem struct {
+	Name string `json:"name"`
+}
+
+// FuzzWalkerDifferential holds the coercion contract: when encoding/json decodes an object,
+// the same object with one field needing coercion decodes to the same value.
+func FuzzWalkerDifferential(f *testing.F) {
+	for _, seed := range []string{
+		`"name":"a"`, `"num":9007199254740993`, `"flt":1.5`, `"ok":true`, `"tags":["a"]`,
+		`"pair":[1,2]`, `"attrs":{"a":1}`, `"by_id":{"1":"a"}`, `"ptr":3`, `"any":{"x":[1,null]}`,
+		`"raw":{"b": 1, "a":[ 2 ]}`, `"data":"aGk="`, `"kids":[{"name":"k"}]`, `"next":{"num":1}`,
+		`"promoted":"p"`, `"NAME":"n"`, `"named":{"a":{"name":"x"}}`, `"name":null,"tags":null`,
+		`"name":"a","name":"b"`, `"next":{"name":"a"},"next":{"num":1}`,
+	} {
+		f.Add(seed)
+	}
+
+	f.Fuzz(func(t *testing.T, fields string) {
+		var want fuzzZoo
+		typed := []byte(`{"trigger":1,` + fields + `}`)
+		if err := json.Unmarshal(typed, &want); err != nil {
+			t.Skip()
+		}
+
+		coerced := bytes.Replace(typed, []byte(`"trigger":1`), []byte(`"trigger":"1"`), 1)
+		got, err := model.ParseInto[fuzzZoo](coerced)
+		if err != nil {
+			t.Fatalf("encoding/json accepted %s, walker rejected it: %v", typed, err)
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("%s\ngot  %+v\nwant %+v", typed, got, want)
+		}
+	})
+}
+
+// FuzzNoPanicAnyTarget checks that no input panics for any kind of target type.
+func FuzzNoPanicAnyTarget(f *testing.F) {
+	for _, seed := range []string{
+		`{"a":"x"}`, `{"a":"1"}`, `[null]`, `[{"a":null}]`, `{"v":"1"}`, `null`, `1`, `"s"`,
+		"a: 1\nb: 2\n", "- 1\n- x\n", "v: \"1\"\nw: [1]\n", "{1: 2, x: y}\n",
+		"name: a\nother: b\n", "cfg: {a: 1}\n", "c: hi\n",
+	} {
+		f.Add([]byte(seed))
+	}
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		for _, format := range []model.Format{model.FormatJSON, model.FormatYAML} {
+			_, _ = model.ParseIntoWithFormat[map[string]int](data, format)
+			_, _ = model.ParseIntoWithFormat[map[int]string](data, format)
+			_, _ = model.ParseIntoWithFormat[*ctInt](data, format)
+			_, _ = model.ParseIntoWithFormat[[]map[string]string](data, format)
+			_, _ = model.ParseIntoWithFormat[[2]any](data, format)
+			_, _ = model.ParseIntoWithFormat[any](data, format)
+			_, _ = model.ParseIntoWithFormat[int](data, format)
+			_, _ = model.ParseIntoWithFormat[fuzzZoo](data, format)
+			_, _ = model.ParseIntoWithFormat[ctYPtrInline](data, format)
+			_, _ = model.ParseIntoWithFormat[ctYHiddenInlineStruct](data, format)
+			_, _ = model.ParseIntoWithFormat[ctYHiddenInlineMap](data, format)
+			_, _ = model.ParseIntoWithFormat[ctOldYAMLField](data, format)
+			_, _ = model.ParseIntoWithFormat[ctYAMLNodeField](data, format)
 		}
 	})
 }

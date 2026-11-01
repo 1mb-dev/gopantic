@@ -19,6 +19,8 @@ type ParseError struct {
 	Value   interface{}
 	Type    string
 	Message string
+
+	sensitive bool // Matched on the input key, which Field does not carry
 }
 
 func (e ParseError) Error() string {
@@ -39,6 +41,22 @@ func NewParseError(field string, value interface{}, targetType, message string) 
 	}
 }
 
+// SanitizedValue returns the error value with sensitive data redacted.
+// If the field matches a sensitive pattern, returns RedactedValue ("[REDACTED]").
+// Otherwise returns the original value unchanged.
+func (e ParseError) SanitizedValue() interface{} {
+	if e.sensitive || IsSensitiveField(e.Field) {
+		return RedactedValue
+	}
+	return e.Value
+}
+
+// redact replaces the message, which can quote the input, and marks the value as sensitive.
+func (e *ParseError) redact() {
+	e.sensitive = true
+	e.Message = "invalid value for " + e.Type
+}
+
 // ValidationError represents a validation failure with detailed field and rule information.
 // Supports nested field paths and structured error details for comprehensive error reporting.
 type ValidationError struct {
@@ -48,6 +66,8 @@ type ValidationError struct {
 	Rule      string
 	Message   string
 	Details   map[string]interface{} // Additional structured information
+
+	sensitive bool // Decided by the validation walk, which knows more than the field name
 }
 
 func (e ValidationError) Error() string {
@@ -106,10 +126,10 @@ func NewValidationErrorWithDetails(field, fieldPath string, value interface{}, r
 }
 
 // SanitizedValue returns the error value with sensitive data redacted.
-// If the field name matches any sensitive pattern, returns RedactedValue ("[REDACTED]").
-// Otherwise returns the original value unchanged.
+// If the field name matches any sensitive pattern, or the field is kept out of JSON, returns
+// RedactedValue ("[REDACTED]"). Otherwise returns the original value unchanged.
 func (e ValidationError) SanitizedValue() interface{} {
-	if IsSensitiveField(e.Field) || IsSensitiveField(e.FieldPath) {
+	if e.sensitive || IsSensitiveField(e.Field) || IsSensitiveField(e.FieldPath) {
 		return RedactedValue
 	}
 	return e.Value
@@ -162,6 +182,11 @@ func (el ErrorList) Error() string {
 	return fmt.Sprintf("multiple errors: %s", strings.Join(messages, "; "))
 }
 
+// Unwrap lets errors.Is and errors.As see each error in the list.
+func (el ErrorList) Unwrap() []error {
+	return el
+}
+
 // Add appends an error to the ErrorList
 // If the error is itself an ErrorList, it flattens the errors to avoid nesting
 func (el *ErrorList) Add(err error) {
@@ -173,6 +198,27 @@ func (el *ErrorList) Add(err error) {
 			*el = append(*el, err)
 		}
 	}
+}
+
+// maxErrors caps the errors one parse reports, so a large input cannot allocate one per element.
+const maxErrors = 100
+
+var errTooManyErrors = fmt.Errorf("too many errors: stopped after %d", maxErrors)
+
+// addCapped is Add with the maxErrors cap applied.
+func (el *ErrorList) addCapped(err error) {
+	if el.full() {
+		return
+	}
+	el.Add(err)
+	if len(*el) >= maxErrors {
+		*el = append((*el)[:maxErrors:maxErrors], errTooManyErrors)
+	}
+}
+
+// full reports whether the list has reached the cap and gained its closing entry.
+func (el ErrorList) full() bool {
+	return len(el) > maxErrors
 }
 
 // HasErrors returns true if the ErrorList contains any errors

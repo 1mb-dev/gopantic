@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"regexp"
 	"strings"
@@ -37,7 +38,7 @@ func (v *RequiredValidator) Validate(fieldName string, value interface{}) error 
 			return NewValidationError(fieldName, value, "required", "field is required")
 		}
 	case reflect.Float32, reflect.Float64:
-		if val.Float() == 0.0 {
+		if f := val.Float(); f == 0.0 || math.IsNaN(f) {
 			return NewValidationError(fieldName, value, "required", "field is required")
 		}
 	case reflect.Bool:
@@ -105,7 +106,7 @@ func (v *MinValidator) Validate(fieldName string, value interface{}) error {
 				fmt.Sprintf("value must be at least %.0f", v.Min))
 		}
 	case reflect.Float32, reflect.Float64:
-		if val.Float() < v.Min {
+		if !(val.Float() >= v.Min) { // written so NaN fails
 			return NewValidationError(fieldName, value, "min",
 				fmt.Sprintf("value must be at least %g", v.Min))
 		}
@@ -165,7 +166,7 @@ func (v *MaxValidator) Validate(fieldName string, value interface{}) error {
 				fmt.Sprintf("value must be at most %.0f", v.Max))
 		}
 	case reflect.Float32, reflect.Float64:
-		if val.Float() > v.Max {
+		if !(val.Float() <= v.Max) { // written so NaN fails
 			return NewValidationError(fieldName, value, "max",
 				fmt.Sprintf("value must be at most %g", v.Max))
 		}

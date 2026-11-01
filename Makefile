@@ -75,8 +75,8 @@ bench-full: ## Run comprehensive benchmark analysis
 	@echo "Running comprehensive benchmark analysis..."
 	go test -bench=. -benchmem -count=3 ./tests
 
-bench-compare: ## Run comparison benchmarks (gopantic vs standard library)
-	go test -bench="Benchmark.*Parsing.*" -benchmem -count=3 ./tests
+bench-compare: ## Run comparison benchmarks (gopantic vs encoding/json and go-playground/validator)
+	cd benchmarks && go test -run='^$$' -bench=. -benchmem -count=3 ./...
 
 bench-memory: ## Run memory allocation benchmarks
 	go test -bench="BenchmarkMemory" -benchmem -count=3 ./tests

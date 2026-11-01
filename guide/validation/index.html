@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Type-safe JSON/YAML parsing with validation for Go">
+        <meta name="description" content="Parse, coerce and validate JSON and YAML in one call">
       
       
       
@@ -16,14 +16,14 @@
         <link rel="prev" href="../../getting-started/">
       
       
-        <link rel="next" href="../caching/">
+        <link rel="next" href="../coercion/">
       
       
         
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#validation-guide" class="md-skip">
+        <a href="#validation" class="md-skip">
           Skip to content
         </a>
       
@@ -289,33 +289,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../building-gopantic/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Why gopantic
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../getting-started/" class="md-nav__link">
         
   
@@ -323,7 +296,7 @@
   <span class="md-ellipsis">
     
   
-    Getting Started
+    Getting started
   
 
     
@@ -358,10 +331,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -379,8 +352,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -457,10 +430,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#basic-syntax" class="md-nav__link">
+  <a href="#built-in-rules" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic Syntax
+        Built-in rules
       
     </span>
   </a>
@@ -468,60 +441,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#built-in-validators" class="md-nav__link">
+  <a href="#where-rules-apply" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Built-in Validators
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Built-in Validators">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#presence" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Presence
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#range" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Range
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#string-formats" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        String Formats
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#nested-struct-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Nested Struct Validation
+        Where rules apply
       
     </span>
   </a>
@@ -529,10 +452,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#slice-validation" class="md-nav__link">
+  <a href="#a-tag-that-cannot-run-is-an-error" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Slice Validation
+        A tag that cannot run is an error
       
     </span>
   </a>
@@ -540,77 +463,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#custom-validators" class="md-nav__link">
+  <a href="#your-own-rules" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Custom Validators
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Custom Validators">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#custom-cross-field-validators" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Custom Cross-Field Validators
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-errors" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation Errors
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Validation Errors">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#error-types" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Types
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sensitive-field-protection" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Sensitive Field Protection
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips
+        Your own rules
       
     </span>
   </a>
@@ -618,60 +474,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#common-patterns" class="md-nav__link">
+  <a href="#fields-input-cannot-set" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Common Patterns
+        Fields input cannot set
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Common Patterns">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#password-with-confirmation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Password with Confirmation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#optional-with-format" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Optional with Format
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#phone-number" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Phone Number
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#extending-validators" class="md-nav__link">
+  <a href="#errors" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Extending Validators
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sensitive-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sensitive values
       
     </span>
   </a>
@@ -682,6 +510,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../coercion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coercion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -742,10 +598,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -763,8 +619,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -851,7 +707,34 @@
   <span class="md-ellipsis">
     
   
-    Migration
+    From encoding/json and validator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../known-limitations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known limitations
   
 
     
@@ -878,7 +761,7 @@
   <span class="md-ellipsis">
     
   
-    Architecture
+    How it works
   
 
     
@@ -972,10 +855,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#basic-syntax" class="md-nav__link">
+  <a href="#built-in-rules" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic Syntax
+        Built-in rules
       
     </span>
   </a>
@@ -983,60 +866,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#built-in-validators" class="md-nav__link">
+  <a href="#where-rules-apply" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Built-in Validators
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Built-in Validators">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#presence" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Presence
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#range" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Range
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#string-formats" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        String Formats
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#nested-struct-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Nested Struct Validation
+        Where rules apply
       
     </span>
   </a>
@@ -1044,10 +877,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#slice-validation" class="md-nav__link">
+  <a href="#a-tag-that-cannot-run-is-an-error" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Slice Validation
+        A tag that cannot run is an error
       
     </span>
   </a>
@@ -1055,77 +888,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#custom-validators" class="md-nav__link">
+  <a href="#your-own-rules" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Custom Validators
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Custom Validators">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#custom-cross-field-validators" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Custom Cross-Field Validators
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-errors" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation Errors
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Validation Errors">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#error-types" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Types
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sensitive-field-protection" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Sensitive Field Protection
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips
+        Your own rules
       
     </span>
   </a>
@@ -1133,60 +899,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#common-patterns" class="md-nav__link">
+  <a href="#fields-input-cannot-set" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Common Patterns
+        Fields input cannot set
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Common Patterns">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#password-with-confirmation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Password with Confirmation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#optional-with-format" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Optional with Format
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#phone-number" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Phone Number
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#extending-validators" class="md-nav__link">
+  <a href="#errors" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Extending Validators
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sensitive-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sensitive values
       
     </span>
   </a>
@@ -1213,250 +951,135 @@
   
 
 
-<h1 id="validation-guide">Validation Guide</h1>
-<h2 id="basic-syntax">Basic Syntax</h2>
-<p>Use the <code>validate</code> struct tag:</p>
+<h1 id="validation">Validation</h1>
+<p>Rules go in a <code>validate</code> tag, separated by commas. All of them run, and all failures are reported.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">User</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="nx">Name</span><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;name&quot; validate:&quot;required,min=2,max=50&quot;`</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nx">Email</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;email&quot; validate:&quot;required,email&quot;`</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="nx">Name</span><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"name" validate:"required,min=2,max=50"`</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nx">Email</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"email" validate:"required,email"`</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">}</span>
 </code></pre></div>
-<p>Multiple validators are comma-separated. Validators are applied in order.</p>
-<h2 id="built-in-validators">Built-in Validators</h2>
-<p>gopantic includes these built-in validators:</p>
-<h3 id="presence">Presence</h3>
+<h2 id="built-in-rules">Built-in rules</h2>
 <table>
 <thead>
 <tr>
-<th>Validator</th>
-<th>Description</th>
-<th>Example</th>
+<th>Rule</th>
+<th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>required</code></td>
-<td>Field must be non-zero value</td>
-<td><code>validate:"required"</code></td>
-</tr>
-</tbody>
-</table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nx">Name</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;name&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1">// &quot;&quot; fails, &quot;Alice&quot; passes</span>
-</code></pre></div>
-<h3 id="range">Range</h3>
-<table>
-<thead>
-<tr>
-<th>Validator</th>
-<th>Description</th>
-<th>Example</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>min</code></td>
-<td>Minimum value/length</td>
-<td><code>validate:"min=5"</code></td>
+<td>Not the zero value</td>
 </tr>
 <tr>
-<td><code>max</code></td>
-<td>Maximum value/length</td>
-<td><code>validate:"max=100"</code></td>
+<td><code>min=N</code>, <code>max=N</code></td>
+<td>Bounds on a number, or on the length of a string, slice or array</td>
 </tr>
 <tr>
-<td><code>length</code></td>
-<td>Exact length (strings only)</td>
-<td><code>validate:"length=10"</code></td>
+<td><code>length=N</code>, or <code>len=N</code></td>
+<td>Exact length of a string, slice or array</td>
 </tr>
-</tbody>
-</table>
-<p>For strings, <code>min</code>/<code>max</code> check length. For numbers, they check value.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nx">Age</span><span class="w">     </span><span class="kt">int</span><span class="w">    </span><span class="s">`json:&quot;age&quot; validate:&quot;min=0,max=150&quot;`</span><span class="w">      </span><span class="c1">// 0 &lt;= age &lt;= 150</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nx">Name</span><span class="w">    </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;name&quot; validate:&quot;min=2,max=50&quot;`</span><span class="w">      </span><span class="c1">// 2 &lt;= len(name) &lt;= 50</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nx">Code</span><span class="w">    </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;code&quot; validate:&quot;length=6&quot;`</span><span class="w">          </span><span class="c1">// len(code) == 6</span>
-</code></pre></div>
-<h3 id="string-formats">String Formats</h3>
-<table>
-<thead>
-<tr>
-<th>Validator</th>
-<th>Description</th>
-<th>Example</th>
-</tr>
-</thead>
-<tbody>
 <tr>
 <td><code>email</code></td>
-<td>Valid email format</td>
-<td><code>validate:"email"</code></td>
+<td>Looks like an email address</td>
 </tr>
 <tr>
 <td><code>alpha</code></td>
-<td>Letters only (a-zA-Z)</td>
-<td><code>validate:"alpha"</code></td>
+<td>Letters a to z only</td>
 </tr>
 <tr>
 <td><code>alphanum</code></td>
-<td>Letters and numbers only</td>
-<td><code>validate:"alphanum"</code></td>
+<td>Letters and digits only</td>
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nx">Email</span><span class="w">   </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;email&quot; validate:&quot;required,email&quot;`</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nx">Country</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;country&quot; validate:&quot;alpha&quot;`</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nx">Code</span><span class="w">    </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;code&quot; validate:&quot;alphanum&quot;`</span>
+<p>String lengths count bytes. An empty string fails <code>required</code> and passes <code>min=0</code>, and <code>required</code> can't tell an absent <code>0</code> from a sent one. Use a pointer when that matters:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nx">Age</span><span class="w"> </span><span class="o">*</span><span class="kt">int</span><span class="w"> </span><span class="s">`json:"age" validate:"required"`</span><span class="w"> </span><span class="c1">// nil fails, 0 passes</span>
 </code></pre></div>
-<h2 id="nested-struct-validation">Nested Struct Validation</h2>
-<p>Nested structs are validated automatically:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Address</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="nx">Street</span><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;street&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nx">City</span><span class="w">    </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;city&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nx">ZipCode</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;zip_code&quot; validate:&quot;required,alphanum&quot;`</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">}</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="kd">type</span><span class="w"> </span><span class="nx">User</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span><span class="nx">Name</span><span class="w">    </span><span class="kt">string</span><span class="w">  </span><span class="s">`json:&quot;name&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="nx">Address</span><span class="w"> </span><span class="nx">Address</span><span class="w"> </span><span class="s">`json:&quot;address&quot;`</span><span class="w">  </span><span class="c1">// Nested struct is validated</span>
+<h2 id="where-rules-apply">Where rules apply</h2>
+<p>Rules run wherever the type holds them: nested structs, pointers, the elements of slices and arrays, map values, and top-level slices and maps. So <code>model.ParseInto[[]User](data)</code> checks every user.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Order</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="nx">Items</span><span class="w"> </span><span class="p">[]</span><span class="nx">Item</span><span class="w">          </span><span class="s">`json:"items"`</span><span class="w"> </span><span class="c1">// each Item is validated</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nx">Meta</span><span class="w">  </span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">Item</span><span class="w"> </span><span class="s">`json:"meta"`</span><span class="w">  </span><span class="c1">// each value is validated</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">}</span>
+</code></pre></div>
+<p>Errors from nested values carry the full path in <code>FieldPath</code>, such as <code>Items[1].Name</code>, and the leaf name in <code>Field</code>.</p>
+<h2 id="a-tag-that-cannot-run-is-an-error">A tag that cannot run is an error</h2>
+<p>A misspelled rule would otherwise leave a field unchecked with no sign of it. So an unknown rule, a missing or malformed parameter, or a stray comma fails every parse and every <code>Validate</code> for that type, even when the input never reaches the field:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>main.Order.Name: invalid validate tag "requird": unknown validator "requird":
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>use one of alpha, alphanum, email, len, length, max, min, required, or register it first
+</code></pre></div>
+<p>This also catches rules copied from go-playground/validator that gopantic doesn't have. Register those yourself, as below.</p>
+<h2 id="your-own-rules">Your own rules</h2>
+<p>Register a function under a name, then use the name in tags. Do this before parsing, or at any point: registering clears the cached rules, so types parsed earlier pick it up.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nx">model</span><span class="p">.</span><span class="nx">RegisterGlobalFunc</span><span class="p">(</span><span class="s">"is_even"</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">field</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="kd">interface</span><span class="p">{},</span><span class="w"> </span><span class="nx">params</span><span class="w"> </span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{})</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">n</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">value</span><span class="p">.(</span><span class="kt">int</span><span class="p">);</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">n</span><span class="o">%</span><span class="mi">2</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">NewValidationError</span><span class="p">(</span><span class="nx">field</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="p">,</span><span class="w"> </span><span class="s">"is_even"</span><span class="p">,</span><span class="w"> </span><span class="s">"must be even"</span><span class="p">)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">})</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Numbers</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="nx">Count</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="s">`json:"count" validate:"is_even"`</span>
 <a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">}</span>
 </code></pre></div>
-<h2 id="slice-validation">Slice Validation</h2>
-<p>Slices can be validated for length:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nx">Tags</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;tags&quot; validate:&quot;min=1,max=5&quot;`</span><span class="w">  </span><span class="c1">// 1-5 items</span>
+<p>The text after <code>=</code> arrives as <code>params["value"]</code>, a <code>float64</code> if it reads as a number and a string otherwise:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nx">model</span><span class="p">.</span><span class="nx">RegisterGlobalFunc</span><span class="p">(</span><span class="s">"oneof"</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">field</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="kd">interface</span><span class="p">{},</span><span class="w"> </span><span class="nx">params</span><span class="w"> </span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{})</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="nx">allowed</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">params</span><span class="p">[</span><span class="s">"value"</span><span class="p">].(</span><span class="kt">string</span><span class="p">)</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">option</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">Fields</span><span class="p">(</span><span class="nx">allowed</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">option</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">NewValidationError</span><span class="p">(</span><span class="nx">field</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="p">,</span><span class="w"> </span><span class="s">"oneof"</span><span class="p">,</span><span class="w"> </span><span class="s">"must be one of: "</span><span class="o">+</span><span class="nx">allowed</span><span class="p">)</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">})</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Post</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">    </span><span class="nx">Status</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"status" validate:"oneof=draft published archived"`</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="p">}</span>
 </code></pre></div>
-<h2 id="custom-validators">Custom Validators</h2>
-<p>Register custom validation functions for domain-specific rules:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nx">model</span><span class="p">.</span><span class="nx">RegisterGlobalFunc</span><span class="p">(</span><span class="s">&quot;is_even&quot;</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">fieldName</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="kd">interface</span><span class="p">{},</span><span class="w"> </span><span class="nx">params</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{})</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="nx">num</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">value</span><span class="p">.(</span><span class="kt">int</span><span class="p">)</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">ok</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="c1">// Let type validation handle this</span>
+<p>To compare fields, register a cross-field rule, which also receives the struct:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nx">model</span><span class="p">.</span><span class="nx">RegisterGlobalCrossFieldFunc</span><span class="p">(</span><span class="s">"eqfield"</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">field</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="kd">interface</span><span class="p">{},</span><span class="w"> </span><span class="nx">parent</span><span class="w"> </span><span class="nx">reflect</span><span class="p">.</span><span class="nx">Value</span><span class="p">,</span><span class="w"> </span><span class="nx">params</span><span class="w"> </span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{})</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="nx">other</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">parent</span><span class="p">.</span><span class="nx">FieldByName</span><span class="p">(</span><span class="nx">params</span><span class="p">[</span><span class="s">"value"</span><span class="p">].(</span><span class="kt">string</span><span class="p">))</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">other</span><span class="p">.</span><span class="nx">IsValid</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">other</span><span class="p">.</span><span class="nx">Interface</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">NewValidationError</span><span class="p">(</span><span class="nx">field</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="p">,</span><span class="w"> </span><span class="s">"eqfield"</span><span class="p">,</span><span class="w"> </span><span class="s">"fields do not match"</span><span class="p">)</span>
 <a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">num</span><span class="o">%</span><span class="mi">2</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">NewValidationError</span><span class="p">(</span><span class="nx">fieldName</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;is_even&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;must be an even number&quot;</span><span class="p">)</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="p">})</span>
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Numbers</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">    </span><span class="nx">EvenNumber</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="s">`json:&quot;even_number&quot; validate:&quot;required,is_even&quot;`</span>
-<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="p">}</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">})</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Registration</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">    </span><span class="nx">Password</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"password" validate:"required,min=8"`</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">    </span><span class="nx">Confirm</span><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"confirm" validate:"required,eqfield=Password"`</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="p">}</span>
 </code></pre></div>
-<h3 id="custom-cross-field-validators">Custom Cross-Field Validators</h3>
-<p>For validations that compare fields against each other:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nx">model</span><span class="p">.</span><span class="nx">RegisterGlobalCrossFieldFunc</span><span class="p">(</span><span class="s">&quot;password_match&quot;</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">fieldName</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">fieldValue</span><span class="w"> </span><span class="kd">interface</span><span class="p">{},</span><span class="w"> </span><span class="nx">structValue</span><span class="w"> </span><span class="nx">reflect</span><span class="p">.</span><span class="nx">Value</span><span class="p">,</span><span class="w"> </span><span class="nx">params</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{})</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="nx">confirmPassword</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fieldValue</span><span class="p">.(</span><span class="kt">string</span><span class="p">)</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">ok</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">NewValidationError</span><span class="p">(</span><span class="nx">fieldName</span><span class="p">,</span><span class="w"> </span><span class="nx">fieldValue</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;password_match&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;must be a string&quot;</span><span class="p">)</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="nx">password</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">structValue</span><span class="p">.</span><span class="nx">FieldByName</span><span class="p">(</span><span class="s">&quot;Password&quot;</span><span class="p">).</span><span class="nx">String</span><span class="p">()</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">confirmPassword</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">password</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">NewValidationError</span><span class="p">(</span><span class="nx">fieldName</span><span class="p">,</span><span class="w"> </span><span class="nx">fieldValue</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;password_match&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;passwords do not match&quot;</span><span class="p">)</span>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="p">})</span>
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>
-<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Registration</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">    </span><span class="nx">Password</span><span class="w">        </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;password&quot; validate:&quot;required,min=8&quot;`</span>
-<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">    </span><span class="nx">ConfirmPassword</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;confirm_password&quot; validate:&quot;required,password_match&quot;`</span>
-<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="p">}</span>
+<h2 id="fields-input-cannot-set">Fields input cannot set</h2>
+<p>A field tagged <code>json:"-"</code> is often filled in by your code, from a URL parameter or a session. A parse can't set it, so a parse doesn't check it. Call <code>Validate</code> once you have:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CreateChat</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="nx">Message</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"message" validate:"required"`</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nx">KBID</span><span class="w">    </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"-" validate:"required"`</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="p">}</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="nx">req</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">ParseInto</span><span class="p">[</span><span class="nx">CreateChat</span><span class="p">](</span><span class="nx">body</span><span class="p">)</span><span class="w"> </span><span class="c1">// KBID is not checked here</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="p">}</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="nx">req</span><span class="p">.</span><span class="nx">KBID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">kbIDFromPath</span><span class="p">(</span><span class="nx">r</span><span class="p">)</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">Validate</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">req</span><span class="p">)</span><span class="w"> </span><span class="c1">// now it is</span>
 </code></pre></div>
-<h2 id="validation-errors">Validation Errors</h2>
-<p>Errors include field names and failure reasons:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nx">user</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">ParseInto</span><span class="p">[</span><span class="nx">User</span><span class="p">](</span><span class="nx">data</span><span class="p">)</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="c1">// &quot;validation error on field &#39;email&#39;: invalid email format&quot;</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="c1">// &quot;validation error on field &#39;age&#39;: value 5 is less than minimum 18&quot;</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="p">}</span>
+<p>The rule is the same for any field: a parse skips rules on fields neither decoder can set, and <code>Validate</code> runs them. Whether a field can be set doesn't depend on which format arrived, so a field with <code>json:"-" yaml:"x"</code> keeps its rules on JSON input too, and <code>required</code> there fails every JSON parse.</p>
+<p><code>Validate</code> runs a field's own rules but doesn't go inside such a field. A <code>Parent *Node</code> tagged <code>json:"-"</code> is usually a way back up a tree, and it may point at a type from another library. To check what is inside, call <code>Validate</code> on that value.</p>
+<h2 id="errors">Errors</h2>
+<p>A failed parse returns a <code>model.ErrorList</code>, which works with <code>errors.As</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">var</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">*</span><span class="nx">model</span><span class="p">.</span><span class="nx">ValidationError</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">if</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">As</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">v</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">v</span><span class="p">.</span><span class="nx">FieldPath</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">Rule</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">Message</span><span class="p">)</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="p">}</span>
 </code></pre></div>
-<h3 id="error-types">Error Types</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1">// Check for specific error types</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kd">var</span><span class="w"> </span><span class="nx">parseErr</span><span class="w"> </span><span class="o">*</span><span class="nx">model</span><span class="p">.</span><span class="nx">ParseError</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">if</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">As</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">parseErr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="c1">// JSON/YAML parsing failed</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">}</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="kd">var</span><span class="w"> </span><span class="nx">validErr</span><span class="w"> </span><span class="o">*</span><span class="nx">model</span><span class="p">.</span><span class="nx">ValidationError</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="k">if</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">As</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">validErr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">    </span><span class="c1">// Validation rule failed</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="p">}</span>
-</code></pre></div>
-<h3 id="sensitive-field-protection">Sensitive Field Protection</h3>
-<p>Sensitive field values are automatically redacted in error output:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Login</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">    </span><span class="nx">Username</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;username&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nx">Password</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;password&quot; validate:&quot;required,min=8&quot;`</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="p">}</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="c1">// If password validation fails, the error won&#39;t contain the actual password</span>
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="c1">// The value will show as &quot;[REDACTED]&quot; in error reports</span>
-</code></pre></div>
-<h2 id="tips">Tips</h2>
-<ol>
-<li><strong>Order matters</strong>: <code>validate:"required,email"</code> checks required first</li>
-<li><strong>Empty strings</strong>: An empty string passes <code>min=0</code> but fails <code>required</code></li>
-<li><strong>Nil slices</strong>: A nil slice fails <code>required</code> but passes <code>min=0</code></li>
-<li><strong>Performance</strong>: Validation metadata is cached per type</li>
-</ol>
-<h2 id="common-patterns">Common Patterns</h2>
-<h3 id="password-with-confirmation">Password with Confirmation</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1">// Register a custom cross-field validator</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nx">model</span><span class="p">.</span><span class="nx">RegisterGlobalCrossFieldFunc</span><span class="p">(</span><span class="s">&quot;eqfield&quot;</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">fieldName</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">fieldValue</span><span class="w"> </span><span class="kd">interface</span><span class="p">{},</span><span class="w"> </span><span class="nx">structValue</span><span class="w"> </span><span class="nx">reflect</span><span class="p">.</span><span class="nx">Value</span><span class="p">,</span><span class="w"> </span><span class="nx">params</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{})</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="nx">otherField</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">params</span><span class="p">[</span><span class="s">&quot;value&quot;</span><span class="p">].(</span><span class="kt">string</span><span class="p">)</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nx">otherValue</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">structValue</span><span class="p">.</span><span class="nx">FieldByName</span><span class="p">(</span><span class="nx">otherField</span><span class="p">)</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">otherValue</span><span class="p">.</span><span class="nx">IsValid</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">NewValidationError</span><span class="p">(</span><span class="nx">fieldName</span><span class="p">,</span><span class="w"> </span><span class="nx">fieldValue</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;eqfield&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;comparison field not found&quot;</span><span class="p">)</span>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">fieldValue</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">otherValue</span><span class="p">.</span><span class="nx">Interface</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">NewValidationError</span><span class="p">(</span><span class="nx">fieldName</span><span class="p">,</span><span class="w"> </span><span class="nx">fieldValue</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;eqfield&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;fields do not match&quot;</span><span class="p">)</span>
-<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="p">})</span>
-<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>
-<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Registration</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">    </span><span class="nx">Password</span><span class="w">        </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;password&quot; validate:&quot;required,min=8&quot;`</span>
-<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="w">    </span><span class="nx">ConfirmPassword</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;confirm_password&quot; validate:&quot;required,eqfield=Password&quot;`</span>
-<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="p">}</span>
-</code></pre></div>
-<h3 id="optional-with-format">Optional with Format</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1">// Use custom validator for optional + format</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nx">model</span><span class="p">.</span><span class="nx">RegisterGlobalFunc</span><span class="p">(</span><span class="s">&quot;optional_email&quot;</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">fieldName</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="kd">interface</span><span class="p">{},</span><span class="w"> </span><span class="nx">params</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{})</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="nx">str</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">value</span><span class="p">.(</span><span class="kt">string</span><span class="p">)</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">ok</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">str</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="c1">// Empty is OK</span>
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">    </span><span class="c1">// Validate email format if non-empty</span>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">strings</span><span class="p">.</span><span class="nx">Contains</span><span class="p">(</span><span class="nx">str</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;@&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">NewValidationError</span><span class="p">(</span><span class="nx">fieldName</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;optional_email&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;invalid email format&quot;</span><span class="p">)</span>
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="p">})</span>
-<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>
-<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="nx">Email</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;email&quot; validate:&quot;optional_email&quot;`</span>
-</code></pre></div>
-<h3 id="phone-number">Phone Number</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nx">Phone</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;phone&quot; validate:&quot;required,alphanum,min=10,max=15&quot;`</span>
-</code></pre></div>
-<h2 id="extending-validators">Extending Validators</h2>
-<p>For validators not included by default (like <code>url</code>, <code>uuid</code>, <code>oneof</code>), register custom implementations:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1">// Example: oneof validator</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="nx">model</span><span class="p">.</span><span class="nx">RegisterGlobalFunc</span><span class="p">(</span><span class="s">&quot;oneof&quot;</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">fieldName</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="kd">interface</span><span class="p">{},</span><span class="w"> </span><span class="nx">params</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{})</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span><span class="nx">str</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">value</span><span class="p">.(</span><span class="kt">string</span><span class="p">)</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">ok</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">    </span><span class="nx">allowed</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">Split</span><span class="p">(</span><span class="nx">params</span><span class="p">[</span><span class="s">&quot;value&quot;</span><span class="p">].(</span><span class="kt">string</span><span class="p">),</span><span class="w"> </span><span class="s">&quot; &quot;</span><span class="p">)</span>
-<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">allowed</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">str</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">NewValidationError</span><span class="p">(</span><span class="nx">fieldName</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;oneof&quot;</span><span class="p">,</span>
-<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Sprintf</span><span class="p">(</span><span class="s">&quot;must be one of: %s&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">Join</span><span class="p">(</span><span class="nx">allowed</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;, &quot;</span><span class="p">)))</span>
-<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="p">})</span>
-<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>
-<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="nx">Status</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;status&quot; validate:&quot;oneof=draft published archived&quot;`</span>
-</code></pre></div>
+<p><code>errors.As</code> stops at the first match. <code>list.ValidationErrors()</code> returns them all, <code>list.GroupByField()</code> groups them, and <code>list.ToJSON()</code> renders a report you can return from an API. Conversion failures are <code>*model.ParseError</code>. A parse reports at most 100 errors and then one saying it stopped.</p>
+<h2 id="sensitive-values">Sensitive values</h2>
+<p>Errors keep the rejected value in their <code>Value</code> field, or <code>"object"</code> or <code>"array"</code> in place of a rejected container, since a secret could sit inside one. <code>SanitizedValue()</code> returns <code>[REDACTED]</code> instead when the field is sensitive, and <code>ToJSON</code> uses it. A <code>ParseError</code> on a sensitive field also leaves the value out of its message, which would otherwise quote it.</p>
+<p>A field is sensitive when it, or anything above it, has a Go name or input key containing <code>password</code>, <code>passwd</code>, <code>secret</code>, <code>token</code>, <code>key</code>, <code>credential</code>, <code>auth</code>, <code>api_key</code>, <code>apikey</code>, <code>private</code> or <code>bearer</code>, or is tagged <code>json:"-"</code>. The match ignores case and looks anywhere in the name, so <code>Author</code> and <code>Monkey</code> count too. Change the list with <code>model.SetSensitiveFieldPatterns</code> or <code>model.AddSensitiveFieldPattern</code>.</p>
+<p>Log <code>SanitizedValue()</code>, never <code>Value</code>.</p>
 
 
 
@@ -1532,10 +1155,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

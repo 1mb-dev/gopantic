@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Type-safe JSON/YAML parsing with validation for Go">
+        <meta name="description" content="Parse, coerce and validate JSON and YAML in one call">
       
       
       
@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#benchmark-comparison" class="md-skip">
+        <a href="#benchmarks" class="md-skip">
           Skip to content
         </a>
       
@@ -289,33 +289,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../building-gopantic/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Why gopantic
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../getting-started/" class="md-nav__link">
         
   
@@ -323,7 +296,7 @@
   <span class="md-ellipsis">
     
   
-    Getting Started
+    Getting started
   
 
     
@@ -356,10 +329,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -377,8 +350,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -403,6 +376,34 @@
     
   
     Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/coercion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coercion
   
 
     
@@ -471,10 +472,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -492,8 +493,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -580,7 +581,34 @@
   <span class="md-ellipsis">
     
   
-    Migration
+    From encoding/json and validator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../known-limitations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known limitations
   
 
     
@@ -607,7 +635,7 @@
   <span class="md-ellipsis">
     
   
-    Architecture
+    How it works
   
 
     
@@ -687,10 +715,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#methodology" class="md-nav__link">
+  <a href="#correctly-typed-json-parsed-and-validated" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Methodology
+        Correctly typed JSON, parsed and validated
       
     </span>
   </a>
@@ -698,115 +726,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#results-summary" class="md-nav__link">
+  <a href="#what-the-extras-cost" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Results Summary
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Results Summary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#validation-only-struct-already-parsed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation-Only (struct already parsed)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#parse-validate-json-to-validated-struct" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parse + Validate (JSON to validated struct)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#parsing-only-no-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parsing Only (no validation)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cached-parsing-gopantic-unique-feature" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cached Parsing (gopantic unique feature)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#type-coercion-gopantic-unique-feature" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Type Coercion (gopantic unique feature)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#json-vs-yaml-parsing" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        JSON vs YAML Parsing
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#format-detection" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Format Detection
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#parallel-performance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parallel Performance
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#when-to-use-gopantic" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When to Use gopantic
+        What the extras cost
       
     </span>
   </a>
@@ -814,10 +737,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#detailed-results" class="md-nav__link">
+  <a href="#validation-alone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Detailed Results
+        Validation alone
       
     </span>
   </a>
@@ -825,10 +748,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#reproducing-benchmarks" class="md-nav__link">
+  <a href="#caching" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Reproducing Benchmarks
+        Caching
       
     </span>
   </a>
@@ -836,10 +759,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#notes" class="md-nav__link">
+  <a href="#hostile-input" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Notes
+        Hostile input
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-them" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running them
       
     </span>
   </a>
@@ -908,10 +842,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#methodology" class="md-nav__link">
+  <a href="#correctly-typed-json-parsed-and-validated" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Methodology
+        Correctly typed JSON, parsed and validated
       
     </span>
   </a>
@@ -919,115 +853,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#results-summary" class="md-nav__link">
+  <a href="#what-the-extras-cost" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Results Summary
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Results Summary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#validation-only-struct-already-parsed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation-Only (struct already parsed)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#parse-validate-json-to-validated-struct" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parse + Validate (JSON to validated struct)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#parsing-only-no-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parsing Only (no validation)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cached-parsing-gopantic-unique-feature" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cached Parsing (gopantic unique feature)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#type-coercion-gopantic-unique-feature" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Type Coercion (gopantic unique feature)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#json-vs-yaml-parsing" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        JSON vs YAML Parsing
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#format-detection" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Format Detection
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#parallel-performance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parallel Performance
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#when-to-use-gopantic" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When to Use gopantic
+        What the extras cost
       
     </span>
   </a>
@@ -1035,10 +864,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#detailed-results" class="md-nav__link">
+  <a href="#validation-alone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Detailed Results
+        Validation alone
       
     </span>
   </a>
@@ -1046,10 +875,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#reproducing-benchmarks" class="md-nav__link">
+  <a href="#caching" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Reproducing Benchmarks
+        Caching
       
     </span>
   </a>
@@ -1057,10 +886,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#notes" class="md-nav__link">
+  <a href="#hostile-input" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Notes
+        Hostile input
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-them" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running them
       
     </span>
   </a>
@@ -1087,246 +927,110 @@
   
 
 
-<h1 id="benchmark-comparison">Benchmark Comparison</h1>
-<p>Performance comparison between gopantic and alternatives.</p>
-<h2 id="methodology">Methodology</h2>
-<p><strong>Hardware:</strong> Intel Core i5-8257U CPU @ 1.40GHz (8 cores)
-<strong>Go Version:</strong> 1.24.0
-<strong>OS:</strong> macOS (Darwin)
-<strong>Date:</strong> 2026-01-19</p>
-<p>All benchmarks run with:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-bench<span class="o">=</span>.<span class="w"> </span>-benchmem<span class="w"> </span>./tests/...<span class="w"> </span>-run<span class="o">=</span>^$
-</code></pre></div></p>
-<h2 id="results-summary">Results Summary</h2>
-<h3 id="validation-only-struct-already-parsed">Validation-Only (struct already parsed)</h3>
+<h1 id="benchmarks">Benchmarks</h1>
+<p>Measured on 2026-11-01 at commit <code>86e26f1</code>, with Go 1.27.3 on an Intel Core i5-8257U at 1.40 GHz under macOS. Each figure is the median of three runs, and runs of the same benchmark differed by up to 20%. Treat differences smaller than that as ties.</p>
+<p>The small struct has four fields and nine rules. The complex one adds a nested struct and a list of addresses, for 18 rules.</p>
+<h2 id="correctly-typed-json-parsed-and-validated">Correctly typed JSON, parsed and validated</h2>
 <table>
 <thead>
 <tr>
-<th>Library</th>
-<th>Simple Struct</th>
-<th>Complex Struct</th>
+<th></th>
+<th>gopantic</th>
+<th><code>encoding/json</code> + validator</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>gopantic</strong></td>
-<td>1311 ns/op, 81 B/op, 5 allocs</td>
-<td>2450 ns/op, 203 B/op, 11 allocs</td>
+<td>Small struct</td>
+<td>2,275 ns, 10 allocs</td>
+<td>2,596 ns, 10 allocs</td>
 </tr>
 <tr>
-<td><strong>go-playground/validator</strong></td>
-<td>1552 ns/op, 88 B/op, 5 allocs</td>
-<td>1740 ns/op, 89 B/op, 5 allocs</td>
+<td>Complex struct</td>
+<td>6,701 ns, 29 allocs</td>
+<td>5,224 ns, 19 allocs</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Takeaway:</strong> gopantic is ~15% faster for simple validation but go-playground/validator is faster for complex nested structs due to optimized struct traversal.</p>
-<h3 id="parse-validate-json-to-validated-struct">Parse + Validate (JSON to validated struct)</h3>
+<p>These are close enough that speed should not decide between them. gopantic allocates more memory on both: 453 bytes against 186 on the small struct, and 1,526 against 520 on the complex one.</p>
+<h2 id="what-the-extras-cost">What the extras cost</h2>
+<p>These use the small struct, against 2,275 ns for correctly typed JSON.</p>
 <table>
 <thead>
 <tr>
-<th>Approach</th>
-<th>Simple Struct</th>
-<th>Complex Struct</th>
+<th>Input</th>
+<th>Time</th>
+<th>Cost</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>gopantic ParseInto</strong></td>
-<td>4264 ns/op, 988 B/op, 28 allocs</td>
-<td>12720 ns/op, 2642 B/op, 85 allocs</td>
+<td>Numbers sent as strings</td>
+<td>6,958 ns</td>
+<td>3.1x</td>
 </tr>
 <tr>
-<td><strong>encoding/json + validator</strong></td>
-<td>2928 ns/op, 382 B/op, 12 allocs</td>
-<td>7796 ns/op, 772 B/op, 26 allocs</td>
+<td>YAML</td>
+<td>18,639 ns</td>
+<td>8.4x (against 2,230 ns for JSON through the same call)</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Takeaway:</strong> Standard library combination is faster for pure JSON-to-struct. gopantic's strength is in type coercion and multi-format support.</p>
-<h3 id="parsing-only-no-validation">Parsing Only (no validation)</h3>
+<p>Coercion is the expensive path because the whole input is decoded a second time by the walker. One string in a number field costs the same as several. YAML always takes that path.</p>
+<h2 id="validation-alone">Validation alone</h2>
+<p><code>Validate</code> on a struct already in memory, against validator's <code>Struct</code>.</p>
 <table>
 <thead>
 <tr>
-<th>Library</th>
-<th>Simple Struct</th>
+<th></th>
+<th>gopantic</th>
+<th>validator</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>gopantic</strong></td>
-<td>2853 ns/op, 896 B/op, 23 allocs</td>
+<td>Small struct</td>
+<td>1,218 ns</td>
+<td>1,615 ns</td>
 </tr>
 <tr>
-<td><strong>encoding/json</strong></td>
-<td>1340 ns/op, 288 B/op, 7 allocs</td>
+<td>Complex struct</td>
+<td>2,941 ns</td>
+<td>2,207 ns</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Takeaway:</strong> encoding/json is ~2x faster for pure JSON parsing. gopantic adds overhead for format detection and coercion infrastructure.</p>
-<h3 id="cached-parsing-gopantic-unique-feature">Cached Parsing (gopantic unique feature)</h3>
+<h2 id="caching">Caching</h2>
+<p>For the same input, a parse took 2,982 ns and a cache hit 692 ns, about 4x less. A hit on this struct allocates once. A struct holding slices or maps pays to copy them on every hit, so its gain is smaller. See the <a href="../guide/caching/">caching guide</a>.</p>
+<h2 id="hostile-input">Hostile input</h2>
+<p>From <code>tests/adversarial_bench_test.go</code>. Each input needs coercion, so each goes through the walker.</p>
 <table>
 <thead>
 <tr>
-<th>Mode</th>
-<th>Performance</th>
+<th>Input</th>
+<th>Time</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Cached</strong></td>
-<td>645.6 ns/op, 112 B/op, 6 allocs</td>
+<td>20,000 array items</td>
+<td>40 ms</td>
 </tr>
 <tr>
-<td><strong>Uncached</strong></td>
-<td>6068 ns/op, 1118 B/op, 35 allocs</td>
+<td>50,000 unknown keys</td>
+<td>24 ms</td>
+</tr>
+<tr>
+<td>Nesting 30 levels deep</td>
+<td>69 µs</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Takeaway:</strong> CachedParser provides ~10x performance improvement for repeated parsing of the same data.</p>
-<h3 id="type-coercion-gopantic-unique-feature">Type Coercion (gopantic unique feature)</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// Input: {&quot;id&quot;: &quot;123&quot;, &quot;name&quot;: &quot;John&quot;, &quot;age&quot;: &quot;30&quot;}</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1">// Output: struct with int id=123, int age=30</span>
+<h2 id="running-them">Running them</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-run<span class="o">=</span><span class="s1">'^$'</span><span class="w"> </span>-bench<span class="o">=</span>.<span class="w"> </span>-benchmem<span class="w"> </span>./tests/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>benchmarks<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-run<span class="o">=</span><span class="s1">'^$'</span><span class="w"> </span>-bench<span class="o">=</span>.<span class="w"> </span>-benchmem<span class="w"> </span>./...
 </code></pre></div>
-<table>
-<thead>
-<tr>
-<th>Library</th>
-<th>Performance</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>gopantic</strong></td>
-<td>6491 ns/op, 1882 B/op, 50 allocs</td>
-</tr>
-<tr>
-<td><strong>encoding/json</strong></td>
-<td>❌ Fails (type mismatch error)</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Takeaway:</strong> gopantic automatically coerces string numbers to integers. Standard library requires exact type matching.</p>
-<h3 id="json-vs-yaml-parsing">JSON vs YAML Parsing</h3>
-<table>
-<thead>
-<tr>
-<th>Format</th>
-<th>Performance</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>JSON</strong></td>
-<td>4263 ns/op, 989 B/op, 28 allocs</td>
-</tr>
-<tr>
-<td><strong>YAML</strong></td>
-<td>24194 ns/op, 17885 B/op, 161 allocs</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Takeaway:</strong> JSON is ~6x faster than YAML. Use JSON when performance matters.</p>
-<h3 id="format-detection">Format Detection</h3>
-<table>
-<thead>
-<tr>
-<th>Operation</th>
-<th>Performance</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>DetectFormat</strong></td>
-<td>2.588 ns/op, 0 B/op, 0 allocs</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Takeaway:</strong> Format detection is essentially free (sub-3ns).</p>
-<h3 id="parallel-performance">Parallel Performance</h3>
-<table>
-<thead>
-<tr>
-<th>Approach</th>
-<th>Performance</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>gopantic</strong></td>
-<td>1986 ns/op, 1002 B/op, 28 allocs</td>
-</tr>
-<tr>
-<td><strong>encoding/json + validator</strong></td>
-<td>1634 ns/op, 391 B/op, 12 allocs</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Takeaway:</strong> Both scale well under concurrent load. Standard library combination has lower overhead.</p>
-<h2 id="when-to-use-gopantic">When to Use gopantic</h2>
-<p><strong>Choose gopantic when:</strong>
-- You need automatic type coercion (string "123" → int 123)
-- You work with both JSON and YAML formats
-- You want integrated parse + validate in one step
-- You use the CachedParser for repeated parsing
-- You're building configuration parsers, API gateways, or data pipelines</p>
-<p><strong>Choose encoding/json + validator when:</strong>
-- Pure performance is critical
-- You only use JSON format
-- Your data always has exact type matching
-- You're processing high-volume, well-typed streams</p>
-<h2 id="detailed-results">Detailed Results</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>BenchmarkValidation_Gopantic_Simple-8                 921296          1311 ns/op          81 B/op          5 allocs/op
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>BenchmarkValidation_Playground_Simple-8               799057          1552 ns/op          88 B/op          5 allocs/op
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>BenchmarkValidation_Gopantic_Complex-8                457716          2450 ns/op         203 B/op         11 allocs/op
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>BenchmarkValidation_Playground_Complex-8              686307          1740 ns/op          89 B/op          5 allocs/op
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>BenchmarkParseValidate_Gopantic_Simple-8              279391          4264 ns/op         988 B/op         28 allocs/op
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>BenchmarkParseValidate_StdJSON_Simple-8               404677          2928 ns/op         382 B/op         12 allocs/op
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>BenchmarkParseValidate_Gopantic_Complex-8              95326         12720 ns/op        2642 B/op         85 allocs/op
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>BenchmarkParseValidate_StdJSON_Complex-8              178778          7796 ns/op         772 B/op         26 allocs/op
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>BenchmarkParse_Gopantic_NoValidation-8                414764          2853 ns/op         896 B/op         23 allocs/op
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>BenchmarkParse_StdJSON-8                              891786          1340 ns/op         288 B/op          7 allocs/op
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>BenchmarkCachedParsing-8                             1799991           645.6 ns/op       112 B/op          6 allocs/op
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>BenchmarkCoercion_Gopantic-8                          181592          6491 ns/op        1882 B/op         50 allocs/op
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>BenchmarkFormat_JSON-8                                274134          4263 ns/op         989 B/op         28 allocs/op
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>BenchmarkFormat_YAML-8                                 49485         24194 ns/op       17885 B/op        161 allocs/op
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>BenchmarkFormatDetect-8                             464196988            2.588 ns/op           0 B/op          0 allocs/op
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>
-<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>BenchmarkParallel_Gopantic_Simple-8                   653206          1986 ns/op        1002 B/op         28 allocs/op
-<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>BenchmarkParallel_StdJSON_Simple-8                    948778          1634 ns/op         391 B/op         12 allocs/op
-</code></pre></div>
-<h2 id="reproducing-benchmarks">Reproducing Benchmarks</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Clone the repository</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/1mb-dev/gopantic.git
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nb">cd</span><span class="w"> </span>gopantic
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Run all benchmarks</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-bench<span class="o">=</span>.<span class="w"> </span>-benchmem<span class="w"> </span>./tests/...<span class="w"> </span>-run<span class="o">=</span>^$
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1"># Run specific benchmark categories</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-bench<span class="o">=</span>Validation<span class="w"> </span>-benchmem<span class="w"> </span>./tests/...
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-bench<span class="o">=</span>ParseValidate<span class="w"> </span>-benchmem<span class="w"> </span>./tests/...
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-bench<span class="o">=</span>Parallel<span class="w"> </span>-benchmem<span class="w"> </span>./tests/...
-</code></pre></div>
-<h2 id="notes">Notes</h2>
-<ol>
-<li>
-<p><strong>Benchmark stability:</strong> Results may vary by ±10% between runs due to CPU frequency scaling and system load.</p>
-</li>
-<li>
-<p><strong>Validation scope:</strong> go-playground/validator supports more validation rules out of the box. gopantic focuses on core validators with extensibility.</p>
-</li>
-<li>
-<p><strong>Memory vs CPU:</strong> gopantic trades some memory for features like type coercion and format flexibility.</p>
-</li>
-<li>
-<p><strong>Real-world usage:</strong> Microbenchmarks don't capture all production scenarios. Profile your specific workload.</p>
-</li>
-</ol>
+<p>The comparisons against validator live in <code>benchmarks/</code>, a separate module, so that validator stays out of your dependency graph.</p>
 
 
 
@@ -1402,10 +1106,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

@@ -6,14 +6,14 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Type-safe JSON/YAML parsing with validation for Go">
+        <meta name="description" content="Parse, coerce and validate JSON and YAML in one call">
       
       
       
         <link rel="canonical" href="https://1mb-dev.github.io/gopantic/architecture/">
       
       
-        <link rel="prev" href="../migration/">
+        <link rel="prev" href="../known-limitations/">
       
       
         <link rel="next" href="../benchmarks/">
@@ -23,18 +23,18 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
-        <title>Architecture - gopantic</title>
+        <title>How it works - gopantic</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#architecture-design" class="md-skip">
+        <a href="#how-it-works" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Architecture
+              How it works
             
           </span>
         </div>
@@ -289,33 +289,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../building-gopantic/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Why gopantic
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../getting-started/" class="md-nav__link">
         
   
@@ -323,7 +296,7 @@
   <span class="md-ellipsis">
     
   
-    Getting Started
+    Getting started
   
 
     
@@ -356,10 +329,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -377,8 +350,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -403,6 +376,34 @@
     
   
     Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/coercion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coercion
   
 
     
@@ -471,10 +472,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -492,8 +493,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -580,7 +581,34 @@
   <span class="md-ellipsis">
     
   
-    Migration
+    From encoding/json and validator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../known-limitations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known limitations
   
 
     
@@ -616,7 +644,7 @@
   <span class="md-ellipsis">
     
   
-    Architecture
+    How it works
   
 
     
@@ -634,7 +662,7 @@
   <span class="md-ellipsis">
     
   
-    Architecture
+    How it works
   
 
     
@@ -660,388 +688,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#core-architecture" class="md-nav__link">
+  <a href="#decoding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Core Architecture
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Core Architecture">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#package-structure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Package Structure
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#design-principles" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Design Principles
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#parsing-engine" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parsing Engine
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Parsing Engine">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#generic-api-design" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Generic API Design
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#format-abstraction" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Format Abstraction
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#type-coercion" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Type Coercion
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Type Coercion">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#coercion-strategy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Coercion Strategy
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#supported-coercions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Supported Coercions
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#performance-optimization" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance Optimization
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-framework" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation Framework
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Validation Framework">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#tag-based-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tag-Based Validation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#validator-interface" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validator Interface
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#built-in-validators" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Built-in Validators
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#error-aggregation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Aggregation
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#caching-system" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Caching System
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Caching System">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#design-goals" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Design Goals
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cache-architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cache Architecture
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#key-generation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key Generation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cache-effectiveness" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cache Effectiveness
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#error-handling" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Handling
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Error Handling">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#structured-error-types" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Structured Error Types
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#error-context" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Context
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#memory-management" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Memory Management
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Memory Management">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#allocation-patterns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Allocation Patterns
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gc-pressure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        GC Pressure
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#benchmarks-performance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Benchmarks &amp; Performance
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Benchmarks &amp; Performance">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#comparison-with-standard-library" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Comparison with Standard Library
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#memory-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Memory Usage
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caching-benefits" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Caching Benefits
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#thread-safety" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Thread Safety
+        Decoding
       
     </span>
   </a>
@@ -1049,41 +699,24 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#future-considerations" class="md-nav__link">
+  <a href="#validating" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Future Considerations
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Future Considerations">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#scalability" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scalability
+        Validating
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#extensibility" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#choices" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Extensibility
+        Choices
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1176,388 +809,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#core-architecture" class="md-nav__link">
+  <a href="#decoding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Core Architecture
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Core Architecture">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#package-structure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Package Structure
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#design-principles" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Design Principles
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#parsing-engine" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parsing Engine
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Parsing Engine">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#generic-api-design" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Generic API Design
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#format-abstraction" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Format Abstraction
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#type-coercion" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Type Coercion
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Type Coercion">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#coercion-strategy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Coercion Strategy
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#supported-coercions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Supported Coercions
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#performance-optimization" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance Optimization
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-framework" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation Framework
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Validation Framework">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#tag-based-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tag-Based Validation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#validator-interface" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validator Interface
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#built-in-validators" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Built-in Validators
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#error-aggregation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Aggregation
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#caching-system" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Caching System
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Caching System">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#design-goals" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Design Goals
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cache-architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cache Architecture
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#key-generation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key Generation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cache-effectiveness" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cache Effectiveness
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#error-handling" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Handling
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Error Handling">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#structured-error-types" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Structured Error Types
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#error-context" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Context
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#memory-management" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Memory Management
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Memory Management">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#allocation-patterns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Allocation Patterns
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gc-pressure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        GC Pressure
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#benchmarks-performance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Benchmarks &amp; Performance
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Benchmarks &amp; Performance">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#comparison-with-standard-library" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Comparison with Standard Library
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#memory-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Memory Usage
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caching-benefits" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Caching Benefits
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#thread-safety" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Thread Safety
+        Decoding
       
     </span>
   </a>
@@ -1565,41 +820,24 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#future-considerations" class="md-nav__link">
+  <a href="#validating" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Future Considerations
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Future Considerations">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#scalability" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scalability
+        Validating
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#extensibility" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#choices" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Extensibility
+        Choices
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1623,381 +861,64 @@
   
 
 
-<h1 id="architecture-design">Architecture &amp; Design</h1>
-<h2 id="core-architecture">Core Architecture</h2>
-<h3 id="package-structure">Package Structure</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pkg/model/
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── doc.go          → Package documentation
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>├── parse.go        → Main parsing logic and API (ParseInto, Validate)
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>├── format.go       → Format detection and parser abstraction
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>├── coerce.go       → Type coercion engine
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>├── validate.go     → Validation framework and registry
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>├── validators.go   → Built-in validators (required, min, max, etc.)
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>├── cache.go        → High-performance caching with FIFO eviction
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>├── config.go       → Thread-safe configuration accessors
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>└── errors.go       → Error types and aggregation
-</code></pre></div>
-<h3 id="design-principles">Design Principles</h3>
-<ol>
-<li><strong>Type Safety First</strong> - Leverages Go generics for compile-time type safety</li>
-<li><strong>Zero-Cost Abstractions</strong> - Optional features have no overhead when unused</li>
-<li><strong>Performance by Default</strong> - Optimized for common use cases</li>
-<li><strong>Idiomatic Go</strong> - Struct tags, interfaces, and familiar patterns</li>
-</ol>
-<h2 id="parsing-engine">Parsing Engine</h2>
-<h3 id="generic-api-design">Generic API Design</h3>
-<p>The core parsing API uses Go generics for type safety:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ParseInto</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ParseIntoWithFormat</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="nx">format</span><span class="w"> </span><span class="nx">Format</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
-</code></pre></div>
-<p>Benefits:
-- Compile-time type checking
-- No runtime type assertions
-- Clean API without interface{} returns</p>
-<h3 id="format-abstraction">Format Abstraction</h3>
-<p>Format detection and parsing are abstracted through interfaces:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">FormatParser</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="nx">Parse</span><span class="p">(</span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nx">Format</span><span class="p">()</span><span class="w"> </span><span class="nx">Format</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">}</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Format</span><span class="w"> </span><span class="kt">int</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="kd">const</span><span class="w"> </span><span class="p">(</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nx">FormatJSON</span><span class="w"> </span><span class="nx">Format</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">iota</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nx">FormatYAML</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span>
-</code></pre></div>
-<p>Format Detection Algorithm:
-1. Check for JSON markers (<code>{</code>, <code>[</code>)
-2. Check for YAML markers (<code>---</code>, <code>:</code>)
-3. Default to JSON for ambiguous cases
-4. Performance: O(1) with early termination</p>
-<h2 id="type-coercion">Type Coercion</h2>
-<h3 id="coercion-strategy">Coercion Strategy</h3>
-<p>Type coercion happens after parsing but before validation:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Raw Data → Parse to map[string]any → Type Coercion → Struct → Validation
-</code></pre></div>
-<h3 id="supported-coercions">Supported Coercions</h3>
+<h1 id="how-it-works">How it works</h1>
+<p>All the code is one package, <code>pkg/model</code>:</p>
 <table>
 <thead>
 <tr>
-<th>Target</th>
-<th>From</th>
-<th>Algorithm</th>
+<th>File</th>
+<th>Holds</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>int</code></td>
-<td><code>string</code></td>
-<td><code>strconv.Atoi()</code> with error handling</td>
+<td><code>parse.go</code></td>
+<td><code>ParseInto</code>, <code>Validate</code>, the validation walk</td>
 </tr>
 <tr>
-<td><code>float64</code></td>
-<td><code>string</code></td>
-<td><code>strconv.ParseFloat()</code> with precision</td>
+<td><code>decode.go</code></td>
+<td>The type-directed walker and field tables</td>
 </tr>
 <tr>
-<td><code>bool</code></td>
-<td><code>string</code></td>
-<td>Custom logic: <code>"true"</code>, <code>"yes"</code>, <code>"1"</code> → <code>true</code></td>
+<td><code>coerce.go</code></td>
+<td>Scalar conversion</td>
 </tr>
 <tr>
-<td><code>bool</code></td>
-<td><code>number</code></td>
-<td><code>0</code> → <code>false</code>, non-zero → <code>true</code></td>
+<td><code>validate.go</code></td>
+<td>Tags, the registry, per-type rule analysis</td>
 </tr>
 <tr>
-<td><code>time.Time</code></td>
-<td><code>string</code></td>
-<td>Multiple format attempts (RFC3339, Unix)</td>
+<td><code>validators.go</code></td>
+<td>Built-in rules</td>
 </tr>
 <tr>
-<td><code>time.Time</code></td>
-<td><code>number</code></td>
-<td>Unix timestamp conversion</td>
+<td><code>format.go</code></td>
+<td>Format detection, depth checks</td>
+</tr>
+<tr>
+<td><code>cache.go</code></td>
+<td><code>CachedParser</code></td>
+</tr>
+<tr>
+<td><code>errors.go</code>, <code>config.go</code></td>
+<td>Error types, limits</td>
 </tr>
 </tbody>
 </table>
-<h3 id="performance-optimization">Performance Optimization</h3>
-<ul>
-<li><strong>Validation Metadata Caching</strong> - Struct validation rules cached by type (via sync.Map)</li>
-<li><strong>Fast Path Detection</strong> - Skip coercion for matching types</li>
-<li><strong>Minimal Allocations</strong> - Reuse existing values when possible</li>
-<li><strong>Optimized Time Parsing</strong> - Heuristic-based format selection for common cases</li>
-</ul>
-<h2 id="validation-framework">Validation Framework</h2>
-<h3 id="tag-based-validation">Tag-Based Validation</h3>
-<p>Validation rules are specified using struct tags:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">User</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="nx">Email</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;email&quot; validate:&quot;required,email&quot;`</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nx">Age</span><span class="w">   </span><span class="kt">int</span><span class="w">    </span><span class="s">`json:&quot;age&quot; validate:&quot;min=18,max=120&quot;`</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">}</span>
-</code></pre></div>
-<h3 id="validator-interface">Validator Interface</h3>
-<p>All validators implement a common interface:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Validator</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="nx">Validate</span><span class="p">(</span><span class="nx">fieldName</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="kd">interface</span><span class="p">{})</span><span class="w"> </span><span class="kt">error</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="p">}</span>
-</code></pre></div>
-<h3 id="built-in-validators">Built-in Validators</h3>
-<table>
-<thead>
-<tr>
-<th>Validator</th>
-<th>Description</th>
-<th>Performance</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>required</code></td>
-<td>Non-zero value check</td>
-<td>O(1)</td>
-</tr>
-<tr>
-<td><code>min/max</code></td>
-<td>Numeric/length bounds</td>
-<td>O(1)</td>
-</tr>
-<tr>
-<td><code>email</code></td>
-<td>Regex validation</td>
-<td>O(n) - cached regex</td>
-</tr>
-<tr>
-<td><code>alpha</code></td>
-<td>Alphabetic characters</td>
-<td>O(n)</td>
-</tr>
-<tr>
-<td><code>alphanum</code></td>
-<td>Alphanumeric characters</td>
-<td>O(n)</td>
-</tr>
-<tr>
-<td><code>length</code></td>
-<td>Exact length check</td>
-<td>O(1)</td>
-</tr>
-</tbody>
-</table>
-<h3 id="error-aggregation">Error Aggregation</h3>
-<p>Multiple validation errors are collected and returned together:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">ErrorList</span><span class="w"> </span><span class="p">[]</span><span class="kt">error</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">el</span><span class="w"> </span><span class="o">*</span><span class="nx">ErrorList</span><span class="p">)</span><span class="w"> </span><span class="nx">Add</span><span class="p">(</span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="o">*</span><span class="nx">el</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="o">*</span><span class="nx">el</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">}</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">el</span><span class="w"> </span><span class="nx">ErrorList</span><span class="p">)</span><span class="w"> </span><span class="nx">AsError</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">el</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;multiple errors: %s&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">Join</span><span class="p">(</span><span class="nx">errorStrings</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;; &quot;</span><span class="p">))</span>
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="p">}</span>
-</code></pre></div>
-<h2 id="caching-system">Caching System</h2>
-<h3 id="design-goals">Design Goals</h3>
-<ul>
-<li><strong>Transparent</strong>: Same API as non-cached parsing</li>
-<li><strong>Thread-Safe</strong>: Concurrent access with minimal locking</li>
-<li><strong>Configurable</strong>: TTL, max entries, namespacing</li>
-<li><strong>High Performance</strong>: Content-based keys with SHA256 hashing</li>
-</ul>
-<h3 id="cache-architecture">Cache Architecture</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CachedParser</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">]</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="nx">cache</span><span class="w">       </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">cacheEntry</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nx">mu</span><span class="w">          </span><span class="nx">sync</span><span class="p">.</span><span class="nx">RWMutex</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="nx">config</span><span class="w">      </span><span class="o">*</span><span class="nx">CacheConfig</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="nx">hits</span><span class="w">        </span><span class="kt">uint64</span><span class="w"> </span><span class="c1">// Atomic counter</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="nx">misses</span><span class="w">      </span><span class="kt">uint64</span><span class="w"> </span><span class="c1">// Atomic counter</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="nx">stopCleanup</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="kd">struct</span><span class="p">{}</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="p">}</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CacheConfig</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="nx">TTL</span><span class="w">             </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="w"> </span><span class="c1">// Entry lifetime (default: 1 hour)</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">    </span><span class="nx">MaxEntries</span><span class="w">      </span><span class="kt">int</span><span class="w">           </span><span class="c1">// FIFO eviction limit (default: 1000)</span>
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">    </span><span class="nx">CleanupInterval</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="w"> </span><span class="c1">// Background cleanup (default: 30 min)</span>
-<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="p">}</span>
-</code></pre></div>
-<p><strong>Features:</strong>
-- <strong>Hit Rate Tracking</strong>: Atomic counters for cache hits/misses
-- <strong>Proactive Cleanup</strong>: Background goroutine removes expired entries
-- <strong>FIFO Eviction</strong>: Oldest entries removed when MaxEntries reached
-- <strong>Thread-Safe</strong>: RWMutex for concurrent access</p>
-<h3 id="key-generation">Key Generation</h3>
-<p>Cache keys are generated using content-based SHA256 hashing:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>key = sha256(data)[:16] + &quot;:&quot; + reflect.TypeOf(T).String()
-</code></pre></div>
-<p><strong>Benefits:</strong>
-- Deterministic keys for identical content
-- Type-safe (different types don't collide)
-- Efficient 16-byte prefix</p>
-<p><strong>Limitations:</strong>
-- Even one byte difference invalidates cache
-- Best for truly identical inputs (config files, retries)
-- Limited benefit for unique API requests with varying data</p>
-<h3 id="cache-effectiveness">Cache Effectiveness</h3>
-<p>Benchmarks show significant speedups for <strong>identical</strong> inputs:</p>
-<table>
-<thead>
-<tr>
-<th>Scenario</th>
-<th>Uncached</th>
-<th>Cached</th>
-<th>Speedup</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Simple JSON</td>
-<td>8.7μs</td>
-<td>1.5μs</td>
-<td>5.8x</td>
-</tr>
-<tr>
-<td>Complex JSON</td>
-<td>27.6μs</td>
-<td>2.6μs</td>
-<td>10.5x</td>
-</tr>
-<tr>
-<td>Simple YAML</td>
-<td>20.8μs</td>
-<td>1.5μs</td>
-<td>13.7x</td>
-</tr>
-<tr>
-<td>Complex YAML</td>
-<td>69.4μs</td>
-<td>2.6μs</td>
-<td>27.2x</td>
-</tr>
-</tbody>
-</table>
-<p><strong>When to use caching:</strong>
-- Good fit: Parsing static configuration files repeatedly
-- Good fit: Retrying identical failed requests
-- Good fit: Processing duplicate messages in queues
-- Poor fit: Parsing unique API requests (same schema, different data)
-- Poor fit: Streaming different records from a file</p>
-<p><strong>Monitoring:</strong> Use <code>Stats()</code> to check hit rate and adjust strategy accordingly.</p>
-<h2 id="error-handling">Error Handling</h2>
-<h3 id="structured-error-types">Structured Error Types</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">ParseError</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span><span class="nx">Field</span><span class="w">   </span><span class="kt">string</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="nx">Value</span><span class="w">   </span><span class="kd">interface</span><span class="p">{}</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="nx">Type</span><span class="w">    </span><span class="kt">string</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="nx">Message</span><span class="w"> </span><span class="kt">string</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">}</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="kd">type</span><span class="w"> </span><span class="nx">ValidationError</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">    </span><span class="nx">Field</span><span class="w">   </span><span class="kt">string</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">    </span><span class="nx">Value</span><span class="w">   </span><span class="kd">interface</span><span class="p">{}</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="w">    </span><span class="nx">Rule</span><span class="w">    </span><span class="kt">string</span>
-<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="w">    </span><span class="nx">Message</span><span class="w"> </span><span class="kt">string</span>
-<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="p">}</span>
-</code></pre></div>
-<h3 id="error-context">Error Context</h3>
-<p>Errors include full field paths for nested structures:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>validation error on field &quot;user.address.zip&quot;: length must be exactly 5 characters
-</code></pre></div>
-<h2 id="memory-management">Memory Management</h2>
-<h3 id="allocation-patterns">Allocation Patterns</h3>
-<ul>
-<li><strong>Struct Reuse</strong> - Target struct allocated once</li>
-<li><strong>Slice Pre-allocation</strong> - Collections sized by JSON array length</li>
-<li><strong>String Interning</strong> - Common field names reused</li>
-<li><strong>Error Pooling</strong> - Error objects reused in high-throughput scenarios</li>
-</ul>
-<h3 id="gc-pressure">GC Pressure</h3>
-<ul>
-<li><strong>Minimal Heap Allocations</strong> - Most work done on stack</li>
-<li><strong>No Intermediate Objects</strong> - Direct parsing to target struct</li>
-<li><strong>Cache-Friendly</strong> - Sequential access patterns where possible</li>
-</ul>
-<h2 id="benchmarks-performance">Benchmarks &amp; Performance</h2>
-<h3 id="comparison-with-standard-library">Comparison with Standard Library</h3>
-<table>
-<thead>
-<tr>
-<th>Operation</th>
-<th>Standard JSON</th>
-<th>gopantic</th>
-<th>Overhead</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Simple Parse</td>
-<td>1.8μs</td>
-<td>8.7μs</td>
-<td>4.8x</td>
-</tr>
-<tr>
-<td>With Validation</td>
-<td>N/A</td>
-<td>9.2μs</td>
-<td>5.1x</td>
-</tr>
-<tr>
-<td>With Coercion</td>
-<td>N/A</td>
-<td>8.9μs</td>
-<td>4.9x</td>
-</tr>
-</tbody>
-</table>
-<h3 id="memory-usage">Memory Usage</h3>
-<table>
-<thead>
-<tr>
-<th>Operation</th>
-<th>Standard JSON</th>
-<th>gopantic</th>
-<th>Overhead</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Simple Parse</td>
-<td>1.2KB</td>
-<td>3.8KB</td>
-<td>3.2x</td>
-</tr>
-<tr>
-<td>Complex Parse</td>
-<td>4.5KB</td>
-<td>11.6KB</td>
-<td>2.6x</td>
-</tr>
-</tbody>
-</table>
-<h3 id="caching-benefits">Caching Benefits</h3>
-<p>Caching provides substantial improvements for repeated parsing operations, making gopantic comparable to or faster than standard JSON for cache hit scenarios.</p>
-<h2 id="thread-safety">Thread Safety</h2>
-<p>All public APIs are thread-safe:</p>
-<ul>
-<li><strong>ParseInto</strong> - Stateless, fully concurrent</li>
-<li><strong>CachedParser</strong> - RWMutex for cache access</li>
-<li><strong>Validators</strong> - Stateless implementations</li>
-<li><strong>Format Detection</strong> - No shared state</li>
-</ul>
-<h2 id="future-considerations">Future Considerations</h2>
-<h3 id="scalability">Scalability</h3>
-<ul>
-<li><strong>Parser Pooling</strong> - Reuse parser instances for high throughput</li>
-<li><strong>Custom Allocators</strong> - Memory pool for struct allocation</li>
-<li><strong>SIMD Optimization</strong> - Vectorized validation operations</li>
-</ul>
-<h3 id="extensibility">Extensibility</h3>
-<ul>
-<li><strong>Plugin System</strong> - Runtime validator registration</li>
-<li><strong>Custom Formats</strong> - Protocol buffer, MessagePack support</li>
-<li><strong>Streaming API</strong> - Large dataset processing</li>
-</ul>
-<p>This architecture provides a solid foundation for high-performance parsing while maintaining Go's principles of simplicity and explicitness.</p>
+<h2 id="decoding">Decoding</h2>
+<p>JSON tries the fast path first. A byte scan checks the depth limit, then <code>json.Unmarshal</code> decodes straight into <code>T</code>. If that works, nothing else in the decoder runs, so correctly typed input costs little more than <code>encoding/json</code>.</p>
+<p>When the decoder rejects a value, the input is decoded again by the walker. It builds a tree of raw byte ranges, then walks the target type, not the input. Each leaf goes to the standard decoder first, and coercion only sees what that decoder refused. So a <code>json.RawMessage</code> keeps its bytes and an <code>UnmarshalJSON</code> method runs, whether or not some other field needed coercion.</p>
+<p>YAML always takes the walker, because <code>yaml.v3</code> ignores <code>json</code> tags and decoding straight into <code>T</code> would drop those fields. <code>yaml.v3</code> enforces its alias limits only on a whole-document decode, so one runs first and its result goes unused, except for the depth check.</p>
+<p>A differential test compares each parse with <code>encoding/json</code> or <code>yaml.v3</code>, with and without a field that forces coercion. Fuzzing does the same on generated input.</p>
+<h2 id="validating">Validating</h2>
+<p>Every parse and every <code>Validate</code> goes through one walk, in <code>parse.go</code>. There is only one so that the rules that run can't depend on how a value was decoded.</p>
+<p>Rules are parsed once per type and cached. That pass looks only at types, and records two things across everything reachable: tags that can't run, and whether any rule exists. So a typo fails under an empty slice, and a type with no rules skips the walk.</p>
+<p>Paths for errors are built only when an error needs one. Building them as the walk descends would copy every enclosing map key once per element, and one long key above a large slice would turn that quadratic.</p>
+<h2 id="choices">Choices</h2>
+<p><code>ParseInto[User]</code> returns a <code>User</code>, with no build step and no <code>interface{}</code> to assert. Code generators are faster, and that's the cost of having none.</p>
+<p>Rules live on the struct, so they can't drift from it. A tag is a short string, though, which is why anything complicated becomes a registered function.</p>
+<p>Coercion exists to accept input that means something obvious, and it stops where the meaning stops. An <code>int8</code> can't hold 300, and returning 44 would be worse than failing. A misspelled tag is an error for the same reason: a rule that silently does nothing is a bug you can't see.</p>
+<p>A parse reports every error it finds, so a client can fix them in one round. The cap of 100 is there because one error per element would otherwise let a large input allocate without limit.</p>
 
 
 
@@ -2073,10 +994,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

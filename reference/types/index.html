@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Type-safe JSON/YAML parsing with validation for Go">
+        <meta name="description" content="Parse, coerce and validate JSON and YAML in one call">
       
       
       
@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#type-reference" class="md-skip">
+        <a href="#types" class="md-skip">
           Skip to content
         </a>
       
@@ -289,33 +289,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../building-gopantic/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Why gopantic
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../getting-started/" class="md-nav__link">
         
   
@@ -323,7 +296,7 @@
   <span class="md-ellipsis">
     
   
-    Getting Started
+    Getting started
   
 
     
@@ -356,10 +329,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -377,8 +350,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -403,6 +376,34 @@
     
   
     Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/coercion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coercion
   
 
     
@@ -473,10 +474,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -494,8 +495,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -600,10 +601,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#supported-types" class="md-nav__link">
+  <a href="#absent-null-and-zero" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Supported Types
+        Absent, null and zero
       
     </span>
   </a>
@@ -611,10 +612,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#type-coercion" class="md-nav__link">
+  <a href="#fixed-arrays" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Type Coercion
+        Fixed arrays
       
     </span>
   </a>
@@ -622,10 +623,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#jsonrawmessage" class="md-nav__link">
+  <a href="#struct-tags" class="md-nav__link">
     <span class="md-ellipsis">
       
-        json.RawMessage
+        Struct tags
       
     </span>
   </a>
@@ -633,209 +634,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#nested-structs" class="md-nav__link">
+  <a href="#trees-and-cycles" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Nested Structs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#slices-and-arrays" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Slices and Arrays
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pointers-optional-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pointers (Optional Fields)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#custom-types" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Custom Types
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#time-handling" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Time Handling
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#limitations-and-workarounds" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Limitations and Workarounds
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Limitations and Workarounds">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#maps-limited-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Maps (Limited Validation)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#interface-limited-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        interface{} (Limited Validation)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#circular-references" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Circular References
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#non-string-map-keys" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Non-String Map Keys
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#functionchannel-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Function/Channel Fields
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#edge-cases" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Edge Cases
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Edge Cases">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#zero-values-vs-missing-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Zero Values vs Missing Fields
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#large-jsonrawmessage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Large json.RawMessage
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#array-length-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Array Length Validation
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#performance-tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance Tips
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#design-philosophy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Design Philosophy
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#see-also" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        See Also
+        Trees and cycles
       
     </span>
   </a>
@@ -872,7 +674,34 @@
   <span class="md-ellipsis">
     
   
-    Migration
+    From encoding/json and validator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../known-limitations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known limitations
   
 
     
@@ -899,7 +728,7 @@
   <span class="md-ellipsis">
     
   
-    Architecture
+    How it works
   
 
     
@@ -993,10 +822,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#supported-types" class="md-nav__link">
+  <a href="#absent-null-and-zero" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Supported Types
+        Absent, null and zero
       
     </span>
   </a>
@@ -1004,10 +833,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#type-coercion" class="md-nav__link">
+  <a href="#fixed-arrays" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Type Coercion
+        Fixed arrays
       
     </span>
   </a>
@@ -1015,10 +844,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#jsonrawmessage" class="md-nav__link">
+  <a href="#struct-tags" class="md-nav__link">
     <span class="md-ellipsis">
       
-        json.RawMessage
+        Struct tags
       
     </span>
   </a>
@@ -1026,209 +855,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#nested-structs" class="md-nav__link">
+  <a href="#trees-and-cycles" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Nested Structs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#slices-and-arrays" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Slices and Arrays
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pointers-optional-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pointers (Optional Fields)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#custom-types" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Custom Types
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#time-handling" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Time Handling
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#limitations-and-workarounds" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Limitations and Workarounds
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Limitations and Workarounds">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#maps-limited-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Maps (Limited Validation)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#interface-limited-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        interface{} (Limited Validation)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#circular-references" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Circular References
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#non-string-map-keys" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Non-String Map Keys
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#functionchannel-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Function/Channel Fields
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#edge-cases" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Edge Cases
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Edge Cases">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#zero-values-vs-missing-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Zero Values vs Missing Fields
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#large-jsonrawmessage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Large json.RawMessage
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#array-length-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Array Length Validation
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#performance-tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance Tips
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#design-philosophy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Design Philosophy
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#see-also" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        See Also
+        Trees and cycles
       
     </span>
   </a>
@@ -1255,337 +885,79 @@
   
 
 
-<h1 id="type-reference">Type Reference</h1>
-<h2 id="supported-types">Supported Types</h2>
+<h1 id="types">Types</h1>
+<p>Anything <code>encoding/json</code> decodes, gopantic decodes the same way. These are the cases worth knowing.</p>
 <table>
 <thead>
 <tr>
 <th>Type</th>
-<th>Support</th>
-<th>Coercion</th>
-<th>Notes</th>
+<th>Behaviour</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Primitives (<code>string</code>, <code>int</code>, <code>float64</code>, <code>bool</code>)</td>
-<td>Full</td>
-<td>Yes</td>
-<td>All validation tags work</td>
-</tr>
-<tr>
-<td>Slices &amp; Arrays (<code>[]T</code>, <code>[N]T</code>)</td>
-<td>Full</td>
-<td>Yes</td>
-<td>Element validation supported</td>
-</tr>
-<tr>
-<td>Nested Structs</td>
-<td>Full</td>
-<td>Yes</td>
-<td>Recursive validation</td>
-</tr>
-<tr>
-<td>Pointers (<code>*T</code>)</td>
-<td>Full</td>
-<td>Yes</td>
-<td>Nil handling for optional fields</td>
+<td>Numbers, strings, booleans</td>
+<td>Decoded, then <a href="../../guide/coercion/">coerced</a> if the decoder refused</td>
 </tr>
 <tr>
 <td><code>time.Time</code></td>
-<td>Full</td>
-<td>Yes</td>
-<td>RFC3339, Unix timestamps</td>
+<td>RFC 3339, plus the other formats in the coercion guide and Unix seconds</td>
 </tr>
 <tr>
-<td><code>json.RawMessage</code></td>
-<td>Full</td>
-<td>Yes</td>
-<td>Preserves raw JSON</td>
+<td>Structs, pointers</td>
+<td>Rules inside them run. A nil pointer has nothing to check</td>
 </tr>
 <tr>
-<td>Maps (<code>map[string]T</code>)</td>
-<td>Partial</td>
-<td>Limited</td>
-<td>Structure only, no element validation</td>
+<td>Slices, arrays</td>
+<td>Rules run on each element</td>
+</tr>
+<tr>
+<td><code>map[K]V</code></td>
+<td>Rules run on each value. <code>K</code> can be a string or an integer, and <code>interface{}</code> for YAML, which keeps the key's type</td>
 </tr>
 <tr>
 <td><code>interface{}</code></td>
-<td>Partial</td>
-<td>Yes</td>
-<td>Runtime detection, limited validation</td>
+<td>Holds what the decoder produced. <code>required</code> works, and nothing goes inside it</td>
 </tr>
 <tr>
-<td>Custom types with <code>UnmarshalJSON</code></td>
-<td>Compatible</td>
-<td>N/A</td>
-<td>Standard library patterns work</td>
+<td><code>json.RawMessage</code></td>
+<td>Keeps its bytes as they arrived</td>
+</tr>
+<tr>
+<td>Types with <code>UnmarshalJSON</code>, <code>UnmarshalYAML</code> or <code>UnmarshalText</code></td>
+<td>Decode themselves. <code>validate</code> tags still apply to them</td>
 </tr>
 </tbody>
 </table>
-<h2 id="type-coercion">Type Coercion</h2>
-<p>gopantic automatically converts between compatible types:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">// String to number</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Product</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nx">Price</span><span class="w"> </span><span class="kt">float64</span><span class="w"> </span><span class="s">`json:&quot;price&quot;`</span>
+<h2 id="absent-null-and-zero">Absent, null and zero</h2>
+<p>A plain field can't tell an absent key from a zero value. A pointer can:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Update</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="nx">Name</span><span class="w"> </span><span class="o">*</span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"name"`</span><span class="w"> </span><span class="c1">// nil: not sent. "": sent empty</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nx">Age</span><span class="w">  </span><span class="o">*</span><span class="kt">int</span><span class="w">    </span><span class="s">`json:"age"`</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">}</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1">// {&quot;price&quot;: &quot;19.99&quot;} → Product{Price: 19.99}</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1">// Number to string</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Request</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="nx">ID</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;id&quot;`</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">}</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1">// {&quot;id&quot;: 12345} → Request{ID: &quot;12345&quot;}</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1">// String to boolean</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="c1">// &quot;true&quot;, &quot;false&quot;, &quot;1&quot;, &quot;0&quot; all work</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="c1">// Unix timestamp to time.Time</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="c1">// 1704067200 → parsed time.Time</span>
 </code></pre></div>
-<p><strong>Performance</strong>: Coercion adds ~5-10% overhead. If input is already correctly typed:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">var</span><span class="w"> </span><span class="nx">req</span><span class="w"> </span><span class="nx">Request</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nx">json</span><span class="p">.</span><span class="nx">Unmarshal</span><span class="p">(</span><span class="nx">body</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">req</span><span class="p">)</span><span class="w">  </span><span class="c1">// No coercion</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nx">model</span><span class="p">.</span><span class="nx">Validate</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">req</span><span class="p">)</span><span class="w">         </span><span class="c1">// Just validation</span>
+<p>An absent or <code>null</code> slice is nil, and <code>[]</code> is empty and not nil, as with <code>encoding/json</code>.</p>
+<h2 id="fixed-arrays">Fixed arrays</h2>
+<p>Arrays follow <code>encoding/json</code>: extra elements are dropped and missing ones stay zero, with no error. To require a length, use a slice and a rule:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nx">Scores</span><span class="w"> </span><span class="p">[]</span><span class="kt">float64</span><span class="w"> </span><span class="s">`json:"scores" validate:"len=3"`</span>
 </code></pre></div>
-<h2 id="jsonrawmessage">json.RawMessage</h2>
-<p>Preserve raw JSON for flexible metadata or deferred parsing:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Account</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="nx">ID</span><span class="w">          </span><span class="kt">string</span><span class="w">          </span><span class="s">`json:&quot;id&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nx">MetadataRaw</span><span class="w"> </span><span class="nx">json</span><span class="p">.</span><span class="nx">RawMessage</span><span class="w"> </span><span class="s">`json:&quot;metadata,omitempty&quot;`</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">}</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1">// Parse with validation</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nx">account</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">ParseInto</span><span class="p">[</span><span class="nx">Account</span><span class="p">](</span><span class="nx">input</span><span class="p">)</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c1">// Later: parse metadata as needed</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="kd">var</span><span class="w"> </span><span class="nx">metadata</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{}</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="nx">json</span><span class="p">.</span><span class="nx">Unmarshal</span><span class="p">(</span><span class="nx">account</span><span class="p">.</span><span class="nx">MetadataRaw</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">metadata</span><span class="p">)</span>
+<h2 id="struct-tags">Struct tags</h2>
+<p><code>json</code> tags work as in <code>encoding/json</code>, including <code>json:"-"</code> and <code>omitempty</code>, embedded structs, and case-insensitive key matching. A key that matches no field is ignored.</p>
+<p>For YAML, a field's key comes from its <code>yaml</code> tag, then its <code>json</code> tag, then its lowercased name. <code>yaml:",inline"</code> and merge keys behave as in <code>yaml.v3</code>. A field with <code>json:"-"</code> and no <code>yaml</code> tag is skipped on YAML too.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Config</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="nx">Host</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"host"`</span><span class="w">            </span><span class="c1">// key "host" in both</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nx">Port</span><span class="w"> </span><span class="kt">int</span><span class="w">    </span><span class="s">`yaml:"port" json:"p"`</span><span class="w">   </span><span class="c1">// "port" in YAML, "p" in JSON</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nx">TLS</span><span class="w">  </span><span class="kt">bool</span><span class="w">                             </span><span class="c1">// key "tls" in YAML, any case of "TLS" in JSON</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">}</span>
 </code></pre></div>
-<p>Common use cases:</p>
-<ul>
-<li>PostgreSQL JSONB columns</li>
-<li>Plugin/extension systems</li>
-<li>Multi-tenant configurations</li>
-<li>Event payloads with varying schemas</li>
-</ul>
-<h2 id="nested-structs">Nested Structs</h2>
-<p>Recursive validation works automatically:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Address</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="nx">City</span><span class="w">    </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;city&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nx">ZipCode</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;zip_code&quot; validate:&quot;len=5&quot;`</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="p">}</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="kd">type</span><span class="w"> </span><span class="nx">User</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nx">Name</span><span class="w">    </span><span class="kt">string</span><span class="w">  </span><span class="s">`json:&quot;name&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="nx">Address</span><span class="w"> </span><span class="nx">Address</span><span class="w"> </span><span class="s">`json:&quot;address&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">}</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1">// Both User and Address are validated</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="nx">user</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">ParseInto</span><span class="p">[</span><span class="nx">User</span><span class="p">](</span><span class="nx">input</span><span class="p">)</span>
+<h2 id="trees-and-cycles">Trees and cycles</h2>
+<p>A type can refer to itself, and input is a tree, so nothing loops. <code>Validate</code> on a value you built with a real cycle stops at the depth limit with an error. Tag a back-pointer <code>json:"-"</code> and <code>Validate</code> won't follow it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Node</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="nx">Name</span><span class="w">     </span><span class="kt">string</span><span class="w">  </span><span class="s">`json:"name" validate:"required"`</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nx">Children</span><span class="w"> </span><span class="p">[]</span><span class="o">*</span><span class="nx">Node</span><span class="w"> </span><span class="s">`json:"children"`</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nx">Parent</span><span class="w">   </span><span class="o">*</span><span class="nx">Node</span><span class="w">   </span><span class="s">`json:"-"`</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">}</span>
 </code></pre></div>
-<p>Optional nested structs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">User</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="nx">Name</span><span class="w">    </span><span class="kt">string</span><span class="w">   </span><span class="s">`json:&quot;name&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nx">Address</span><span class="w"> </span><span class="o">*</span><span class="nx">Address</span><span class="w"> </span><span class="s">`json:&quot;address,omitempty&quot;`</span><span class="w">  </span><span class="c1">// Optional</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">}</span>
-</code></pre></div>
-<h2 id="slices-and-arrays">Slices and Arrays</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">UserList</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="nx">Users</span><span class="w"> </span><span class="p">[]</span><span class="nx">User</span><span class="w"> </span><span class="s">`json:&quot;users&quot; validate:&quot;required,min=1&quot;`</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="p">}</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1">// Each User element is validated</span>
-</code></pre></div>
-<p>Primitive slices work too:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Tags</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="nx">Items</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;items&quot; validate:&quot;min=1&quot;`</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="p">}</span>
-</code></pre></div>
-<h2 id="pointers-optional-fields">Pointers (Optional Fields)</h2>
-<p>Use pointers to distinguish missing from zero values:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">UpdateRequest</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="nx">Name</span><span class="w">  </span><span class="o">*</span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;name,omitempty&quot;`</span><span class="w">   </span><span class="c1">// nil = not provided</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nx">Age</span><span class="w">   </span><span class="o">*</span><span class="kt">int</span><span class="w">    </span><span class="s">`json:&quot;age,omitempty&quot;`</span><span class="w">    </span><span class="c1">// 0 vs nil</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="nx">Email</span><span class="w"> </span><span class="o">*</span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;email,omitempty&quot; validate:&quot;email&quot;`</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">}</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1">// {&quot;name&quot;: &quot;Alice&quot;} → Name=&quot;Alice&quot;, Age=nil, Email=nil</span>
-</code></pre></div>
-<h2 id="custom-types">Custom Types</h2>
-<p>Implement <code>UnmarshalJSON</code> for custom parsing:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CustomID</span><span class="w"> </span><span class="kt">string</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">CustomID</span><span class="p">)</span><span class="w"> </span><span class="nx">UnmarshalJSON</span><span class="p">(</span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">s</span><span class="w"> </span><span class="kt">string</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">json</span><span class="p">.</span><span class="nx">Unmarshal</span><span class="p">(</span><span class="nx">data</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">s</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">strings</span><span class="p">.</span><span class="nx">HasPrefix</span><span class="p">(</span><span class="nx">s</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;id_&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;invalid ID format&quot;</span><span class="p">)</span>
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">    </span><span class="o">*</span><span class="nx">c</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">CustomID</span><span class="p">(</span><span class="nx">s</span><span class="p">)</span>
-<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="p">}</span>
-<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>
-<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Request</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="w">    </span><span class="nx">ID</span><span class="w"> </span><span class="nx">CustomID</span><span class="w"> </span><span class="s">`json:&quot;id&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="p">}</span>
-</code></pre></div>
-<h2 id="time-handling">Time Handling</h2>
-<p>Automatic support for:</p>
-<ul>
-<li>RFC3339: <code>"2024-01-01T12:00:00Z"</code></li>
-<li>Unix timestamps: <code>1704067200</code></li>
-<li>ISO 8601: <code>"2024-01-01T12:00:00+00:00"</code></li>
-</ul>
-<p>For custom formats, implement <code>UnmarshalJSON</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CustomTime</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">ct</span><span class="w"> </span><span class="o">*</span><span class="nx">CustomTime</span><span class="p">)</span><span class="w"> </span><span class="nx">UnmarshalJSON</span><span class="p">(</span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">s</span><span class="w"> </span><span class="kt">string</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="nx">json</span><span class="p">.</span><span class="nx">Unmarshal</span><span class="p">(</span><span class="nx">data</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">s</span><span class="p">)</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">    </span><span class="nx">t</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Parse</span><span class="p">(</span><span class="s">&quot;2006-01-02&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">s</span><span class="p">)</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">    </span><span class="o">*</span><span class="nx">ct</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">CustomTime</span><span class="p">(</span><span class="nx">t</span><span class="p">)</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="p">}</span>
-</code></pre></div>
-<h2 id="limitations-and-workarounds">Limitations and Workarounds</h2>
-<h3 id="maps-limited-validation">Maps (Limited Validation)</h3>
-<p><strong>Problem</strong>: Can't validate individual map values</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Config</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">    </span><span class="nx">Settings</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;settings&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="c1">// Only validates existence/length, not individual values</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="p">}</span>
-</code></pre></div>
-<p><strong>Workaround</strong>: Use <code>json.RawMessage</code> + manual validation</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Config</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span><span class="nx">SettingsRaw</span><span class="w"> </span><span class="nx">json</span><span class="p">.</span><span class="nx">RawMessage</span><span class="w"> </span><span class="s">`json:&quot;settings,omitempty&quot;`</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="p">}</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Config</span><span class="p">)</span><span class="w"> </span><span class="nx">ValidateSettings</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">settings</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="nx">json</span><span class="p">.</span><span class="nx">Unmarshal</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">SettingsRaw</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">settings</span><span class="p">)</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">key</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">settings</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">value</span><span class="p">)</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;setting %s: value too short&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="p">)</span>
-<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="p">}</span>
-</code></pre></div>
-<h3 id="interface-limited-validation">interface{} (Limited Validation)</h3>
-<p><strong>Problem</strong>: Can't validate beyond type checking</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Flexible</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">    </span><span class="nx">Data</span><span class="w"> </span><span class="kd">interface</span><span class="p">{}</span><span class="w"> </span><span class="s">`json:&quot;data&quot; validate:&quot;required&quot;`</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="c1">// &quot;required&quot; works, but no deep validation</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="p">}</span>
-</code></pre></div>
-<p><strong>Workaround</strong>: Type assertions</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">f</span><span class="w"> </span><span class="o">*</span><span class="nx">Flexible</span><span class="p">)</span><span class="w"> </span><span class="nx">ValidateData</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">    </span><span class="k">switch</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">f</span><span class="p">.</span><span class="nx">Data</span><span class="p">.(</span><span class="kd">type</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="kt">string</span><span class="p">:</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">v</span><span class="p">)</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;string too short&quot;</span><span class="p">)</span>
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{}:</span>
-<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">v</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;map empty&quot;</span><span class="p">)</span>
-<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="p">}</span>
-</code></pre></div>
-<h3 id="circular-references">Circular References</h3>
-<p><strong>Problem</strong>: Causes infinite loops</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Node</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">    </span><span class="nx">Children</span><span class="w"> </span><span class="p">[]</span><span class="nx">Node</span><span class="w"> </span><span class="s">`json:&quot;children&quot;`</span><span class="w"> </span><span class="c1">// OK</span>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span><span class="nx">Parent</span><span class="w">   </span><span class="o">*</span><span class="nx">Node</span><span class="w">  </span><span class="s">`json:&quot;parent&quot;`</span><span class="w">   </span><span class="c1">// Circular!</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="p">}</span>
-</code></pre></div>
-<p><strong>Workaround</strong>: Use IDs</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Node</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">    </span><span class="nx">ID</span><span class="w">       </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;id&quot;`</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">    </span><span class="nx">ParentID</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;parent_id,omitempty&quot;`</span>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">    </span><span class="nx">Children</span><span class="w"> </span><span class="p">[]</span><span class="nx">Node</span><span class="w"> </span><span class="s">`json:&quot;children&quot;`</span>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="p">}</span>
-</code></pre></div>
-<h3 id="non-string-map-keys">Non-String Map Keys</h3>
-<p><strong>Problem</strong>: JSON limitation</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Data</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">    </span><span class="nx">Counts</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">int</span><span class="p">]</span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;counts&quot;`</span>
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">    </span><span class="c1">// Keys serialized as strings: {&quot;1&quot;: &quot;one&quot;}</span>
-<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="p">}</span>
-</code></pre></div>
-<p><strong>Workaround</strong>: Use string keys or implement <code>UnmarshalJSON</code></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Data</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">    </span><span class="nx">Counts</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;counts&quot;`</span>
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="p">}</span>
-</code></pre></div>
-<h3 id="functionchannel-fields">Function/Channel Fields</h3>
-<p>Must be skipped:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Valid</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">    </span><span class="nx">Handler</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w">   </span><span class="s">`json:&quot;-&quot;`</span>
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">    </span><span class="nx">Ch</span><span class="w">      </span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="s">`json:&quot;-&quot;`</span>
-<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">    </span><span class="nx">Name</span><span class="w">    </span><span class="kt">string</span><span class="w">   </span><span class="s">`json:&quot;name&quot;`</span>
-<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="p">}</span>
-</code></pre></div>
-<h2 id="edge-cases">Edge Cases</h2>
-<h3 id="zero-values-vs-missing-fields">Zero Values vs Missing Fields</h3>
-<p>JSON can't distinguish:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1">// {} and {&quot;count&quot;: 0} both result in Count: 0</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Request</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">    </span><span class="nx">Count</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="s">`json:&quot;count&quot;`</span>
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="p">}</span>
-</code></pre></div>
-<p>Use pointers for optional fields:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Request</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">    </span><span class="nx">Count</span><span class="w"> </span><span class="o">*</span><span class="kt">int</span><span class="w"> </span><span class="s">`json:&quot;count,omitempty&quot;`</span>
-<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="p">}</span>
-<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="c1">// {} → Count: nil</span>
-<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="c1">// {&quot;count&quot;: 0} → Count: &amp;0</span>
-</code></pre></div>
-<h3 id="large-jsonrawmessage">Large json.RawMessage</h3>
-<p><code>json.RawMessage</code> keeps entire JSON in memory. For large fields (&gt;1MB), consider:</p>
-<ul>
-<li>External storage (S3, database BLOB)</li>
-<li>Streaming/chunked processing</li>
-<li>Compression</li>
-</ul>
-<h3 id="array-length-validation">Array Length Validation</h3>
-<p>Fixed-length array mismatches may not be caught in all cases:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Data</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">    </span><span class="nx">Scores</span><span class="w"> </span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="kt">float64</span><span class="w"> </span><span class="s">`json:&quot;scores&quot;`</span>
-<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="p">}</span>
-<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="c1">// {&quot;scores&quot;: [1.0]} may not error (known limitation)</span>
-</code></pre></div>
-<p>Use slices with length validation:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Data</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">    </span><span class="nx">Scores</span><span class="w"> </span><span class="p">[]</span><span class="kt">float64</span><span class="w"> </span><span class="s">`json:&quot;scores&quot; validate:&quot;required,len=3&quot;`</span>
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="p">}</span>
-</code></pre></div>
-<h2 id="performance-tips">Performance Tips</h2>
-<ol>
-<li><strong>Skip coercion if types are correct</strong>: Use <code>json.Unmarshal</code> + <code>model.Validate()</code></li>
-<li><strong>Use pointers sparingly</strong>: Only for truly optional fields</li>
-<li><strong>Avoid deep nesting</strong>: Flatten structures when possible</li>
-<li><strong>json.RawMessage for large/dynamic data</strong>: More efficient than map[string]interface{}</li>
-<li><strong>Cache parsed metadata</strong>: Don't unmarshal RawMessage repeatedly</li>
-</ol>
-<h2 id="design-philosophy">Design Philosophy</h2>
-<p><strong>Type Coercion</strong>: gopantic prioritizes developer convenience over strict typing. This reduces boilerplate when dealing with APIs that send <code>"123"</code> instead of <code>123</code>.</p>
-<p><strong>Validation Tags</strong>: Simple comma-separated syntax for common cases. Use custom validators for complex rules.</p>
-<p><strong>Compatibility</strong>: Works with standard library patterns (<code>UnmarshalJSON</code>, <code>json.RawMessage</code>) rather than replacing them.</p>
-<h2 id="see-also">See Also</h2>
-<ul>
-<li><a href="../api/">API Reference</a> - Complete API documentation</li>
-<li><a href="../../migration/">Migration Guide</a> - Switching from other libraries</li>
-<li><a href="../../architecture/">Architecture</a> - Implementation details</li>
-</ul>
 
 
 
@@ -1661,10 +1033,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

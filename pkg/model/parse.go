@@ -174,6 +174,17 @@ func Validate[T any](v *T) error {
 // validateParsed validates a decoded value of any kind, continuing errs from decoding. Paths
 // in skip failed to decode, so their zero values are not reported a second time.
 func validateParsed(val reflect.Value, errs ErrorList, skip map[string]bool) error {
+	validation := ParseValidationTags(val.Type())
+	if len(validation.TagErrors) > 0 {
+		for _, err := range validation.TagErrors {
+			errs.addCapped(err)
+		}
+		return errs.AsError()
+	}
+	if !validation.holdsRules {
+		return errs.AsError()
+	}
+
 	walk := validationWalk{errs: errs, skip: skip}
 	walk.value(val, nil, 0)
 	return walk.errs.AsError()
@@ -256,8 +267,8 @@ func (w *validationWalk) value(val reflect.Value, path *fieldPath, depth int) {
 
 	switch val.Kind() {
 	case reflect.Struct:
-		if val.Type() != timeType {
-			w.structFields(val, path, depth)
+		if validation := ParseValidationTags(val.Type()); validation.holdsRules {
+			w.structFields(val, validation, path, depth)
 		}
 	case reflect.Ptr:
 		if !val.IsNil() {
@@ -305,14 +316,12 @@ func mayHoldRules(elem reflect.Type) bool {
 	}
 }
 
-func (w *validationWalk) structFields(val reflect.Value, path *fieldPath, depth int) {
+func (w *validationWalk) structFields(val reflect.Value, validation *StructValidation, path *fieldPath, depth int) {
 	if maxDepth := GetMaxValidationDepth(); maxDepth > 0 && depth > maxDepth {
 		w.errs.addCapped(fmt.Errorf("validation depth exceeded maximum of %d levels", maxDepth))
 		return
 	}
 
-	typ := val.Type()
-	validation := ParseValidationTags(typ)
 	for i := 0; i < val.NumField() && !w.errs.full(); i++ {
 		w.field(val, i, validation, path, depth)
 	}

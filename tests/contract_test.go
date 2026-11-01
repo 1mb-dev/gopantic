@@ -8,6 +8,7 @@ import (
 	"net"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -377,6 +378,58 @@ type ctLate struct {
 	A string `json:"a" validate:"ct_late"`
 }
 
+type ctLateDefault struct {
+	A string `json:"a" validate:"ct_late_default"`
+}
+
+type ctLateCross struct {
+	A string `json:"a" validate:"ct_late_cross"`
+}
+
+type ctLateFactory struct {
+	A string `json:"a" validate:"ct_late_factory"`
+}
+
+type ctLateRace struct {
+	A string `json:"a" validate:"ct_late_race"`
+}
+
+type ctCoercedTypo struct {
+	N int    `json:"n"`
+	A string `json:"a" validate:"requird"`
+}
+
+type ctNestedTypo struct {
+	Item ctTypoItem `json:"item"`
+}
+
+type ctTypoCycle struct {
+	A    string       `json:"a" validate:"requird"`
+	Next *ctTypoCycle `json:"next"`
+}
+
+type ctEmptyMinValue struct {
+	A string `json:"a" validate:"min="`
+}
+
+type ctNaNMin struct {
+	A string `json:"a" validate:"min=NaN"`
+}
+
+type ctStrayComma struct {
+	A string `json:"a" validate:"required,"`
+}
+
+type ctFractionLength struct {
+	A string `json:"a" validate:"length=2.5"`
+}
+
+type ctContainerCycle []ctContainerCycle
+
+type ctMinOverride struct {
+	A string `json:"a" validate:"ct_override=abc"`
+}
+
 type ctSensitive struct {
 	Pin int `json:"pin"`
 }
@@ -524,6 +577,15 @@ func wantSameVerdict[T any](typed, triggered string) error {
 
 func wantNoPanicOrError[T any](input string) error {
 	_, _ = model.ParseInto[T]([]byte(input))
+	return nil
+}
+
+// wantTagError requires the error to come from the tag rather than the value.
+func wantTagError[T any](input string) error {
+	_, err := model.ParseInto[T]([]byte(input))
+	if err == nil || !strings.Contains(err.Error(), "invalid validate tag") {
+		return fmt.Errorf("got %v", err)
+	}
 	return nil
 }
 
@@ -874,7 +936,7 @@ func contractRows() []contractRow {
 			input := strings.Repeat(`{"next":`, 40) + `{"name":""}` + strings.Repeat(`}`, 40)
 			return wantError[ctDeepRule](input)
 		}},
-		{"validation", "rule-free nesting past the depth limit decodes", 7, func() error {
+		{"validation", "rule-free nesting past the depth limit decodes", 0, func() error {
 			levels := model.GetMaxValidationDepth() + 8
 			input := strings.Repeat(`{"id":"1","next":`, levels) + `null` + strings.Repeat(`}`, levels)
 			if _, err := model.ParseInto[ctDeepNoRules]([]byte(input)); err != nil {
@@ -902,23 +964,113 @@ func contractRows() []contractRow {
 		}},
 
 		// Tags that cannot run must not pass silently.
-		{"tags", "misspelled validator", 7, func() error { return wantError[ctTypo](`{"a":""}`) }},
-		{"tags", "len enforces length", 7, func() error { return wantError[ctLen](`{"a":"abc"}`) }},
-		{"tags", "min with a bad parameter", 7, func() error { return wantError[ctBadMin](`{"a":"x"}`) }},
-		{"tags", "bare min", 7, func() error { return wantError[ctBareMin](`{"a":"x"}`) }},
-		{"tags", "unknown tag reported under an empty slice", 7, func() error {
-			return wantError[ctTypoInSlice](`{"items":[]}`)
-		}},
-		{"tags", "validator registered after first parse runs", 7, func() error {
-			if _, err := model.ParseInto[ctLate]([]byte(`{"a":"x"}`)); err == nil {
-				// Before Phase 7 the unknown rule is dropped and cached, so the new
-				// validator never runs.
-				model.RegisterGlobalFunc("ct_late", func(field string, value interface{}, _ map[string]interface{}) error {
-					return model.NewValidationError(field, value, "ct_late", "always fails")
-				})
-				return wantError[ctLate](`{"a":"x"}`)
+		{"tags", "misspelled validator", 0, func() error { return wantTagError[ctTypo](`{"a":"x"}`) }},
+		{"tags", "error names struct, field, tag and the way out", 0, func() error {
+			_, err := model.ParseInto[ctTypo]([]byte(`{"a":"x"}`))
+			for _, part := range []string{"ctTypo.A", `"requird,emial"`, `"requird"`, "required", "register it first"} {
+				if err == nil || !strings.Contains(err.Error(), part) {
+					return fmt.Errorf("missing %q in %v", part, err)
+				}
 			}
-			return errors.New("first parse errored")
+			return nil
+		}},
+		{"tags", "errors on every call", 0, func() error {
+			for i := 0; i < 3; i++ {
+				if err := wantTagError[ctTypo](`{"a":"x"}`); err != nil {
+					return fmt.Errorf("call %d: %w", i, err)
+				}
+			}
+			return nil
+		}},
+		{"tags", "errors on the coercion path", 0, func() error { return wantTagError[ctCoercedTypo](`{"n":"1","a":"x"}`) }},
+		{"tags", "errors on YAML input", 0, func() error {
+			_, err := model.ParseIntoWithFormat[ctTypo]([]byte("a: x\n"), model.FormatYAML)
+			if err == nil || !strings.Contains(err.Error(), "unknown validator") {
+				return fmt.Errorf("got %v", err)
+			}
+			return nil
+		}},
+		{"tags", "errors from Validate", 0, func() error {
+			err := model.Validate(&ctTypo{A: "x"})
+			if err == nil || !strings.Contains(err.Error(), "unknown validator") {
+				return fmt.Errorf("got %v", err)
+			}
+			return nil
+		}},
+		{"tags", "errors when nested", 0, func() error { return wantTagError[ctNestedTypo](`{"item":{"a":"x"}}`) }},
+		{"tags", "errors in a recursive type", 0, func() error { return wantTagError[ctTypoCycle](`{"a":"x"}`) }},
+		{"tags", "len enforces length", 0, func() error { return wantError[ctLen](`{"a":"abc"}`) }},
+		{"tags", "len accepts the right length", 0, func() error { return wantValue(`{"a":"abcdefgh"}`, ctLen{A: "abcdefgh"}) }},
+		{"tags", "min with a bad parameter", 0, func() error { return wantTagError[ctBadMin](`{"a":"x"}`) }},
+		{"tags", "bare min", 0, func() error { return wantTagError[ctBareMin](`{"a":"x"}`) }},
+		{"tags", "min with an empty parameter", 0, func() error { return wantTagError[ctEmptyMinValue](`{"a":"x"}`) }},
+		{"tags", "min with NaN", 0, func() error { return wantTagError[ctNaNMin](`{"a":"x"}`) }},
+		{"tags", "stray comma", 0, func() error { return wantTagError[ctStrayComma](`{"a":"x"}`) }},
+		{"tags", "fractional length", 0, func() error { return wantTagError[ctFractionLength](`{"a":"xx"}`) }},
+		{"tags", "unknown tag reported under an empty slice", 0, func() error {
+			return wantTagError[ctTypoInSlice](`{"items":[]}`)
+		}},
+		{"tags", "unknown tag reported under an empty top-level slice", 0, func() error {
+			return wantTagError[[]ctTypoItem](`[]`)
+		}},
+		{"tags", "unknown tag reported under an empty top-level map", 0, func() error {
+			return wantTagError[map[string]*ctTypoItem](`{}`)
+		}},
+		{"tags", "recursive container type terminates", 0, func() error {
+			_, err := model.ParseInto[ctContainerCycle]([]byte(`[[],[[]]]`))
+			return err
+		}},
+		{"tags", "custom validator can take a built-in's parameter form", 0, func() error {
+			model.RegisterGlobalFunc("ct_override", func(string, interface{}, map[string]interface{}) error { return nil })
+			return wantValue(`{"a":"x"}`, ctMinOverride{A: "x"})
+		}},
+		{"tags", "RegisterGlobalFunc reaches a parsed type", 0, func() error {
+			_, _ = model.ParseInto[ctLate]([]byte(`{"a":"x"}`))
+			model.RegisterGlobalFunc("ct_late", func(string, interface{}, map[string]interface{}) error { return nil })
+			return wantValue(`{"a":"x"}`, ctLate{A: "x"})
+		}},
+		{"tags", "default registry RegisterFunc reaches a parsed type", 0, func() error {
+			_, _ = model.ParseInto[ctLateDefault]([]byte(`{"a":"x"}`))
+			model.GetDefaultRegistry().RegisterFunc("ct_late_default", func(string, interface{}, map[string]interface{}) error { return nil })
+			return wantValue(`{"a":"x"}`, ctLateDefault{A: "x"})
+		}},
+		{"tags", "cross-field registration reaches a parsed type", 0, func() error {
+			_, _ = model.ParseInto[ctLateCross]([]byte(`{"a":"x"}`))
+			model.RegisterGlobalCrossFieldFunc("ct_late_cross", func(string, interface{}, reflect.Value, map[string]interface{}) error { return nil })
+			return wantValue(`{"a":"x"}`, ctLateCross{A: "x"})
+		}},
+		{"tags", "factory registration reaches a parsed type", 0, func() error {
+			_, _ = model.ParseInto[ctLateFactory]([]byte(`{"a":"x"}`))
+			model.GetDefaultRegistry().Register("ct_late_factory", func(map[string]interface{}) model.Validator {
+				return &model.AlphaValidator{}
+			})
+			return wantValue(`{"a":"x"}`, ctLateFactory{A: "x"})
+		}},
+		{"tags", "registration racing parses leaves no stale rules", 0, func() error {
+			var parses sync.WaitGroup
+			done := make(chan struct{})
+			for i := 0; i < 8; i++ {
+				parses.Add(1)
+				go func() {
+					defer parses.Done()
+					for {
+						select {
+						case <-done:
+							return
+						default:
+							_, _ = model.ParseInto[ctLateRace]([]byte(`{"a":"x"}`))
+						}
+					}
+				}()
+			}
+			model.RegisterGlobalFunc("ct_late_race", func(string, interface{}, map[string]interface{}) error { return nil })
+			parsed := wantValue(`{"a":"x"}`, ctLateRace{A: "x"})
+			close(done)
+			parses.Wait()
+			if parsed != nil {
+				return parsed
+			}
+			return wantValue(`{"a":"x"}`, ctLateRace{A: "x"})
 		}},
 
 		// Parsing must not panic.

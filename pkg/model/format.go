@@ -3,8 +3,6 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-
-	"gopkg.in/yaml.v3"
 )
 
 // Format represents the input data format for parsing operations.
@@ -57,15 +55,8 @@ type YAMLParser struct{}
 
 // Parse parses YAML data into a generic interface{}
 func (yp *YAMLParser) Parse(raw []byte) (interface{}, error) {
-	var data interface{}
-	if err := yaml.Unmarshal(raw, &data); err != nil {
-		return nil, fmt.Errorf("yaml parse error: %w", err)
-	}
-	// Check structure depth to prevent resource exhaustion
-	if err := checkStructureDepth(data); err != nil {
-		return nil, err
-	}
-	return data, nil
+	_, data, err := decodeYAML(raw)
+	return data, err
 }
 
 // Format returns the YAML format type

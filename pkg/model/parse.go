@@ -39,6 +39,16 @@ var MaxInputSize = 10 * 1024 * 1024 // 10MB
 // For concurrent access, use GetMaxStructureDepth() and SetMaxStructureDepth().
 var MaxStructureDepth = 64
 
+const defaultMaxYAMLKeyComparisons = 50_000_000
+
+// MaxYAMLKeyComparisons bounds the work yaml.v3 does looking for duplicate keys, which is
+// quadratic in the keys of each mapping and runs again for every alias. A mapping of 10,000 keys
+// costs about 50,000,000 comparisons, or about 0.3s. Set to 0 to disable the budget.
+//
+// WARNING: Direct modification of this variable is NOT thread-safe.
+// For concurrent access, use GetMaxYAMLKeyComparisons() and SetMaxYAMLKeyComparisons().
+var MaxYAMLKeyComparisons = defaultMaxYAMLKeyComparisons
+
 // ParseInto parses raw data into a struct of type T with automatic format detection, type coercion, and validation.
 // The format is automatically detected (JSON or YAML) based on the content structure.
 // This is the main entry point for parsing operations in gopantic.

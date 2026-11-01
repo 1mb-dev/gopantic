@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"sort"
 	"strings"
@@ -48,24 +49,112 @@ func parseJSON[T any](raw []byte) (T, error) {
 func parseYAML[T any](raw []byte) (T, error) {
 	var zero T
 
-	var doc yaml.Node
-	if err := yaml.Unmarshal(raw, &doc); err != nil {
-		return zero, fmt.Errorf("yaml parse error: %w", err)
+	doc, _, err := decodeYAML(raw)
+	if err != nil {
+		return zero, err
+	}
+	return walkInto[T](yamlToNode(doc), FormatYAML)
+}
+
+// decodeYAML is the one route from input into yaml.v3's decoder.
+func decodeYAML(raw []byte) (*yaml.Node, interface{}, error) {
+	doc := &yaml.Node{}
+	if err := yaml.Unmarshal(raw, doc); err != nil {
+		return nil, nil, fmt.Errorf("yaml parse error: %w", err)
+	}
+
+	if err := checkYAMLKeys(doc); err != nil {
+		return nil, nil, err
 	}
 
 	// This decode must run even with the depth limit off. yaml.v3 enforces its alias ratio
 	// and self-reference checks only while decoding a whole document: a Node target returns
 	// before expanding, and Node.Decode at a leaf starts with fresh counters, so the walk
-	// below has no protection against an alias bomb except this.
+	// has no protection against an alias bomb except this.
 	var generic interface{}
 	if err := doc.Decode(&generic); err != nil {
-		return zero, fmt.Errorf("yaml parse error: %w", err)
+		return nil, nil, fmt.Errorf("yaml parse error: %w", err)
 	}
 	if err := checkStructureDepth(generic); err != nil {
-		return zero, err
+		return nil, nil, err
+	}
+	return doc, generic, nil
+}
+
+// checkYAMLKeys runs before the decode, which compares every pair of keys in a mapping and does
+// it again each time an alias replays that mapping. It also formats an error for every
+// duplicate pair, so 15KB of repeated keys costs 800MB. Parsing into nodes is linear, so this
+// can answer first, in linear time.
+func checkYAMLKeys(doc *yaml.Node) error {
+	check := yamlKeyCheck{anchored: make(map[*yaml.Node]uint64)}
+	comparisons := check.comparisons(doc)
+	if check.err != nil {
+		return check.err
+	}
+	if limit := GetMaxYAMLKeyComparisons(); limit > 0 && comparisons > uint64(limit) {
+		return fmt.Errorf("yaml parse error: document needs %d key comparisons, over the limit of %d: use SetMaxYAMLKeyComparisons to raise it",
+			comparisons, limit)
+	}
+	return nil
+}
+
+type yamlKeyCheck struct {
+	anchored map[*yaml.Node]uint64 // Only an anchored node can be reached twice
+	err      error
+}
+
+// comparisons returns what decoding n costs. An alias costs its target again, as it does in
+// yaml.v3, and a merge is an alias. A node in progress answers 0, which stops a cycle: the
+// decode rejects those.
+func (c *yamlKeyCheck) comparisons(n *yaml.Node) uint64 {
+	if n.Kind == yaml.AliasNode {
+		return c.comparisons(n.Alias)
+	}
+	if n.Anchor != "" {
+		if total, ok := c.anchored[n]; ok {
+			return total
+		}
+		c.anchored[n] = 0
 	}
 
-	return walkInto[T](yamlToNode(&doc), FormatYAML)
+	var total uint64
+	if n.Kind == yaml.MappingNode {
+		c.checkDuplicates(n)
+		keys := uint64(len(n.Content) / 2) //nolint:gosec // A length is never negative.
+		total = keys * (keys - 1) / 2
+	}
+	for _, child := range n.Content {
+		total = addSaturating(total, c.comparisons(child))
+	}
+
+	if n.Anchor != "" {
+		c.anchored[n] = total
+	}
+	return total
+}
+
+// checkDuplicates uses yaml.v3's definition of a repeated key.
+func (c *yamlKeyCheck) checkDuplicates(n *yaml.Node) {
+	type key struct {
+		kind  yaml.Kind
+		value string
+	}
+	seen := make(map[key]int, len(n.Content)/2)
+	for i := 0; i+1 < len(n.Content) && c.err == nil; i += 2 {
+		node := n.Content[i]
+		k := key{kind: node.Kind, value: node.Value}
+		if line, repeated := seen[k]; repeated {
+			c.err = fmt.Errorf("yaml parse error: line %d: mapping key %q already defined at line %d", node.Line, node.Value, line)
+		}
+		seen[k] = node.Line
+	}
+}
+
+func addSaturating(a, b uint64) uint64 {
+	if sum := a + b; sum >= a {
+		return sum
+	}
+	return math.MaxUint64
 }
 
 func walkInto[T any](root *node, format Format) (T, error) {

@@ -29,6 +29,7 @@ var configValues struct {
 	maxCacheSize           int
 	maxValidationDepth     int
 	maxStructureDepth      int
+	maxYAMLKeyComparisons  int
 	sensitiveFieldPatterns []string
 }
 
@@ -39,6 +40,7 @@ func initConfigOnce() {
 		configValues.maxCacheSize = MaxCacheSize
 		configValues.maxValidationDepth = MaxValidationDepth
 		configValues.maxStructureDepth = MaxStructureDepth
+		configValues.maxYAMLKeyComparisons = MaxYAMLKeyComparisons
 		configValues.sensitiveFieldPatterns = append([]string{}, DefaultSensitivePatterns...)
 	})
 }
@@ -107,6 +109,28 @@ func SetMaxValidationDepth(depth int) {
 	defer configMu.Unlock()
 	configValues.maxValidationDepth = depth
 	MaxValidationDepth = depth
+}
+
+// GetMaxYAMLKeyComparisons returns the YAML key comparison budget in a thread-safe manner.
+// Default: 50,000,000. 0 means no budget, and a negative value counts as the default.
+func GetMaxYAMLKeyComparisons() int {
+	initConfigOnce()
+	configMu.RLock()
+	defer configMu.RUnlock()
+	if configValues.maxYAMLKeyComparisons < 0 {
+		return defaultMaxYAMLKeyComparisons
+	}
+	return configValues.maxYAMLKeyComparisons
+}
+
+// SetMaxYAMLKeyComparisons sets the YAML key comparison budget in a thread-safe manner.
+// Set to 0 to disable the budget. Duplicate keys are rejected either way.
+func SetMaxYAMLKeyComparisons(limit int) {
+	initConfigOnce()
+	configMu.Lock()
+	defer configMu.Unlock()
+	configValues.maxYAMLKeyComparisons = limit
+	MaxYAMLKeyComparisons = limit
 }
 
 // GetMaxStructureDepth returns the maximum structure nesting depth in a thread-safe manner.

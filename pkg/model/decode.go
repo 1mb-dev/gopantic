@@ -335,6 +335,12 @@ var (
 	jsonUnmarshalerType = reflect.TypeOf((*json.Unmarshaler)(nil)).Elem()
 	textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 	yamlUnmarshalerType = reflect.TypeOf((*yaml.Unmarshaler)(nil)).Elem()
+
+	// yaml.v3 still honours the func-signature form, through an unexported interface.
+	yamlFuncUnmarshalerType = reflect.TypeOf((*interface {
+		UnmarshalYAML(func(interface{}) error) error
+	})(nil)).Elem()
+	yamlNodeType = reflect.TypeOf(yaml.Node{})
 )
 
 // decodesItself reports whether typ owns its decoding, which makes it a leaf whatever its Kind.
@@ -344,7 +350,7 @@ func decodesItself(typ reflect.Type, n *node) bool {
 		return true
 	}
 	if n.yml != nil {
-		return ptr.Implements(yamlUnmarshalerType)
+		return typ == yamlNodeType || ptr.Implements(yamlUnmarshalerType) || ptr.Implements(yamlFuncUnmarshalerType)
 	}
 	return ptr.Implements(jsonUnmarshalerType)
 }
@@ -375,10 +381,7 @@ func (w *walker) assign(n *node, out reflect.Value, path *fieldPath) {
 
 	typ := out.Type()
 	if n.kind == nodeNull {
-		switch out.Kind() {
-		case reflect.Ptr, reflect.Map, reflect.Slice, reflect.Interface:
-			out.Set(reflect.Zero(typ))
-		}
+		w.assignNull(n, out, path)
 		return
 	}
 
@@ -413,6 +416,19 @@ func (w *walker) assign(n *node, out reflect.Value, path *fieldPath) {
 	}
 }
 
+// assignNull follows encoding/json: an addressable UnmarshalJSON sees the null, and a pointer
+// is cleared without calling it.
+func (w *walker) assignNull(n *node, out reflect.Value, path *fieldPath) {
+	if n.yml == nil && out.Kind() != reflect.Ptr && reflect.PointerTo(out.Type()).Implements(jsonUnmarshalerType) {
+		w.assignSelfDecoding(n, out, path)
+		return
+	}
+	switch out.Kind() {
+	case reflect.Ptr, reflect.Map, reflect.Slice, reflect.Interface:
+		out.Set(reflect.Zero(out.Type()))
+	}
+}
+
 func (w *walker) assignSelfDecoding(n *node, out reflect.Value, path *fieldPath) {
 	err := n.decodeInto(out.Addr().Interface())
 	if err == nil {
@@ -432,8 +448,13 @@ func (w *walker) assignScalar(n *node, out reflect.Value, path *fieldPath) {
 		w.fail(path, n, out.Type(), fmt.Sprintf("cannot coerce %s to %s", n.describe(), out.Type()))
 		return
 	}
-	if err := n.decodeInto(out.Addr().Interface()); err == nil {
-		return
+	// yaml.v3 truncates floats into integers and does not range-check floats, so for numbers
+	// it cannot go first: coercion would never see the value.
+	isNumber := out.CanInt() || out.CanUint() || out.CanFloat()
+	if n.yml == nil || !isNumber {
+		if err := n.decodeInto(out.Addr().Interface()); err == nil {
+			return
+		}
 	}
 	w.coerceScalar(n, out, path)
 }
@@ -493,7 +514,41 @@ func (w *walker) assignStruct(n *node, out reflect.Value, path *fieldPath) {
 			w.report(here, nil, out.Type().String(), err.Error())
 			continue
 		}
-		w.assign(n.values[i], dst, here)
+		value := n.values[i]
+		if entry.quoted {
+			value = unquoted(value)
+		}
+		w.assign(value, dst, here)
+	}
+}
+
+// unquoted undoes the json ",string" option, which wraps a value in a JSON string. Text that
+// does not parse stays as it is, for coercion to judge.
+func unquoted(n *node) *node {
+	text, isString := n.scalar.(string)
+	if n.kind != nodeScalar || !isString {
+		return n
+	}
+	inner, err := parseJSONNode([]byte(text))
+	if err != nil {
+		return n
+	}
+	return inner
+}
+
+// isQuoted reports the ",string" option, which encoding/json honours only on scalars.
+func isQuoted(sf reflect.StructField, target reflect.Type) bool {
+	_, options, _ := strings.Cut(sf.Tag.Get("json"), ",")
+	if !strings.Contains(","+options+",", ",string,") {
+		return false
+	}
+	switch target.Kind() {
+	case reflect.Bool, reflect.String, reflect.Float32, reflect.Float64,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -502,7 +557,11 @@ func (w *walker) assignInline(table *fieldTable, key string, value *node, out re
 	if table.inlineMap == nil {
 		return
 	}
-	dst := out.FieldByIndex(table.inlineMap)
+	dst, err := fieldByIndex(out, table.inlineMap)
+	if err != nil {
+		w.report(path, nil, out.Type().String(), err.Error())
+		return
+	}
 	if dst.IsNil() {
 		dst.Set(reflect.MakeMap(dst.Type()))
 	}
@@ -612,6 +671,7 @@ type fieldEntry struct {
 	depth  int
 	tag    bool
 	hidden bool // Kept out of JSON, so set only by YAML
+	quoted bool // Has the json ",string" option
 }
 
 type fieldTable struct {
@@ -706,7 +766,7 @@ func buildJSONFields(typ reflect.Type) *fieldTable {
 					continue
 				}
 
-				entry := &fieldEntry{name: name, index: index, path: path, depth: depth, tag: name != ""}
+				entry := &fieldEntry{name: name, index: index, path: path, depth: depth, tag: name != "", quoted: isQuoted(sf, elem)}
 				if entry.name == "" {
 					entry.name = sf.Name
 				}
@@ -830,8 +890,10 @@ func collectYAMLFields(typ reflect.Type, index []int, path string, hidden bool, 
 			case reflect.Struct:
 				collectYAMLFields(elem, fieldIndex, fieldPath, jsonHidden, active, fields, table)
 			case reflect.Map:
-				table.inlineMap = fieldIndex
-				table.inlineHidden = jsonHidden
+				if sf.IsExported() {
+					table.inlineMap = fieldIndex
+					table.inlineHidden = jsonHidden
+				}
 			}
 			continue
 		}
@@ -847,7 +909,8 @@ func yamlFieldName(sf reflect.StructField) (name string, inline, skip bool) {
 	name, options, _ := strings.Cut(tag, ",")
 	inline = strings.Contains(","+options+",", ",inline,")
 
-	if !sf.IsExported() && !inline {
+	// As in yaml.v3, only an embedded struct is reachable when unexported.
+	if !sf.IsExported() && !(inline && sf.Anonymous) {
 		return "", false, true
 	}
 	if name != "" || inline {
@@ -884,10 +947,10 @@ func coerceContainer(value interface{}, targetType reflect.Type, fieldName strin
 		path = &fieldPath{kind: pathField, name: fieldName}
 	}
 	w.assign(root, out, path)
-	if len(w.errs) == 1 {
-		return nil, w.errs[0]
-	}
-	if err := w.errs.AsError(); err != nil {
+	if err := validateParsed(out, w.errs, failedPaths(w.errs)); err != nil {
+		if list, isList := err.(ErrorList); isList && len(list) == 1 {
+			return nil, list[0]
+		}
 		return nil, err
 	}
 	return out.Interface(), nil

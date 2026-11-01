@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"regexp"
 	"strings"
@@ -37,7 +38,7 @@ func (v *RequiredValidator) Validate(fieldName string, value interface{}) error 
 			return NewValidationError(fieldName, value, "required", "field is required")
 		}
 	case reflect.Float32, reflect.Float64:
-		if val.Float() == 0.0 {
+		if f := val.Float(); f == 0.0 || math.IsNaN(f) {
 			return NewValidationError(fieldName, value, "required", "field is required")
 		}
 	case reflect.Bool:

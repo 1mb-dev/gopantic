@@ -248,16 +248,22 @@ func FuzzNumericRoundTrip(f *testing.F) {
 			t.Skip("not representable in JSON")
 		}
 		literal := strconv.FormatFloat(n, 'g', -1, 64)
-		for _, input := range [][]byte{
-			[]byte(`{"v":` + literal + `}`),
-			[]byte(`{"v":"` + literal + `"}`),
+		for _, input := range []struct {
+			data   []byte
+			format model.Format
+		}{
+			{[]byte(`{"v":` + literal + `}`), model.FormatJSON},
+			{[]byte(`{"v":"` + literal + `"}`), model.FormatJSON},
+			// The oracle is the number itself. A differential test against yaml.v3 cannot see
+			// these, since yaml.v3 truncates floats into integers.
+			{[]byte("v: " + literal + "\n"), model.FormatYAML},
 		} {
-			checkRoundTrip[ctI8](t, input, n, func(v ctI8) float64 { return float64(v.V) })
-			checkRoundTrip[ctU8](t, input, n, func(v ctU8) float64 { return float64(v.V) })
-			checkRoundTrip[ctInt](t, input, n, func(v ctInt) float64 { return float64(v.V) })
-			checkRoundTrip[ctUint](t, input, n, func(v ctUint) float64 { return float64(v.V) })
+			checkRoundTrip[ctI8](t, input.data, input.format, n, func(v ctI8) float64 { return float64(v.V) })
+			checkRoundTrip[ctU8](t, input.data, input.format, n, func(v ctU8) float64 { return float64(v.V) })
+			checkRoundTrip[ctInt](t, input.data, input.format, n, func(v ctInt) float64 { return float64(v.V) })
+			checkRoundTrip[ctUint](t, input.data, input.format, n, func(v ctUint) float64 { return float64(v.V) })
 		}
-		checkRoundTrip[ctI8Slice](t, []byte(`{"v":[`+literal+`]}`), n, func(v ctI8Slice) float64 {
+		checkRoundTrip[ctI8Slice](t, []byte(`{"v":[`+literal+`]}`), model.FormatJSON, n, func(v ctI8Slice) float64 {
 			if len(v.V) != 1 {
 				return math.NaN()
 			}
@@ -266,9 +272,9 @@ func FuzzNumericRoundTrip(f *testing.F) {
 	})
 }
 
-func checkRoundTrip[T any](t *testing.T, input []byte, want float64, value func(T) float64) {
+func checkRoundTrip[T any](t *testing.T, input []byte, format model.Format, want float64, value func(T) float64) {
 	t.Helper()
-	got, err := model.ParseInto[T](input)
+	got, err := model.ParseIntoWithFormat[T](input, format)
 	if err != nil {
 		return
 	}
@@ -339,6 +345,7 @@ func FuzzNoPanicAnyTarget(f *testing.F) {
 	for _, seed := range []string{
 		`{"a":"x"}`, `{"a":"1"}`, `[null]`, `[{"a":null}]`, `{"v":"1"}`, `null`, `1`, `"s"`,
 		"a: 1\nb: 2\n", "- 1\n- x\n", "v: \"1\"\nw: [1]\n", "{1: 2, x: y}\n",
+		"name: a\nother: b\n", "cfg: {a: 1}\n", "c: hi\n",
 	} {
 		f.Add([]byte(seed))
 	}
@@ -353,6 +360,11 @@ func FuzzNoPanicAnyTarget(f *testing.F) {
 			_, _ = model.ParseIntoWithFormat[any](data, format)
 			_, _ = model.ParseIntoWithFormat[int](data, format)
 			_, _ = model.ParseIntoWithFormat[fuzzZoo](data, format)
+			_, _ = model.ParseIntoWithFormat[ctYPtrInline](data, format)
+			_, _ = model.ParseIntoWithFormat[ctYHiddenInlineStruct](data, format)
+			_, _ = model.ParseIntoWithFormat[ctYHiddenInlineMap](data, format)
+			_, _ = model.ParseIntoWithFormat[ctOldYAMLField](data, format)
+			_, _ = model.ParseIntoWithFormat[ctYAMLNodeField](data, format)
 		}
 	})
 }

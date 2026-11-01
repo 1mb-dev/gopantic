@@ -531,6 +531,120 @@ type ctDashInlineMap struct {
 	Extra map[string]int `json:"-" yaml:",inline"`
 }
 
+type ctYInt struct {
+	V int `yaml:"v"`
+}
+
+type ctYI8 struct {
+	V int8 `yaml:"v"`
+}
+
+type ctYU64 struct {
+	V uint64 `yaml:"v"`
+}
+
+type ctYF32 struct {
+	V float32 `yaml:"v"`
+}
+
+type ctYInlineInner struct {
+	Extra map[string]string `yaml:",inline"`
+}
+
+type ctYPtrInline struct {
+	Name string          `yaml:"name"`
+	In   *ctYInlineInner `yaml:",inline"`
+}
+
+type ctYHiddenInlineStruct struct {
+	meta ctItem `yaml:",inline"`
+}
+
+type ctYHiddenInlineMap struct {
+	A     int               `yaml:"a"`
+	extra map[string]string `yaml:",inline"`
+}
+
+type ctLoopMap map[string]ctLoopMap
+
+type ctLoopHolder struct {
+	ID   int       `validate:"min=0"`
+	Kids ctLoopMap `json:"kids"`
+}
+
+type ctLoopSlice []ctLoopSlice
+
+type ctLoopSliceHolder struct {
+	ID   int         `validate:"min=0"`
+	Kids ctLoopSlice `json:"kids"`
+}
+
+type ctTimeField struct {
+	At time.Time `json:"at" yaml:"at"`
+}
+
+type ctKeySensitive struct {
+	Code string `json:"password" validate:"min=100"`
+}
+
+type ctKeySensitiveYAML struct {
+	Code string `json:"c" yaml:"api_key" validate:"min=100"`
+}
+
+type ctKeySensitiveParent struct {
+	Inner struct {
+		Code string `json:"code" validate:"min=100"`
+	} `json:"credentials"`
+}
+
+// ctOldYAML uses the func-signature form of UnmarshalYAML, which yaml.v3 still calls.
+type ctOldYAML struct {
+	Got string
+}
+
+func (o *ctOldYAML) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return unmarshal(&o.Got)
+}
+
+type ctOldYAMLField struct {
+	C ctOldYAML `yaml:"c"`
+}
+
+type ctYAMLNodeField struct {
+	Cfg yaml.Node `yaml:"cfg"`
+}
+
+type ctRequiredFloat struct {
+	V float64 `yaml:"v" validate:"required"`
+}
+
+// ctNullAware records whether its decoder ran.
+type ctNullAware struct {
+	Set bool
+}
+
+func (n *ctNullAware) UnmarshalJSON([]byte) error {
+	n.Set = true
+	return nil
+}
+
+type ctNullField struct {
+	Trigger int         `json:"trigger"`
+	O       ctNullAware `json:"o"`
+}
+
+type ctQuoted struct {
+	Trigger int     `json:"trigger"`
+	Name    string  `json:"name,string"`
+	N       int     `json:"n,string"`
+	B       bool    `json:"b,string"`
+	F       float64 `json:"f,string"`
+}
+
+type ctCoerceTarget struct {
+	Age int `json:"age" validate:"min=18"`
+}
+
 type ctMinOverride struct {
 	A string `json:"a" validate:"ct_override=abc"`
 }
@@ -743,6 +857,14 @@ func wantValidationRedacted(err error) error {
 	return nil
 }
 
+func wantYAMLError[T any](input string) error {
+	got, err := model.ParseIntoWithFormat[T]([]byte(input), model.FormatYAML)
+	if err == nil {
+		return fmt.Errorf("accepted %q as %+v", input, got)
+	}
+	return nil
+}
+
 type contractRow struct {
 	group string
 	name  string
@@ -783,6 +905,52 @@ func contractRows() []contractRow {
 		{"numeric", "integral float still coerces", 0, func() error { return wantValue(`{"v":4.0}`, ctInt{V: 4}) }},
 		{"numeric", "exponent still coerces", 0, func() error { return wantValue(`{"v":1e3}`, ctInt{V: 1000}) }},
 		{"numeric", "exponent integer past 2^53 rejected", 0, func() error { return wantError[ctInt](`{"v":1e16}`) }},
+		{"numeric", "YAML float does not truncate into an int", 0, func() error {
+			return wantYAMLError[ctYInt]("v: 1.9\n")
+		}},
+		{"numeric", "YAML float does not truncate into an int8", 0, func() error {
+			return wantYAMLError[ctYI8]("v: 100.5\n")
+		}},
+		{"numeric", "YAML negative float does not wrap into a uint64", 0, func() error {
+			return wantYAMLError[ctYU64]("v: -1.0\n")
+		}},
+		{"numeric", "YAML float32 overflow rejected", 0, func() error {
+			return wantYAMLError[ctYF32]("v: 1e39\n")
+		}},
+		{"numeric", "YAML int8 overflow rejected", 0, func() error {
+			return wantYAMLError[ctYI8]("v: 300\n")
+		}},
+		{"numeric", "YAML whole float still converts", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctYInt]([]byte("v: 4.0\n"), model.FormatYAML)
+			if err != nil || got.V != 4 {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"numeric", "YAML hex integer still decodes", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctYInt]([]byte("v: 0x10\n"), model.FormatYAML)
+			if err != nil || got.V != 16 {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"numeric", "YAML maximum uint64 stays exact", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctYU64]([]byte("v: 18446744073709551615\n"), model.FormatYAML)
+			if err != nil || got.V != math.MaxUint64 {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"numeric", "time rejects a huge number", 0, func() error { return wantError[ctTimeField](`{"at":1e300}`) }},
+		{"numeric", "time rejects YAML NaN", 0, func() error { return wantYAMLError[ctTimeField]("at: .nan\n") }},
+		{"numeric", "time rejects YAML infinity", 0, func() error { return wantYAMLError[ctTimeField]("at: .inf\n") }},
+		{"numeric", "time keeps an ordinary Unix timestamp", 0, func() error {
+			got, err := model.ParseInto[ctTimeField]([]byte(`{"at":1704067200}`))
+			if err != nil || got.At.Unix() != 1704067200 {
+				return fmt.Errorf("got %v, err %v", got.At, err)
+			}
+			return nil
+		}},
 		{"numeric", "uint rejects a negative", 0, func() error { return wantError[ctUint](`{"v":-1}`) }},
 		{"numeric", "minimum int8 still fits", 0, func() error { return wantValue(`{"v":-128}`, ctI8{V: -128}) }},
 		{"numeric", "maximum uint8 still fits", 0, func() error { return wantValue(`{"v":"255"}`, ctU8{V: 255}) }},
@@ -826,6 +994,13 @@ func contractRows() []contractRow {
 		}},
 		{"divergence", "Kelvin sign folds like encoding/json", 0, func() error {
 			return wantSameAsJSON[ctKelvin](`{"trigger":1,"\u212Aind":"n"}`, `{"trigger":"1","\u212Aind":"n"}`)
+		}},
+		{"divergence", "null reaches an UnmarshalJSON method", 0, func() error {
+			return wantSameAsJSON[ctNullField](`{"trigger":1,"o":null}`, `{"trigger":"1","o":null}`)
+		}},
+		{"divergence", "the ,string option", 0, func() error {
+			const body = `"name":"\"x\"","n":"7","b":"true","f":"1.5"}`
+			return wantSameAsJSON[ctQuoted](`{"trigger":1,`+body, `{"trigger":"1",`+body)
 		}},
 		{"divergence", "time field", 0, func() error {
 			const at = `"at":"2026-01-02T03:04:05Z"}`
@@ -896,6 +1071,38 @@ func contractRows() []contractRow {
 		{"yaml", "earlier source wins in a merge list", 0, func() error {
 			const body = "x: &x {a: 1}\ny: &y {a: 9, b: 2}\nv:\n  <<: [*x, *y]\n"
 			return wantSameAsYAML[ctYMerge]("trigger: 1\n"+body, "trigger: \"1\"\n"+body)
+		}},
+		{"yaml", "inline map behind a nil inline pointer", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctYPtrInline]([]byte("name: a\nother: b\n"), model.FormatYAML)
+			if err != nil || got.In == nil || got.In.Extra["other"] != "b" {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"yaml", "unexported inline struct is ignored", 0, func() error {
+			_, err := model.ParseIntoWithFormat[ctYHiddenInlineStruct]([]byte("name: a\n"), model.FormatYAML)
+			return err
+		}},
+		{"yaml", "unexported inline map is ignored", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctYHiddenInlineMap]([]byte("a: 1\nb: c\n"), model.FormatYAML)
+			if err != nil || got.A != 1 {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"yaml", "func-signature UnmarshalYAML runs", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctOldYAMLField]([]byte("c: hi\n"), model.FormatYAML)
+			if err != nil || got.C.Got != "hi" {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"yaml", "yaml.Node field keeps the node", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctYAMLNodeField]([]byte("cfg: {a: 1}\n"), model.FormatYAML)
+			if err != nil || got.Cfg.Kind != yaml.MappingNode || len(got.Cfg.Content) != 2 {
+				return fmt.Errorf("got kind %v with %d children, err %v", got.Cfg.Kind, len(got.Cfg.Content), err)
+			}
+			return nil
 		}},
 		{"yaml", "plain alias", 0, func() error {
 			const body = "x: &x {a: 1, b: 2}\nv: *x\n"
@@ -1167,6 +1374,29 @@ func contractRows() []contractRow {
 			}
 			if err := model.Validate(&ctDashHiddenEmbed{}); err == nil {
 				return errors.New("embedded rule did not run")
+			}
+			return nil
+		}},
+		{"validation", "a map loop holding no struct does not overflow the stack", 0, func() error {
+			loop := ctLoopMap{}
+			loop["a"] = loop
+			return model.Validate(&ctLoopHolder{ID: 1, Kids: loop})
+		}},
+		{"validation", "a slice loop holding no struct does not overflow the stack", 0, func() error {
+			loop := ctLoopSlice{nil}
+			loop[0] = loop
+			return model.Validate(&ctLoopSliceHolder{ID: 1, Kids: loop})
+		}},
+		{"validation", "NaN fails required on its own", 0, func() error {
+			if err := model.Validate(&ctRequiredFloat{V: math.NaN()}); err == nil {
+				return errors.New("NaN passed required")
+			}
+			return wantYAMLError[ctRequiredFloat]("v: .nan\n")
+		}},
+		{"validation", "CoerceValue runs rules on a struct target", 0, func() error {
+			_, err := model.CoerceValue(map[string]interface{}{"age": 3}, reflect.TypeOf(ctCoerceTarget{}), "u")
+			if err == nil {
+				return errors.New("age 3 passed min=18")
 			}
 			return nil
 		}},
@@ -1500,6 +1730,17 @@ func contractRows() []contractRow {
 				return fmt.Errorf("got %T: %v", err, err)
 			}
 			return nil
+		}},
+		{"errors", "a sensitive JSON key redacts a validation value", 0, func() error {
+			return wantValidationRedacted(model.Validate(&ctKeySensitive{Code: "hunter2"}))
+		}},
+		{"errors", "a sensitive YAML key redacts a validation value", 0, func() error {
+			return wantValidationRedacted(model.Validate(&ctKeySensitiveYAML{Code: "hunter2"}))
+		}},
+		{"errors", "a sensitive parent key redacts a validation value", 0, func() error {
+			var v ctKeySensitiveParent
+			v.Inner.Code = "hunter2"
+			return wantValidationRedacted(model.Validate(&v))
 		}},
 		{"errors", "ordinary field keeps the value in the message", 0, func() error {
 			_, err := model.ParseInto[ctInt]([]byte(`{"v":"not-a-number-4321"}`))

@@ -53,6 +53,8 @@ type StructValidation struct {
 type fieldAccess struct {
 	decodable  bool // Either decoder can set it
 	jsonHidden bool // Kept out of JSON, so its value should stay out of error reports too
+	jsonKey    string
+	yamlKey    string
 }
 
 // ValidatorFunc represents a custom validation function for field-level validation.
@@ -487,8 +489,9 @@ func (v *StructValidation) collect(root, typ reflect.Type, seen map[reflect.Type
 			v.access = make([]fieldAccess, typ.NumField())
 			for i := range v.access {
 				field := typ.Field(i)
-				_, jsonSkips := jsonFieldName(field)
-				v.access[i] = fieldAccess{decodable: decodable(field), jsonHidden: jsonSkips}
+				jsonKey, jsonSkips := jsonFieldName(field)
+				yamlKey, _, _ := yamlFieldName(field)
+				v.access[i] = fieldAccess{decodable: decodable(field), jsonHidden: jsonSkips, jsonKey: jsonKey, yamlKey: yamlKey}
 			}
 		}
 		v.TagErrors = append(v.TagErrors, tagErrs...)

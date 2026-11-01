@@ -190,12 +190,13 @@ const maxPathKey = 64
 // strings during a walk would copy every enclosing map key once per element, which turns one
 // long key above a large slice into quadratic work.
 type fieldPath struct {
-	parent *fieldPath
-	name   string
-	key    string
-	index  int
-	kind   pathKind
-	hidden bool // Field kept out of JSON
+	parent  *fieldPath
+	name    string
+	key     string
+	yamlKey string
+	index   int
+	kind    pathKind
+	hidden  bool // Field kept out of JSON
 }
 
 type pathKind int
@@ -248,10 +249,10 @@ func (p *fieldPath) hiddenIf(hidden bool) *fieldPath {
 }
 
 // sensitive reports whether any segment is kept out of JSON or names a sensitive field, by Go
-// name or input key.
+// name, JSON key or YAML key.
 func (p *fieldPath) sensitive() bool {
 	for ; p != nil; p = p.parent {
-		if p.hidden || IsSensitiveField(p.name) || IsSensitiveField(boundedKey(p.key)) {
+		if p.hidden || IsSensitiveField(p.name) || IsSensitiveField(boundedKey(p.key)) || IsSensitiveField(p.yamlKey) {
 			return true
 		}
 	}
@@ -311,21 +312,28 @@ func (w *validationWalk) value(val reflect.Value, path *fieldPath, depth int) {
 			w.structFields(val, validation, path, depth)
 		}
 	case reflect.Ptr:
-		if !val.IsNil() {
+		if !val.IsNil() && reachesRules(val.Type()) {
 			w.value(val.Elem(), path, depth)
 		}
 	case reflect.Slice, reflect.Array:
-		if !mayHoldRules(val.Type().Elem()) {
+		if !reachesRules(val.Type()) {
 			return
 		}
 		for i := 0; i < val.Len() && !w.errs.full(); i++ {
 			w.value(val.Index(i), &fieldPath{parent: path, kind: pathIndex, index: i}, depth)
 		}
 	case reflect.Map:
-		if mayHoldRules(val.Type().Elem()) {
+		if reachesRules(val.Type()) {
 			w.mapValues(val, path, depth)
 		}
 	}
+}
+
+// reachesRules guards every container. Depth is only counted at structs, so a value that loops
+// through maps or slices alone would otherwise recurse until the stack overflows, which cannot
+// be recovered. Such a loop holds no struct, so it holds no rules.
+func reachesRules(typ reflect.Type) bool {
+	return mayHoldRules(typ.Elem()) && ParseValidationTags(typ).holdsRules
 }
 
 // mapValues visits entries in key order, so which errors survive the cap is stable.
@@ -391,7 +399,7 @@ func (w *validationWalk) field(parent reflect.Value, i int, validation *StructVa
 		return
 	}
 
-	here := &fieldPath{parent: path, kind: pathField, name: field.Name, hidden: access.jsonHidden}
+	here := &fieldPath{parent: path, kind: pathField, name: field.Name, key: access.jsonKey, yamlKey: access.yamlKey, hidden: access.jsonHidden}
 	if w.skip != nil && w.skip[here.String()] {
 		return
 	}

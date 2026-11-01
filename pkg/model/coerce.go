@@ -336,8 +336,7 @@ func coerceToTime(value interface{}, fieldName string) (time.Time, error) {
 	case string:
 		return parseTimeFromString(v, fieldName)
 	case int64:
-		// Unix timestamp (seconds)
-		return time.Unix(v, 0), nil
+		return unixTime(float64(v), value, fieldName)
 	case json.Number:
 		f, err := v.Float64()
 		if err != nil {
@@ -345,17 +344,28 @@ func coerceToTime(value interface{}, fieldName string) (time.Time, error) {
 		}
 		return coerceToTime(f, fieldName)
 	case float64:
-		// Unix timestamp (seconds, may have fractional part)
-		sec := int64(v)
-		nsec := int64((v - float64(sec)) * 1e9)
-		return time.Unix(sec, nsec), nil
+		return unixTime(v, value, fieldName)
 	case int:
-		// Unix timestamp (seconds)
-		return time.Unix(int64(v), 0), nil
+		return unixTime(float64(v), value, fieldName)
 	default:
 		return time.Time{}, NewParseError(fieldName, value, "time.Time",
 			fmt.Sprintf("cannot coerce %T to time.Time", value))
 	}
+}
+
+// Unix seconds at the start of year 1 and the end of year 9999, the years RFC 3339 can write.
+const (
+	minUnixSeconds = -62135596800
+	maxUnixSeconds = 253402300799
+)
+
+// unixTime converts Unix seconds, which may be fractional.
+func unixTime(seconds float64, value interface{}, fieldName string) (time.Time, error) {
+	if math.IsNaN(seconds) || seconds < minUnixSeconds || seconds > maxUnixSeconds {
+		return time.Time{}, NewParseError(fieldName, value, "time.Time", "timestamp is out of range")
+	}
+	whole, fraction := math.Modf(seconds)
+	return time.Unix(int64(whole), int64(fraction*1e9)), nil
 }
 
 // parseTimeFromString attempts to parse time from string using multiple formats.

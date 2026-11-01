@@ -12,6 +12,9 @@ test: ## Run tests with coverage
 	go test -v -race -coverpkg=./pkg/... -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 
+test-contract: ## Run the contract suite the way CI does: repeated, shuffled, under the race detector
+	go test -race -count=2 -shuffle=on ./tests/...
+
 build: ## Build the library (check compilation)
 	go build ./...
 

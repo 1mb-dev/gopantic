@@ -20,6 +20,22 @@ jobs:
     with:
       go-versions: '["1.24", "1.26", "1.27"]'
 
+  # Reusable CI runs each test once, and validation caches are process-wide, so a bug that
+  # needs a second parse only shows here.
+  contract:
+    name: Contract (Go ${{ matrix.go-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.24", "1.26", "1.27"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
+      - run: make test-contract
+
   # Not required: `go test ./...` does not run the example mains.
   examples:
     name: Example Tests

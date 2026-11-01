@@ -189,6 +189,7 @@ type fieldPath struct {
 	key    string
 	index  int
 	kind   pathKind
+	hidden bool // Field kept out of JSON
 }
 
 type pathKind int
@@ -231,10 +232,11 @@ func boundedKey(key string) string {
 	return key
 }
 
-// sensitive reports whether any segment names a sensitive field, by Go name or input key.
+// sensitive reports whether any segment is kept out of JSON or names a sensitive field, by Go
+// name or input key.
 func (p *fieldPath) sensitive() bool {
 	for ; p != nil; p = p.parent {
-		if IsSensitiveField(p.name) || IsSensitiveField(boundedKey(p.key)) {
+		if p.hidden || IsSensitiveField(p.name) || IsSensitiveField(boundedKey(p.key)) {
 			return true
 		}
 	}
@@ -354,8 +356,8 @@ func (w *validationWalk) field(parent reflect.Value, i int, validation *StructVa
 	field := parent.Type().Field(i)
 	fieldVal := parent.Field(i)
 
-	decoded := validation.decodable[i]
-	if !decoded && !w.populated {
+	access := validation.access[i]
+	if !access.decodable && !w.populated {
 		return
 	}
 
@@ -366,7 +368,7 @@ func (w *validationWalk) field(parent reflect.Value, i int, validation *StructVa
 	}
 
 	rules := rulesFor(validation, field.Name)
-	walkable := enters(field, decoded)
+	walkable := enters(field, access.decodable)
 	if len(rules) == 0 && !walkable && w.skip == nil {
 		return
 	}
@@ -374,7 +376,7 @@ func (w *validationWalk) field(parent reflect.Value, i int, validation *StructVa
 		return
 	}
 
-	here := &fieldPath{parent: path, kind: pathField, name: field.Name}
+	here := &fieldPath{parent: path, kind: pathField, name: field.Name, hidden: access.jsonHidden}
 	if w.skip != nil && w.skip[here.String()] {
 		return
 	}
@@ -385,7 +387,7 @@ func (w *validationWalk) field(parent reflect.Value, i int, validation *StructVa
 	if len(rules) > 0 {
 		err := ValidateValueWithStruct(field.Name, fieldVal.Interface(), rules, parent)
 		if err != nil {
-			w.errs.addCapped(withFieldPath(err, here.String()))
+			w.errs.addCapped(withFieldPath(err, here.String(), here.sensitive()))
 		}
 	}
 }
@@ -406,16 +408,17 @@ func rulesFor(validation *StructValidation, fieldName string) []ValidationRule {
 }
 
 // withFieldPath sets the full path on validation errors. Field stays the leaf name.
-func withFieldPath(err error, path string) error {
+func withFieldPath(err error, path string, sensitive bool) error {
 	switch e := err.(type) {
 	case *ValidationError:
 		located := *e
 		located.FieldPath = path
+		located.sensitive = sensitive
 		return &located
 	case ErrorList:
 		located := make(ErrorList, len(e))
 		for i, inner := range e {
-			located[i] = withFieldPath(inner, path)
+			located[i] = withFieldPath(inner, path, sensitive)
 		}
 		return located
 	default:

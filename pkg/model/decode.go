@@ -487,7 +487,7 @@ func (w *walker) assignStruct(n *node, out reflect.Value, path *fieldPath) {
 			w.assignInline(table, key, n.values[i], out, path)
 			continue
 		}
-		here := &fieldPath{parent: path, kind: pathField, name: entry.path, key: key}
+		here := &fieldPath{parent: path, kind: pathField, name: entry.path, key: key, hidden: entry.hidden}
 		dst, err := fieldByIndex(out, entry.index)
 		if err != nil {
 			w.report(here, nil, out.Type().String(), err.Error())
@@ -606,11 +606,12 @@ func fieldByIndex(v reflect.Value, index []int) (reflect.Value, error) {
 
 // fieldEntry is one decodable key of a struct, possibly promoted from an embedded struct.
 type fieldEntry struct {
-	name  string
-	index []int
-	path  string // Go field names, matching the paths validation reports
-	depth int
-	tag   bool
+	name   string
+	index  []int
+	path   string // Go field names, matching the paths validation reports
+	depth  int
+	tag    bool
+	hidden bool // Kept out of JSON, so set only by YAML
 }
 
 type fieldTable struct {
@@ -829,7 +830,8 @@ func collectYAMLFields(typ reflect.Type, index []int, path string, active map[re
 			}
 			continue
 		}
-		*fields = append(*fields, &fieldEntry{name: name, index: fieldIndex, path: fieldPath})
+		_, jsonHidden := jsonFieldName(sf)
+		*fields = append(*fields, &fieldEntry{name: name, index: fieldIndex, path: fieldPath, hidden: jsonHidden})
 	}
 }
 

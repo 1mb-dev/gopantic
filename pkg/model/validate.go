@@ -45,8 +45,14 @@ type StructValidation struct {
 	// it. Parsing and Validate return these instead of validating.
 	TagErrors []error
 
-	holdsRules bool   // A rule exists in this type or one reachable from it
-	decodable  []bool // By field index: either decoder can set the field
+	holdsRules bool          // A rule exists in this type or one reachable from it
+	access     []fieldAccess // By field index
+}
+
+// fieldAccess says how a field relates to the decoders.
+type fieldAccess struct {
+	decodable  bool // Either decoder can set it
+	jsonHidden bool // Kept out of JSON, so its value should stay out of error reports too
 }
 
 // ValidatorFunc represents a custom validation function for field-level validation.
@@ -478,9 +484,11 @@ func (v *StructValidation) collect(root, typ reflect.Type, seen map[reflect.Type
 		fields, tagErrs := structRules(typ)
 		if typ == root {
 			v.Fields = fields
-			v.decodable = make([]bool, typ.NumField())
-			for i := range v.decodable {
-				v.decodable[i] = decodable(typ.Field(i))
+			v.access = make([]fieldAccess, typ.NumField())
+			for i := range v.access {
+				field := typ.Field(i)
+				_, jsonSkips := jsonFieldName(field)
+				v.access[i] = fieldAccess{decodable: decodable(field), jsonHidden: jsonSkips}
 			}
 		}
 		v.TagErrors = append(v.TagErrors, tagErrs...)

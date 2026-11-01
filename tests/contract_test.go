@@ -497,6 +497,20 @@ type ctDashHiddenEmbed struct {
 	N      int `json:"n"`
 }
 
+type ctDashHash struct {
+	Hash string `json:"-" validate:"min=5"`
+}
+
+type ctDashHashParent struct {
+	Inner struct {
+		Code string `yaml:"code" validate:"min=5"`
+	} `json:"-" yaml:"inner"`
+}
+
+type ctDashYAMLInt struct {
+	N int `json:"-" yaml:"n"`
+}
+
 type ctMinOverride struct {
 	A string `json:"a" validate:"ct_override=abc"`
 }
@@ -1355,6 +1369,53 @@ func contractRows() []contractRow {
 			_, err := model.CoerceValue("not-a-pin-4321", reflect.TypeOf(0), "password")
 			if err == nil || strings.Contains(err.Error(), "4321") {
 				return fmt.Errorf("got %v", err)
+			}
+			return nil
+		}},
+		{"errors", "a json:\"-\" value stays out of the structured report", 0, func() error {
+			err := model.Validate(&ctDashHash{Hash: "abc"})
+			var list model.ErrorList
+			if !errors.As(err, &list) || len(list.ValidationErrors()) != 1 {
+				return fmt.Errorf("unexpected error %v", err)
+			}
+			if got := list.ValidationErrors()[0].SanitizedValue(); got != model.RedactedValue {
+				return fmt.Errorf("SanitizedValue returned %v", got)
+			}
+			if got := list.ValidationErrors()[0].Value; got != "abc" {
+				return fmt.Errorf("Value is %v", got)
+			}
+			report, jsonErr := list.ToJSON()
+			if jsonErr != nil || strings.Contains(string(report), "abc") {
+				return fmt.Errorf("report %s, err %v", report, jsonErr)
+			}
+			return nil
+		}},
+		{"errors", "a value under a json:\"-\" parent is redacted", 0, func() error {
+			_, err := model.ParseIntoWithFormat[ctDashHashParent]([]byte("inner: {code: abc}\n"), model.FormatYAML)
+			var list model.ErrorList
+			if !errors.As(err, &list) || len(list.ValidationErrors()) != 1 {
+				return fmt.Errorf("unexpected error %v", err)
+			}
+			if got := list.ValidationErrors()[0].SanitizedValue(); got != model.RedactedValue {
+				return fmt.Errorf("SanitizedValue returned %v", got)
+			}
+			return nil
+		}},
+		{"errors", "a json:\"-\" value stays out of a YAML ParseError", 0, func() error {
+			_, err := model.ParseIntoWithFormat[ctDashYAMLInt]([]byte("n: not-a-number-4321\n"), model.FormatYAML)
+			if err == nil || strings.Contains(err.Error(), "4321") {
+				return fmt.Errorf("got %v", err)
+			}
+			return nil
+		}},
+		{"errors", "an ordinary validation value is not redacted", 0, func() error {
+			err := model.Validate(&ctBounded{V: 500})
+			var list model.ErrorList
+			if !errors.As(err, &list) || len(list.ValidationErrors()) != 1 {
+				return fmt.Errorf("unexpected error %v", err)
+			}
+			if got := list.ValidationErrors()[0].SanitizedValue(); got != float64(500) {
+				return fmt.Errorf("SanitizedValue returned %v", got)
 			}
 			return nil
 		}},

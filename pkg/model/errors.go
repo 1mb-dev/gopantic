@@ -66,6 +66,8 @@ type ValidationError struct {
 	Rule      string
 	Message   string
 	Details   map[string]interface{} // Additional structured information
+
+	sensitive bool // Decided by the validation walk, which knows more than the field name
 }
 
 func (e ValidationError) Error() string {
@@ -124,10 +126,10 @@ func NewValidationErrorWithDetails(field, fieldPath string, value interface{}, r
 }
 
 // SanitizedValue returns the error value with sensitive data redacted.
-// If the field name matches any sensitive pattern, returns RedactedValue ("[REDACTED]").
-// Otherwise returns the original value unchanged.
+// If the field name matches any sensitive pattern, or the field is kept out of JSON, returns
+// RedactedValue ("[REDACTED]"). Otherwise returns the original value unchanged.
 func (e ValidationError) SanitizedValue() interface{} {
-	if IsSensitiveField(e.Field) || IsSensitiveField(e.FieldPath) {
+	if e.sensitive || IsSensitiveField(e.Field) || IsSensitiveField(e.FieldPath) {
 		return RedactedValue
 	}
 	return e.Value

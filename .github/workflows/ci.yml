@@ -17,6 +17,8 @@ permissions:
 jobs:
   ci:
     uses: 1mb-dev/.github/.github/workflows/ci-go.yml@main
+    with:
+      go-versions: '["1.24", "1.26", "1.27"]'
 
   # Not required: `go test ./...` does not run the example mains.
   examples:

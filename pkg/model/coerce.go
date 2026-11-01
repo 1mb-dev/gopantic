@@ -486,8 +486,6 @@ func coerceToStructWithFormat(value interface{}, targetType reflect.Type, fieldN
 	// Create new instance of the target struct
 	resultValue := reflect.New(targetType).Elem()
 
-	// Parse validation rules for this struct type
-	validation := ParseValidationTags(targetType)
 	var errors ErrorList
 
 	// Process each field in the nested struct
@@ -518,14 +516,6 @@ func coerceToStructWithFormat(value interface{}, targetType reflect.Type, fieldN
 		// Recursively coerce and set the value
 		if err := setFieldValue(fieldValue, rawValue, nestedFieldName, format); err != nil {
 			errors.Add(err)
-			continue // Skip validation if coercion failed
-		}
-
-		// Apply validation rules to nested fields
-		if err := validateFieldValue(field.Name, fieldKey, fieldValue.Interface(), validation); err != nil {
-			// Update error to include nested path
-			updatedErr := updateFieldPaths(err, nestedFieldName, field.Name)
-			errors.Add(updatedErr)
 		}
 	}
 
@@ -574,39 +564,6 @@ func getZeroValue(kind reflect.Kind) interface{} {
 		return false
 	default:
 		return nil
-	}
-}
-
-// updateFieldPaths recursively updates field paths in validation errors to include nested paths
-func updateFieldPaths(err error, nestedFieldName, _ string) error {
-	switch e := err.(type) {
-	case *ValidationError:
-		// Create a copy to avoid modifying the original
-		return &ValidationError{
-			Field:   nestedFieldName,
-			Value:   e.Value,
-			Rule:    e.Rule,
-			Message: e.Message,
-		}
-	case ErrorList:
-		// Handle multiple validation errors
-		var updatedErrors ErrorList
-		for _, innerErr := range e {
-			updatedErr := updateFieldPaths(innerErr, nestedFieldName, "")
-			updatedErrors.Add(updatedErr)
-		}
-		return updatedErrors
-	case *ParseError:
-		// Update parse errors as well
-		return &ParseError{
-			Field:   nestedFieldName,
-			Value:   e.Value,
-			Type:    e.Type,
-			Message: e.Message,
-		}
-	default:
-		// For other error types, return as-is
-		return err
 	}
 }
 

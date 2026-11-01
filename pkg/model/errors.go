@@ -175,6 +175,27 @@ func (el *ErrorList) Add(err error) {
 	}
 }
 
+// maxErrors caps the errors one parse reports, so a large input cannot allocate one per element.
+const maxErrors = 100
+
+var errTooManyErrors = fmt.Errorf("too many errors: stopped after %d", maxErrors)
+
+// addCapped is Add with the maxErrors cap applied.
+func (el *ErrorList) addCapped(err error) {
+	if el.full() {
+		return
+	}
+	el.Add(err)
+	if len(*el) >= maxErrors {
+		*el = append((*el)[:maxErrors:maxErrors], errTooManyErrors)
+	}
+}
+
+// full reports whether the list has reached the cap and gained its closing entry.
+func (el ErrorList) full() bool {
+	return len(el) > maxErrors
+}
+
 // HasErrors returns true if the ErrorList contains any errors
 func (el ErrorList) HasErrors() bool {
 	return len(el) > 0

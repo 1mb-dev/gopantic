@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -106,13 +108,8 @@ func ParseIntoWithFormat[T any](raw []byte, format Format) (T, error) {
 	unmarshalErr := unmarshalByFormat(raw, &result, format)
 
 	if unmarshalErr == nil {
-		// Standard unmarshal succeeded; validate and return
-		// Only validate if T is a struct type
-		val := reflect.ValueOf(&result).Elem()
-		if val.Kind() == reflect.Struct {
-			if err := Validate(&result); err != nil {
-				return zero, err
-			}
+		if err := validateParsed(reflect.ValueOf(&result).Elem(), nil, nil); err != nil {
+			return zero, err
 		}
 		return result, nil
 	}
@@ -173,7 +170,14 @@ func parseWithMapCoercion[T any](raw []byte, format Format) (T, error) {
 	// Handle different target types
 	if resultType.Kind() == reflect.Slice || resultType.Kind() == reflect.Array {
 		// Handle array/slice parsing
-		return parseIntoSlice[T](data, resultType, format)
+		result, err := parseIntoSlice[T](data, resultType, format)
+		if err != nil {
+			return zero, err
+		}
+		if err := validateParsed(reflect.ValueOf(&result).Elem(), nil, nil); err != nil {
+			return zero, err
+		}
+		return result, nil
 	}
 
 	// Ensure data is a map for struct parsing
@@ -182,9 +186,6 @@ func parseWithMapCoercion[T any](raw []byte, format Format) (T, error) {
 		errors.Add(fmt.Errorf("cannot parse non-object data into struct"))
 		return zero, errors.AsError()
 	}
-
-	// Parse validation rules for this struct type (cached for performance)
-	validation := ParseValidationTags(resultType)
 
 	// Process each field in the struct (parsing and coercion pass)
 	for i := 0; i < resultType.NumField(); i++ {
@@ -215,30 +216,8 @@ func parseWithMapCoercion[T any](raw []byte, format Format) (T, error) {
 		}
 	}
 
-	// Validation pass - now that all fields are parsed, we can do cross-field validation
-	for i := 0; i < resultType.NumField(); i++ {
-		field := resultType.Field(i)
-		fieldValue := resultValue.Field(i)
-
-		// Skip unexported fields
-		if !fieldValue.CanSet() {
-			continue
-		}
-
-		// Get field key from appropriate tag (json or yaml), fallback to field name
-		fieldKey := getFieldKey(field, format)
-		if fieldKey == "-" {
-			continue // Skip fields with tag:"-"
-		}
-
-		// Apply validation rules (including cross-field validators)
-		if err := validateFieldValueWithStruct(field.Name, fieldKey, fieldValue.Interface(), validation, resultValue); err != nil {
-			errors.Add(err)
-		}
-	}
-
-	if errors.HasErrors() {
-		return zero, errors.AsError()
+	if err := validateParsed(resultValue, errors, failedPaths(errors)); err != nil {
+		return zero, err
 	}
 
 	return resultValue.Interface().(T), nil
@@ -337,33 +316,6 @@ func getFieldKey(field reflect.StructField, format Format) string {
 	return tag
 }
 
-// validateFieldValue applies validation rules to a field value
-func validateFieldValue(fieldName, jsonKey string, value interface{}, validation *StructValidation) error {
-	// Find validation rules for this field
-	for _, fieldValidation := range validation.Fields {
-		if fieldValidation.FieldName == fieldName || fieldValidation.JSONKey == jsonKey {
-			// Apply all validation rules for this field
-			return ValidateValue(fieldName, value, fieldValidation.Rules)
-		}
-	}
-
-	// No validation rules found for this field
-	return nil
-}
-
-func validateFieldValueWithStruct(fieldName, jsonKey string, value interface{}, validation *StructValidation, structValue reflect.Value) error {
-	// Find validation rules for this field
-	for _, fieldValidation := range validation.Fields {
-		if fieldValidation.FieldName == fieldName || fieldValidation.JSONKey == jsonKey {
-			// Apply all validation rules for this field (including cross-field validators)
-			return ValidateValueWithStruct(fieldName, value, fieldValidation.Rules, structValue)
-		}
-	}
-
-	// No validation rules found for this field
-	return nil
-}
-
 // Validate validates a struct using gopantic validation rules defined in struct tags.
 // This function can be used independently of parsing, allowing you to validate
 // structs that were populated from any source (JSON, YAML, database, environment variables, etc.).
@@ -391,73 +343,216 @@ func Validate[T any](v *T) error {
 		return fmt.Errorf("Validate: expected struct, got %v", typ.Kind())
 	}
 
-	return validateStructValue(val, typ)
+	return validateParsed(val, nil, nil)
 }
 
-// validateStructValue validates a struct value recursively
-func validateStructValue(val reflect.Value, typ reflect.Type) error {
-	return validateStructValueDepth(val, typ, 0)
+// validateParsed validates a decoded value of any kind, continuing errs from decoding. Paths
+// in skip failed to decode, so their zero values are not reported a second time.
+func validateParsed(val reflect.Value, errs ErrorList, skip map[string]bool) error {
+	walk := validationWalk{errs: errs, skip: skip}
+	walk.value(val, nil, 0)
+	return walk.errs.AsError()
 }
 
-// validateStructValueDepth validates a struct value recursively with depth tracking
-//
-//nolint:gocyclo // Complexity inherited from original validateStructValue function
-func validateStructValueDepth(val reflect.Value, typ reflect.Type, depth int) error {
-	maxDepth := GetMaxValidationDepth()
-	if maxDepth > 0 && depth > maxDepth {
-		return fmt.Errorf("validation depth exceeded maximum of %d levels", maxDepth)
+// maxPathKey bounds a map key inside a rendered path.
+const maxPathKey = 64
+
+// fieldPath is a position in a decoded value, rendered only when an error needs it. Building
+// strings during a walk would copy every enclosing map key once per element, which turns one
+// long key above a large slice into quadratic work.
+type fieldPath struct {
+	parent *fieldPath
+	name   string
+	key    string
+	index  int
+	kind   pathKind
+}
+
+type pathKind int
+
+const (
+	pathField pathKind = iota
+	pathIndex
+	pathKey
+)
+
+func (p *fieldPath) String() string {
+	var segments []*fieldPath
+	for ; p != nil; p = p.parent {
+		segments = append(segments, p)
 	}
 
+	var b strings.Builder
+	for i := len(segments) - 1; i >= 0; i-- {
+		switch segment := segments[i]; segment.kind {
+		case pathField:
+			if b.Len() > 0 {
+				b.WriteByte('.')
+			}
+			b.WriteString(segment.name)
+		case pathIndex:
+			fmt.Fprintf(&b, "[%d]", segment.index)
+		case pathKey:
+			key := segment.key
+			if len(key) > maxPathKey {
+				key = strings.ToValidUTF8(key[:maxPathKey], "") + "..."
+			}
+			fmt.Fprintf(&b, "[%s]", key)
+		}
+	}
+	return b.String()
+}
+
+// failedPaths returns the paths decoding could not set.
+func failedPaths(errs ErrorList) map[string]bool {
+	if len(errs) == 0 {
+		return nil
+	}
+	paths := make(map[string]bool, len(errs))
+	for _, err := range errs {
+		if parseErr, ok := err.(*ParseError); ok {
+			paths[parseErr.Field] = true
+		}
+	}
+	return paths
+}
+
+// validationWalk is the single validation path: every parse and Validate go through it, so
+// the rules that run cannot depend on how the value was decoded.
+type validationWalk struct {
+	errs ErrorList
+	skip map[string]bool
+}
+
+func (w *validationWalk) value(val reflect.Value, path *fieldPath, depth int) {
+	if w.errs.full() {
+		return
+	}
+
+	switch val.Kind() {
+	case reflect.Struct:
+		if val.Type() != reflect.TypeOf(time.Time{}) {
+			w.structFields(val, path, depth)
+		}
+	case reflect.Ptr:
+		if !val.IsNil() {
+			w.value(val.Elem(), path, depth)
+		}
+	case reflect.Slice, reflect.Array:
+		if !mayHoldRules(val.Type().Elem()) {
+			return
+		}
+		for i := 0; i < val.Len() && !w.errs.full(); i++ {
+			w.value(val.Index(i), &fieldPath{parent: path, kind: pathIndex, index: i}, depth)
+		}
+	case reflect.Map:
+		if mayHoldRules(val.Type().Elem()) {
+			w.mapValues(val, path, depth)
+		}
+	}
+}
+
+// mapValues visits entries in key order, so which errors survive the cap is stable.
+func (w *validationWalk) mapValues(val reflect.Value, path *fieldPath, depth int) {
+	type entry struct {
+		label string
+		key   reflect.Value
+	}
+	entries := make([]entry, 0, val.Len())
+	for _, key := range val.MapKeys() {
+		entries = append(entries, entry{label: fmt.Sprint(key.Interface()), key: key})
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].label < entries[j].label })
+
+	for i := 0; i < len(entries) && !w.errs.full(); i++ {
+		segment := &fieldPath{parent: path, kind: pathKey, key: entries[i].label}
+		w.value(val.MapIndex(entries[i].key), segment, depth)
+	}
+}
+
+// mayHoldRules reports whether a container's elements can carry validation tags.
+func mayHoldRules(elem reflect.Type) bool {
+	switch elem.Kind() {
+	case reflect.Struct, reflect.Ptr, reflect.Slice, reflect.Array, reflect.Map:
+		return true
+	default:
+		return false
+	}
+}
+
+func (w *validationWalk) structFields(val reflect.Value, path *fieldPath, depth int) {
+	if maxDepth := GetMaxValidationDepth(); maxDepth > 0 && depth > maxDepth {
+		w.errs.addCapped(fmt.Errorf("validation depth exceeded maximum of %d levels", maxDepth))
+		return
+	}
+
+	typ := val.Type()
 	validation := ParseValidationTags(typ)
-	var errors ErrorList
+	for i := 0; i < val.NumField() && !w.errs.full(); i++ {
+		w.field(val, i, validation, path, depth)
+	}
+}
 
-	for i := 0; i < val.NumField(); i++ {
-		field := typ.Field(i)
-		fieldVal := val.Field(i)
+func (w *validationWalk) field(parent reflect.Value, i int, validation *StructValidation, path *fieldPath, depth int) {
+	field := parent.Type().Field(i)
+	fieldVal := parent.Field(i)
 
-		if !fieldVal.CanInterface() {
-			continue
-		}
-
-		// Get field key for validation (use json tag by default)
-		fieldKey := getFieldKey(field, FormatJSON)
-		if fieldKey == "-" {
-			continue
-		}
-
-		// Recursively validate nested structs
-		if fieldVal.Kind() == reflect.Struct && field.Type != reflect.TypeOf(time.Time{}) {
-			if err := validateStructValueDepth(fieldVal, fieldVal.Type(), depth+1); err != nil {
-				errors.Add(err)
-			}
-		}
-
-		// Recursively validate pointer to struct
-		if fieldVal.Kind() == reflect.Ptr && !fieldVal.IsNil() {
-			elem := fieldVal.Elem()
-			if elem.Kind() == reflect.Struct && elem.Type() != reflect.TypeOf(time.Time{}) {
-				if err := validateStructValueDepth(elem, elem.Type(), depth+1); err != nil {
-					errors.Add(err)
-				}
-			}
-		}
-
-		// Boxing a field allocates, so skip it when the type has no rules to apply.
-		if len(validation.Fields) == 0 {
-			continue
-		}
-
-		// Apply validation rules (including cross-field validators)
-		if err := validateFieldValueWithStruct(field.Name, fieldKey, fieldVal.Interface(), validation, val); err != nil {
-			errors.Add(err)
-		}
+	// The exported fields of an unexported embedded struct stay reachable.
+	if field.Anonymous && !field.IsExported() && fieldVal.Kind() == reflect.Struct {
+		w.value(fieldVal, path, depth+1)
+		return
 	}
 
-	if errors.HasErrors() {
-		return errors.AsError()
+	rules := rulesFor(validation, field.Name)
+	walkable := mayHoldRules(field.Type)
+	if len(rules) == 0 && !walkable && w.skip == nil {
+		return
+	}
+	if !fieldVal.CanInterface() || getFieldKey(field, FormatJSON) == "-" {
+		return
 	}
 
+	here := &fieldPath{parent: path, kind: pathField, name: field.Name}
+	if w.skip != nil && w.skip[here.String()] {
+		return
+	}
+	if walkable {
+		w.value(fieldVal, here, depth+1)
+	}
+
+	if len(rules) > 0 {
+		err := ValidateValueWithStruct(field.Name, fieldVal.Interface(), rules, parent)
+		if err != nil {
+			w.errs.addCapped(withFieldPath(err, here.String()))
+		}
+	}
+}
+
+func rulesFor(validation *StructValidation, fieldName string) []ValidationRule {
+	for i := range validation.Fields {
+		if validation.Fields[i].FieldName == fieldName {
+			return validation.Fields[i].Rules
+		}
+	}
 	return nil
+}
+
+// withFieldPath sets the full path on validation errors. Field stays the leaf name.
+func withFieldPath(err error, path string) error {
+	switch e := err.(type) {
+	case *ValidationError:
+		located := *e
+		located.FieldPath = path
+		return &located
+	case ErrorList:
+		located := make(ErrorList, len(e))
+		for i, inner := range e {
+			located[i] = withFieldPath(inner, path)
+		}
+		return located
+	default:
+		return err
+	}
 }
 
 // parseIntoSlice handles parsing of array/slice data into slice/array types

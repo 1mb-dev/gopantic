@@ -105,7 +105,7 @@ func (v *MinValidator) Validate(fieldName string, value interface{}) error {
 				fmt.Sprintf("value must be at least %.0f", v.Min))
 		}
 	case reflect.Float32, reflect.Float64:
-		if val.Float() < v.Min {
+		if !(val.Float() >= v.Min) { // written so NaN fails
 			return NewValidationError(fieldName, value, "min",
 				fmt.Sprintf("value must be at least %g", v.Min))
 		}
@@ -165,7 +165,7 @@ func (v *MaxValidator) Validate(fieldName string, value interface{}) error {
 				fmt.Sprintf("value must be at most %.0f", v.Max))
 		}
 	case reflect.Float32, reflect.Float64:
-		if val.Float() > v.Max {
+		if !(val.Float() <= v.Max) { // written so NaN fails
 			return NewValidationError(fieldName, value, "max",
 				fmt.Sprintf("value must be at most %g", v.Max))
 		}

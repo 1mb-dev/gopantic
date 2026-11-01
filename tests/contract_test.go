@@ -224,6 +224,24 @@ type ctYAMLList struct {
 	Items   []ctYAMLItem `yaml:"items"`
 }
 
+type ctCoercedItem struct {
+	ID   int    `json:"id"`
+	Name string `json:"name" validate:"required"`
+}
+
+type ctEmbeddedRule struct {
+	ctItem
+}
+
+type ctPathSlice struct {
+	Items []ctItem `json:"items"`
+}
+
+type ctTwoFields struct {
+	Bad  int    `json:"bad"`
+	Name string `json:"name" validate:"required"`
+}
+
 type ctTypo struct {
 	A string `json:"a" validate:"requird,emial"`
 }
@@ -512,7 +530,7 @@ func contractRows() []contractRow {
 		{"divergence", "trigger inside a slice element", 5, func() error {
 			return wantSameAsJSON[ctSliceTrigger](`{"items":[{"trigger":1}],"map":{"a":1}}`, `{"items":[{"trigger":"1"}],"map":{"a":1}}`)
 		}},
-		{"divergence", "nested cross-field validator accepts valid input", 5, func() error {
+		{"divergence", "nested cross-field validator accepts valid input", 0, func() error {
 			return wantSameAsJSON[ctCrossOuter](
 				`{"trigger":1,"cross":{"a":"x","b":"x"}}`, `{"trigger":"1","cross":{"a":"x","b":"x"}}`)
 		}},
@@ -563,27 +581,27 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
-		{"validation", "[]struct elements", 6, func() error {
+		{"validation", "[]struct elements", 0, func() error {
 			return wantError[ctSliceOuter](`{"trigger":1,"items":[{"name":""}]}`)
 		}},
-		{"validation", "[N]struct elements", 6, func() error {
+		{"validation", "[N]struct elements", 0, func() error {
 			return wantError[ctArrayOuter](`{"trigger":1,"items":[{"name":""}]}`)
 		}},
-		{"validation", "map[string]struct elements", 6, func() error {
+		{"validation", "map[string]struct elements", 0, func() error {
 			return wantError[ctMapOuter](`{"trigger":1,"items":{"a":{"name":""}}}`)
 		}},
-		{"validation", "top-level []struct", 6, func() error { return wantError[[]ctItem](`[{"name":""}]`) }},
-		{"validation", "top-level *struct", 6, func() error { return wantError[*ctItem](`{"name":""}`) }},
-		{"validation", "verdict matches across paths for []struct", 6, func() error {
+		{"validation", "top-level []struct", 0, func() error { return wantError[[]ctItem](`[{"name":""}]`) }},
+		{"validation", "top-level *struct", 0, func() error { return wantError[*ctItem](`{"name":""}`) }},
+		{"validation", "verdict matches across paths for []struct", 0, func() error {
 			return wantSameVerdict[ctSliceOuter](`{"trigger":1,"items":[{"name":""}]}`, `{"trigger":"1","items":[{"name":""}]}`)
 		}},
-		{"validation", "failed coercion reports one fault", 6, func() error {
+		{"validation", "failed coercion reports one fault", 0, func() error {
 			if got := verdict[ctThreeFaults](`{"v":"x"}`); len(got) != 0 {
 				return fmt.Errorf("validation errors on a field that failed coercion: %v", got)
 			}
 			return nil
 		}},
-		{"validation", "FieldPath is the full path", 6, func() error {
+		{"validation", "FieldPath is the full path", 0, func() error {
 			_, err := model.ParseInto[ctPathOuter]([]byte(`{"item":{"name":""}}`))
 			var list model.ErrorList
 			if !errors.As(err, &list) || len(list.ValidationErrors()) != 1 {
@@ -594,9 +612,62 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
-		{"validation", "NaN fails required, min and max", 6, func() error {
+		{"validation", "NaN fails required, min and max", 0, func() error {
 			if err := model.Validate(&ctBounded{V: math.NaN()}); err == nil {
 				return errors.New("NaN passed required,min=0,max=100")
+			}
+			return nil
+		}},
+		{"validation", "rule on an embedded struct's field runs", 0, func() error {
+			return wantError[ctEmbeddedRule](`{"name":""}`)
+		}},
+		{"validation", "error path through a slice", 0, func() error {
+			_, err := model.ParseInto[ctPathSlice]([]byte(`{"items":[{"name":"a"},{"name":""}]}`))
+			var list model.ErrorList
+			if !errors.As(err, &list) || len(list.ValidationErrors()) != 1 {
+				return fmt.Errorf("unexpected error %v", err)
+			}
+			if got := list.ValidationErrors()[0].FieldPath; got != "Items[1].Name" {
+				return fmt.Errorf("FieldPath %q", got)
+			}
+			return nil
+		}},
+		{"validation", "coercion error on one field keeps validation on another", 0, func() error {
+			got := verdict[ctTwoFields](`{"bad":"x","name":""}`)
+			if !got["Name/required"] {
+				return fmt.Errorf("rule on the other field did not run: %v", got)
+			}
+			return nil
+		}},
+		{"validation", "top-level []struct on the coercion path", 0, func() error {
+			return wantError[[]ctCoercedItem](`[{"id":"1","name":""}]`)
+		}},
+		{"validation", "top-level [N]struct on the coercion path", 0, func() error {
+			return wantError[[1]ctCoercedItem](`[{"id":"1","name":""}]`)
+		}},
+		{"validation", "long map key stays out of the path", 0, func() error {
+			input := `{"` + strings.Repeat("k", 1<<20) + `":[{"name":""}]}`
+			_, err := model.ParseInto[map[string][]ctItem]([]byte(input))
+			var list model.ErrorList
+			if !errors.As(err, &list) || len(list.ValidationErrors()) != 1 {
+				return fmt.Errorf("unexpected error %.100v", err)
+			}
+			if got := len(list.ValidationErrors()[0].FieldPath); got > 128 {
+				return fmt.Errorf("FieldPath is %d bytes", got)
+			}
+			return nil
+		}},
+		{"validation", "error count is capped on a map", 0, func() error {
+			var input strings.Builder
+			input.WriteString(`{"a":{"name":""}`)
+			for i := 0; i < 5000; i++ {
+				fmt.Fprintf(&input, `,"k%d":{"name":""}`, i)
+			}
+			input.WriteString(`}`)
+			_, err := model.ParseInto[map[string]ctItem]([]byte(input.String()))
+			var list model.ErrorList
+			if !errors.As(err, &list) || len(list) != 101 {
+				return fmt.Errorf("got %d errors", len(list))
 			}
 			return nil
 		}},

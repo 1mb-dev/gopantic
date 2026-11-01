@@ -1,32 +1,12 @@
 # gopantic
 
-**Practical JSON/YAML parsing with validation for Go.**
-
-Inspired by Python's Pydantic, gopantic provides type-safe parsing, coercion, and validation with idiomatic Go APIs.
-
 [![Go Reference](https://pkg.go.dev/badge/github.com/1mb-dev/gopantic.svg)](https://pkg.go.dev/github.com/1mb-dev/gopantic)
-[![Go Version](https://img.shields.io/badge/go-1.23+-blue.svg)](https://golang.org/dl/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/1mb-dev/gopantic/actions/workflows/ci.yml/badge.svg)](https://github.com/1mb-dev/gopantic/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/1mb-dev/gopantic/branch/main/graph/badge.svg)](https://codecov.io/gh/1mb-dev/gopantic)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-> **Full Documentation**: [1mb-dev.github.io/gopantic](https://1mb-dev.github.io/gopantic/)
-
-## Quick Start
-
-```bash
-go get github.com/1mb-dev/gopantic
-```
+Parse JSON or YAML into a Go struct, convert what can be converted exactly, and run the rules in its `validate` tags, in one call. You get back the value the input meant, or an error.
 
 ```go
-package main
-
-import (
-    "fmt"
-    "log"
-    "github.com/1mb-dev/gopantic/pkg/model"
-)
-
 type User struct {
     ID    int    `json:"id" validate:"required,min=1"`
     Name  string `json:"name" validate:"required,min=2"`
@@ -34,221 +14,43 @@ type User struct {
     Age   int    `json:"age" validate:"min=18,max=120"`
 }
 
-func main() {
-    raw := []byte(`{"id": "42", "name": "Alice", "email": "alice@example.com", "age": "28"}`)
-    
-    user, err := model.ParseInto[User](raw)
-    if err != nil {
-        log.Fatal(err)
-    }
-    
-    fmt.Printf("%+v\n", user) // {ID:42 Name:Alice Email:alice@example.com Age:28}
-}
+raw := []byte(`{"id": "42", "name": "Alice", "email": "alice@example.com", "age": "28"}`)
+
+user, err := model.ParseInto[User](raw)
+// user.ID == 42, user.Age == 28
 ```
 
-## Features
-
-- **JSON/YAML parsing** with automatic format detection
-- **Type coercion** (`"123"` → `123`, `"true"` → `true`)
-- **Validation** using struct tags (`validate:"required,email,min=5"`)
-- **Standalone validation** - use `Validate()` independently of parsing
-- **Cross-field validation** (password confirmation, field comparisons)
-- **Built-in validators**: `required`, `min`, `max`, `email`, `alpha`, `alphanum`, `length`
-- **Nested structs** and arrays with full validation
-- **Time parsing** (RFC3339, Unix timestamps, custom formats)
-- **Pointer support** for optional fields (`*string`, `*int`)
-- **json.RawMessage support** for flexible/deferred JSON parsing
-- **Caching support** for repeated identical inputs (optional)
-- **Thread-safe** concurrent parsing
-- **Zero dependencies** (except optional YAML support)
-- **Generic API** for type-safe parsing with compile-time guarantees
-
-## YAML Support
-
-Works seamlessly with YAML - same API, automatic detection:
+The same struct takes YAML with no other change. Input that doesn't fit is an error:
 
 ```go
-yamlData := []byte(`
-id: 42
-name: Alice
-email: alice@example.com
-age: 28
-`)
-
-user, err := model.ParseInto[User](yamlData) // Automatic YAML detection
+_, err := model.ParseInto[User]([]byte(`{"id": 1.5, "name": "A", "email": "nope", "age": 28}`))
+// multiple errors: parse error on field "ID": value has a fractional part;
+// validation error on field "Name": string length must be at least 2 characters;
+// validation error on field "Email": invalid email address format
 ```
 
-## json.RawMessage Support
+## Who it is for
 
-gopantic seamlessly handles `json.RawMessage` fields for flexible metadata and JSONB database columns:
+gopantic suits code that reads input it doesn't control: API payloads where numbers arrive as strings, config files that may be JSON or YAML, data imports. You write one struct and get decoding, conversion and validation together, with every problem reported at once.
 
-```go
-type Account struct {
-    ID          string          `json:"id" validate:"required"`
-    Name        string          `json:"name" validate:"required,min=2"`
-    MetadataRaw json.RawMessage `json:"metadata,omitempty"`
-}
+If your input is already well typed and JSON only, use `encoding/json` with [go-playground/validator](https://github.com/go-playground/validator). It has far more rules, and you wouldn't be using what gopantic adds. The two are within 30% of each other on correctly typed JSON, so speed won't decide it. Input that needs converting takes about 3 times as long. Figures are on the [benchmarks page](https://1mb-dev.github.io/gopantic/benchmarks/).
 
-input := []byte(`{
-    "id": "acc_123",
-    "name": "John Doe",
-    "metadata": {"preferences": {"theme": "dark"}, "tags": ["vip"]}
-}`)
+## Install
 
-account, err := model.ParseInto[Account](input)
-// MetadataRaw preserves the raw JSON for later parsing
-```
-
-## Standalone Validation
-
-Use `Validate()` to validate structs from any source (database, environment, etc.):
-
-```go
-type Config struct {
-    Host string `json:"host" validate:"required"`
-    Port int    `json:"port" validate:"min=1,max=65535"`
-}
-
-// Populate from environment or database
-config := Config{
-    Host: os.Getenv("HOST"),
-    Port: 8080,
-}
-
-// Validate independently
-if err := model.Validate(&config); err != nil {
-    log.Fatal(err)
-}
-```
-
-This enables flexible patterns:
-
-```go
-// Pattern 1: Standard library unmarshal + gopantic validation
-var req Request
-json.Unmarshal(body, &req)  // Handles json.RawMessage correctly
-model.Validate(&req)         // Apply gopantic validation rules
-
-// Pattern 2: All-in-one (parsing + validation)
-req, err := model.ParseInto[Request](body)
-```
-
-## Validation
-
-```go
-type Product struct {
-    SKU   string  `json:"sku" validate:"required,length=8"`
-    Price float64 `json:"price" validate:"required,min=0.01"`
-}
-
-// Multiple validation errors are aggregated
-product, err := model.ParseInto[Product](invalidData)
-// Error: "multiple errors: validation error on field 'SKU': ...; validation error on field 'Price': ..."
-```
-
-### Cross-Field Validation
-
-Built-in support for cross-field validation - compare fields against each other:
-
-```go
-type UserRegistration struct {
-    Password        string `json:"password" validate:"required,min=8"`
-    ConfirmPassword string `json:"confirm_password" validate:"required,password_match"`
-    Email           string `json:"email" validate:"required,email"`
-    NotificationEmail string `json:"notification_email" validate:"email,email_different"`
-}
-
-// Register custom cross-field validators
-model.RegisterGlobalCrossFieldFunc("password_match", func(fieldName string, fieldValue interface{}, structValue reflect.Value, params map[string]interface{}) error {
-    confirmPassword := fieldValue.(string)
-    password := structValue.FieldByName("Password").String()
-    if confirmPassword != password {
-        return model.NewValidationError(fieldName, fieldValue, "password_match", "passwords do not match")
-    }
-    return nil
-})
-```
-
-## Performance
-
-**Optimized for production use** - recent improvements deliver 40-65% faster parsing with 64% less memory:
-
-| Metric | Standard Parsing | Cached Parsing |
-|--------|-----------------|----------------|
-| Speed vs stdlib JSON | 1.7x slower | **5.4x faster** |
-| Memory | 435 B/op | 112 B/op |
-| Allocations | 14/op | 6/op |
-
-Use **cached parser** for repeated identical inputs (configs, retries):
-
-```go
-parser := model.NewCachedParser[User](nil)
-user, _ := parser.Parse(data) // 5.4x faster for cache hits
-```
-
-**Note**: YAML is 4x slower than JSON due to parser complexity. Use JSON for performance-critical paths.
-
-## Why Choose gopantic?
-
-### vs. Standard Library (`encoding/json`)
-- **Built-in validation** - No separate validation step needed
-- **Type coercion** - Handles `"123"` → `123` automatically
-- **Better errors** - Structured error reporting with field paths
-- **YAML support** - Automatic format detection
-- **Cross-field validation** - Compare fields against each other
-
-### vs. Validation Libraries (`go-playground/validator`)
-- **Integrated parsing** - Parse and validate in one step
-- **Type coercion** - No manual string conversion needed
-- **Format agnostic** - Works with JSON and YAML seamlessly
-- **Generics support** - Type-safe with `ParseInto[T]()`
-- **Performance** - Built-in caching for repeated operations
-
-### vs. Code Generation (`easyjson`, `ffjson`)
-- **Zero code generation** - No build step or generated files
-- **Dynamic validation** - Runtime validation rule changes
-- **Simpler workflow** - Standard Go development process
-- **Faster iteration** - No regeneration on struct changes
-- **Cross-field validation** - Complex validation logic support
-
-### vs. Schema Libraries (`jsonschema`, `gojsonschema`)
-- **Native Go structs** - Use existing struct definitions
-- **Compile-time safety** - Type checking at compile time
-- **Better performance** - Direct struct mapping vs. schema validation
-- **IDE support** - Full autocompletion and refactoring
-- **Integrated coercion** - Automatic type conversion
-
-## Development
-
-### Pre-commit Hook
-
-A practical pre-commit hook is included that automatically:
-- Checks for potential secrets in staged files
-- Formats Go code with `go fmt`
-- Runs `go vet` for static analysis
-- Performs fast linting with `golangci-lint`
-- Runs tests if test files are modified
-
-Install the hook:
 ```bash
-make hooks
+go get github.com/1mb-dev/gopantic
 ```
+
+Requires Go 1.24 or later. The one dependency is `gopkg.in/yaml.v3`.
 
 ## Documentation
 
-**Full documentation**: [1mb-dev.github.io/gopantic](https://1mb-dev.github.io/gopantic/)
+The [full documentation](https://1mb-dev.github.io/gopantic/) has the validation rules, what converts and what errors, caching, and the API. Upgrading from v1.4 can reject input that used to pass, so read the [v1.5.0 changelog](https://1mb-dev.github.io/gopantic/changelog/) first. [Known limitations](https://1mb-dev.github.io/gopantic/known-limitations/) lists what gopantic doesn't do. Runnable programs are in [examples/](examples/).
 
-Quick links:
-- [Getting Started](https://1mb-dev.github.io/gopantic/getting-started/) - Installation and basic usage
-- [API Reference](https://1mb-dev.github.io/gopantic/reference/api/) - Complete API documentation
-- [Validation Guide](https://1mb-dev.github.io/gopantic/guide/validation/) - All validation options
-- [Migration Guide](https://1mb-dev.github.io/gopantic/migration/) - Coming from other libraries
-- [Examples](examples/) - Runnable code examples
+## Contributing
 
-**Resources**:
-- [Changelog](https://1mb-dev.github.io/gopantic/changelog/) - Version history
-- [Security Policy](.github/SECURITY.md) - Vulnerability reporting
+See [CONTRIBUTING](.github/CONTRIBUTING.md). Report security issues as described in the [security policy](.github/SECURITY.md).
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT

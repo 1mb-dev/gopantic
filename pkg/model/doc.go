@@ -1,6 +1,5 @@
-// Package model provides JSON/YAML parsing with type coercion and validation.
-//
-// Features: automatic format detection, type coercion, validation, and caching.
+// Package model parses JSON or YAML into a struct, converts values that fit exactly, and runs
+// the rules in its validate tags. It returns the value the input meant, or an error.
 //
 // # Usage
 //
@@ -14,16 +13,21 @@
 //
 // # Type Coercion
 //
-// Converts between compatible types: "42"→42, "true"→true, Unix/RFC3339→time.Time
+// Converts values when nothing is lost: "42" to 42, "true" to true, Unix seconds or RFC 3339 to
+// time.Time. Out-of-range and fractional values are errors.
 //
 // # Validation
 //
-// Supported validators: required, min, max, length, email, alpha, alphanum
+// Built-in rules: required, min, max, length (or len), email, alpha, alphanum. A tag that cannot
+// run is an error on every parse. Register more with RegisterGlobalFunc.
 //
-// # Performance Caching
+// # Caching
+//
+// CachedParser skips the work for input it has seen before, and returns independent copies.
 //
 //	parser := model.NewCachedParser[User](nil)
-//	user, _ := parser.Parse(data) // 5-27x faster for repeated inputs
+//	defer parser.Close()
+//	user, err := parser.Parse(data)
 //
-// See examples/ directory and docs/ for complete documentation.
+// Documentation: https://1mb-dev.github.io/gopantic/
 package model

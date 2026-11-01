@@ -5,6 +5,87 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-11-01
+
+A value gopantic returns without error is now the value the input meant, and every rule on a field either decoder can set has run. So input that v1.4 accepted can fail. If you need time to adapt, stay on v1.4.1 and work through **Behavior changes** below. Each item says what you will see and what to do, and names the row in `tests/contract_test.go` that holds it.
+
+### Behavior changes
+
+Input that used to pass can now be rejected, depending on the data:
+
+- **Rules run on elements and values.** v1.4 skipped rules on slice elements, array elements, map values and top-level slices on some paths. You will see validation errors on data that passed before. Fix the data or loosen the rule. Tests: `validation/[]struct elements`, `validation/map[string]struct elements`, `validation/top-level []struct`.
+- **Rules run on every parse.** v1.4 could stop checking nested structs for the rest of the process after the first parse of a type. You will see errors that came and went before. Tests: `validation/nested rule, second parse`, `validation/pointer rule, second parse`.
+- **Numbers must fit.** `300` into an `int8`, `4.7` into an `int` and `-1` into a `uint` used to wrap, truncate or pass. They're now parse errors, in fields, slices, arrays and pointers, and in YAML as well as JSON. Use a wider type, or a float if fractions are real. Tests: the `numeric` group, and `numeric/YAML float does not truncate into an int`.
+- **Unix timestamps must fall in years 1 to 9999.** `1e300` and YAML `.nan` into a `time.Time` used to give a garbage date. Tests: `numeric/time rejects a huge number`, `numeric/time rejects YAML NaN`.
+- **`json.Number` must hold a number.** `{"n":"abc"}` used to store `abc`. YAML keeps the digits as written, and spellings only YAML has, like `0x10`, store their value. Tests: `numeric/an invalid json.Number is rejected`, `numeric/a YAML json.Number keeps its digits`.
+- **Floats at or past 2^53 no longer convert to integers.** `1e16` into an `int` errors. Send the digits. Test: `numeric/exponent integer past 2^53 rejected`.
+- **`"NaN"` and `"Inf"` no longer convert to floats.** Send a number, or take a string field. Tests: `numeric/string NaN rejected`, `numeric/string Inf rejected`.
+- **Objects no longer convert to strings.** v1.4 returned Go syntax such as `map[a:1]`. Use a struct, a map or `json.RawMessage`. Test: `numeric/object is not a string`.
+- **Rules past 32 levels of nesting are errors.** v1.4 skipped the limit on inputs that needed coercion. A rule that deep now fails rather than going unchecked; raise it with `SetMaxValidationDepth`. Types with no rules aren't affected. Test: `validation/rule below the depth limit fails closed`.
+
+Types that used to work can now fail on every parse:
+
+- **A tag that can't run is an error**, for every parse and `Validate` of that type, even under an empty slice. This covers misspelled rules, a missing or malformed parameter such as `min` or `min=abc`, and stray commas. Rules that were never built in are the likely surprise: older docs showed `gtfield` as a feature, and it never existed. `eqfield` and `oneof` appeared as custom rules to register, so they fail only if you copied the tag without the registration. Register the rule or remove the tag. Use `ParseValidationTags(...).TagErrors` to find these in a test. Tests: the `tags` group.
+
+`Validate` can now fail where it passed:
+
+- **`Validate` runs rules on `json:"-"` fields.** v1.4 skipped them everywhere. Parsing still skips them when no decoder can set the field, but a field with `json:"-" yaml:"x"` keeps its rules on every parse, and `required` there now fails on JSON input. See [Fields input cannot set](guide/validation.md#fields-input-cannot-set). Tests: `validation/Validate runs the rule on a json:"-" field`, `validation/input does not choose the format that skips a rule`.
+
+Values can change:
+
+- **One field needing coercion no longer changes the others.** v1.4 switched to a weaker decoder for the whole input, which lost `json.RawMessage`, `UnmarshalJSON`, embedded fields, exact large integers and case-insensitive keys. All of these now match `encoding/json`. Code that depended on the old results will see the correct ones. Tests: the `divergence` group.
+- **Fixed arrays follow `encoding/json`** when coercing: extra elements are dropped and missing ones are zero, where v1.4 returned an error. Use a slice with `len=N` to require a length. Test: seed `3bcd1ebd990ef103` under `FuzzWalkerDifferential`.
+- **Absent slices stay nil**, not empty, when coercing. Test: `divergence/containers absent`.
+- **YAML keys are exact.** `username:` no longer fills a field tagged `json:"user_name"`. The key comes from the `yaml` tag, then the `json` tag, then the lowercased field name. Tests: `yaml/json tag honoured without coercion`, `yaml/yaml tag honoured inside []struct`.
+
+Errors look different:
+
+- **`Field` is the leaf name and `FieldPath` the full path**, such as `Name` and `Items[1].Name`. Test: `validation/FieldPath is the full path`.
+- **A parse reports at most 100 errors**, then one saying it stopped. Test: `validation/error count is capped on []struct`.
+- **`ParseError` messages leave out values of sensitive fields.** Read `SanitizedValue()` or `Value` instead of parsing the message. Tests: the `errors` group.
+- **A rejected object or array no longer sits in `ParseError.Value`.** It holds `"object"` or `"array"`, since a secret could be nested inside. Test: `errors/a rejected object does not carry its contents`.
+
+`CachedParser` differs:
+
+- **Results are copies.** Code that relied on two callers sharing a slice, which was never safe, will no longer see it. Types holding references gopantic can't copy are parsed on every call. Tests: `cache/mutating a hit does not reach the next caller`, `TestCachedParserBypassesUncopyableTypes`.
+
+### Security
+
+- Validation could be skipped: nested rules stopped running after the first parse of a type, and rules on slice elements, map values and top-level slices didn't always run. Input that should have been rejected was returned as valid.
+- `CachedParser` returned shared slices and maps, so one caller could alter what the next received. Keys for input under 1 KB used a 64-bit FNV hash, which can be made to collide; they are now SHA-256.
+- Integers wrapped silently on overflow, so a limit checked after parsing could be passed with a value that wrapped into range.
+- `ParseError` messages quoted values of sensitive fields, and values of `json:"-"` fields reached `ToJSON`.
+- The YAML depth limit missed maps with non-string keys.
+- The validator registry had a data race under concurrent registration.
+
+### Added
+
+- `len` as another name for `length`.
+- `ParseError.SanitizedValue()`, and `StructValidation.TagErrors`.
+- `ErrorList` works with `errors.As` and `errors.Is`. The documented `errors.As` pattern didn't work before.
+- A contract test suite, and differential fuzzing against `encoding/json` and `yaml.v3`.
+
+### Changed
+
+- Rules on a registered name take effect at once: registering on the default registry clears cached rules, so `ClearValidationCache` is no longer needed for that.
+- `yaml.v3` is the only dependency. `go-playground/validator` left the module graph; the comparison benchmarks are a nested module. The minimum Go version stays 1.24.
+- Correctly typed JSON now parses and validates in about half the time of v1.4.1, because it no longer decodes twice. YAML takes about 23% less, and input needing coercion about 14% less. See [Benchmarks](benchmarks.md).
+
+### Fixed
+
+- `NewCachedParser[any]` and a second `Close` no longer panic, and neither do `map` or pointer targets needing coercion.
+- `NaN` now fails `required`, `min` and `max`.
+- `CachedParser` checks input size before hashing.
+- Docs rewritten against the code, and a test now holds their examples, tags and links to it.
+
+## [1.4.1] - 2026-02-15
+
+### Changed
+
+- Module path moved to `github.com/1mb-dev/gopantic`.
+- Minimum Go version is 1.24.0.
+- `go-playground/validator` became a direct requirement, for the comparison tests. Removed in 1.5.0.
+
 ## [1.4.0] - 2026-01-19
 
 ### Security
@@ -193,7 +274,7 @@ model.Validate(&req)         // Apply gopantic validation
 - Enhanced API docs with security considerations
 - Clarified cache effectiveness and appropriate use cases
 
-## [1.0.1] - 2025-01-16
+## [1.0.1] - 2025-09-16
 
 ### Fixed
 - **GitHub Actions workflows** - Resolved tar cache extraction failures in nightly performance monitoring
@@ -206,7 +287,7 @@ model.Validate(&req)         // Apply gopantic validation
 - **Build artifacts** - Enhanced .gitignore for better profiling and benchmark file management
 - **Code quality** - Removed TODO comments from production code for release readiness
 
-## [1.0.0] - 2025-01-13
+## [1.0.0] - 2025-09-13
 
 ### Added
 - **JSON/YAML parsing** with automatic format detection

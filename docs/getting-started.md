@@ -1,14 +1,14 @@
-# Getting Started
-
-## Installation
+# Getting started
 
 ```bash
 go get github.com/1mb-dev/gopantic
 ```
 
-## Basic Usage
+Everything lives in one package, `github.com/1mb-dev/gopantic/pkg/model`.
 
-Define a struct with JSON tags and validation rules:
+## Parse
+
+Describe the data as a struct. `json` tags name the keys, and `validate` tags hold the rules.
 
 ```go
 type User struct {
@@ -17,102 +17,76 @@ type User struct {
     Email    string `json:"email" validate:"required,email"`
     Age      int    `json:"age" validate:"min=0,max=150"`
 }
-```
 
-Parse data:
+data := []byte(`{"id": "123", "username": "alice", "email": "alice@example.com", "age": 25}`)
 
-```go
-import "github.com/1mb-dev/gopantic/pkg/model"
-
-data := []byte(`{"id": "123", "username": "alice", "email": "alice@example.com", "age": "25"}`)
 user, err := model.ParseInto[User](data)
 ```
 
-String `"123"` is coerced to int `123`.
+`ParseInto` looks at the input to tell JSON from YAML, decodes it, converts values that need it, and validates the result. Here `"123"` became the int `123`. The [coercion guide](guide/coercion.md) lists what converts.
 
 ## YAML
 
-Format detected automatically:
+The same struct and the same call work on YAML, and `json` tags apply to it too:
 
 ```go
-yamlData := []byte(`
+user, err := model.ParseInto[User]([]byte(`
 id: 456
 username: bob
 email: bob@example.com
 age: 30
-`)
-
-user, err := model.ParseInto[User](yamlData)
+`))
 ```
 
-Explicit format when known:
+Detection reads the first byte, so `{` or `[` always means JSON. If you know the format, say so:
 
 ```go
-user, err := model.ParseIntoWithFormat[User](data, model.FormatJSON)
-user, err := model.ParseIntoWithFormat[User](yamlData, model.FormatYAML)
+user, err := model.ParseIntoWithFormat[User](data, model.FormatYAML)
 ```
 
-## Validation
+## Errors
 
-Built-in validators:
-
-| Validator | Example | Description |
-|-----------|---------|-------------|
-| `required` | `validate:"required"` | Non-zero value |
-| `min` | `validate:"min=5"` | Min value or length |
-| `max` | `validate:"max=100"` | Max value or length |
-| `length` | `validate:"length=10"` | Exact length |
-| `email` | `validate:"email"` | Email format |
-| `alpha` | `validate:"alpha"` | Letters only |
-| `alphanum` | `validate:"alphanum"` | Letters and numbers |
-
-Combine with commas:
+A failed parse returns the zero value and an error covering every problem found, up to 100.
 
 ```go
-Email string `json:"email" validate:"required,email"`
-Age   int    `json:"age" validate:"required,min=18,max=120"`
+_, err := model.ParseInto[User]([]byte(`{"id": "x", "username": "al", "email": "alice@example.com"}`))
+fmt.Println(err)
+// multiple errors: parse error on field "ID": cannot parse string "x" as integer: ...;
+// validation error on field "Username": string length must be at least 3 characters
 ```
 
-See [Validation Guide](guide/validation.md) for all validators.
-
-## Error Handling
+To act on each problem, use `errors.As` for the first of a kind, or walk the list:
 
 ```go
-user, err := model.ParseInto[User](data)
-if err != nil {
-    // "field 'email' validation failed: invalid email format"
-    log.Printf("Error: %v", err)
+var list model.ErrorList
+if errors.As(err, &list) {
+    for _, v := range list.ValidationErrors() {
+        fmt.Println(v.FieldPath, v.Rule) // Username min
+    }
 }
 ```
 
-Error messages include field values. Do not expose to untrusted clients.
+Error messages can quote the input. Values of [sensitive fields](guide/validation.md#sensitive-values) are kept out, but don't send messages to clients.
 
-## Caching
+## Validate without parsing
 
-For repeated parsing of identical data:
+`Validate` runs the same rules on a struct you filled in yourself:
 
 ```go
-parser := model.NewCachedParser[User](nil)
-defer parser.Close()
-
-user1, _ := parser.Parse(data)  // Cache miss
-user2, _ := parser.Parse(data)  // Cache hit
+user := User{ID: 7, Username: "alice", Email: "alice@example.com"}
+err := model.Validate(&user)
 ```
 
-See [Caching Guide](guide/caching.md).
+## Limits
 
-## Configuration
-
-Thread-safe accessors:
+Inputs over 10 MB, and input nested past 64 levels, are rejected before decoding. Rules stop at 32 levels of nested structs, with an error. All three can be changed:
 
 ```go
-model.SetMaxInputSize(5 * 1024 * 1024)  // 5MB (default: 10MB)
-model.SetMaxValidationDepth(16)          // default: 32
-model.SetMaxCacheSize(500)               // default: 1000
+model.SetMaxInputSize(5 * 1024 * 1024)
+model.SetMaxStructureDepth(32)
+model.SetMaxValidationDepth(16)
 ```
 
 ## Next
 
-- [Validation Guide](guide/validation.md)
-- [Caching Guide](guide/caching.md)
-- [API Reference](reference/api.md)
+The [validation guide](guide/validation.md) covers every rule and how to add your own. To parse the same bytes repeatedly, see [caching](guide/caching.md).

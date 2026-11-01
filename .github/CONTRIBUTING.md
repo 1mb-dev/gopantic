@@ -6,7 +6,7 @@ Thank you for your interest in contributing to gopantic! This document provides 
 
 ### Prerequisites
 
-- Go 1.23 or later
+- Go 1.24 or later
 - Git
 - Make (for using the Makefile)
 

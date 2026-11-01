@@ -1,4 +1,4 @@
-.PHONY: help dev test audit build release clean install deps fmt vet lint coverage check complexity deadcode vulncheck tidy
+.PHONY: help dev test audit build release clean install deps fmt vet lint coverage check complexity deadcode vulncheck tidy examples docs
 
 # Default target
 help: ## Show this help message

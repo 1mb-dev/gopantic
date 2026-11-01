@@ -352,7 +352,7 @@ func TestDocsClaims(t *testing.T) {
 			return wantValue(`{"1": "a"}`, map[int]string{1: "a"})
 		}},
 		{"coercion: exact digits", func() error {
-			return wantValue(`{"v": 10000000000000000}`, ctInt{V: 10000000000000000})
+			return wantValue(`{"trigger": 1, "big": 10000000000000000}`, ctBig{Trigger: 1, Big: 10000000000000000})
 		}},
 		{"limitations: large float into an int", func() error {
 			if err := wantError[ctInt](`{"v": 9007199254740992.0}`); err != nil {

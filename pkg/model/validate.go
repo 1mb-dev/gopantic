@@ -714,7 +714,7 @@ func toInt(value interface{}) (int, error) {
 	case int64:
 		return int(v), nil
 	case uint:
-		if v > math.MaxInt64 {
+		if v > math.MaxInt {
 			return 0, NewParseError("", value, "int", "value too large for int")
 		}
 		return int(v), nil
@@ -725,7 +725,7 @@ func toInt(value interface{}) (int, error) {
 	case uint32:
 		return int(v), nil
 	case uint64:
-		if v > math.MaxInt64 {
+		if v > math.MaxInt {
 			return 0, NewParseError("", value, "int", "value too large for int")
 		}
 		return int(v), nil

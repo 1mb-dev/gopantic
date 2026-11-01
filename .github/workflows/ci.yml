@@ -36,6 +36,20 @@ jobs:
           check-latest: true
       - run: make test-contract
 
+  # Atomic 64-bit fields and int width only show here. The race detector has no 386 support.
+  test-386:
+    name: Test (386)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.26"
+          check-latest: true
+      - run: go test ./tests/...
+        env:
+          GOARCH: "386"
+
   # Not required: `go test ./...` does not run the example mains.
   examples:
     name: Example Tests

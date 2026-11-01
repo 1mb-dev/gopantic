@@ -715,6 +715,33 @@ type ctCfgString struct {
 	Cfg string `json:"cfg"`
 }
 
+type ctShadowEmbed struct {
+	Pass    string `json:"pass"`
+	Confirm string `json:"confirm" validate:"ct_same_pass"`
+}
+
+type ctShadowOuter struct {
+	ctShadowEmbed
+	Pass string `json:"outer_pass"`
+}
+
+type ctAnyKeyInts struct {
+	Meta map[interface{}]int `yaml:"meta"`
+}
+
+type ctAnyKeyInner struct {
+	UserName string `json:"user_name" validate:"required"`
+}
+
+type ctAnyKeyStructs struct {
+	M map[interface{}]ctAnyKeyInner `yaml:"m"`
+}
+
+type ctCoerceTwo struct {
+	Age  int    `json:"age"`
+	Name string `json:"name" validate:"required"`
+}
+
 type ctMinOverride struct {
 	A string `json:"a" validate:"ct_override=abc"`
 }
@@ -1045,6 +1072,25 @@ func contractRows() []contractRow {
 		{"numeric", ",string does not recurse into its contents", 0, func() error {
 			return wantError[ctQuotedInt](`{"a":"` + strings.Repeat("[", 5<<20) + `"}`)
 		}},
+		{"numeric", "an invalid YAML json.Number is rejected", 0, func() error {
+			if err := wantYAMLError[ctNumber]("n: abc\n"); err != nil {
+				return err
+			}
+			return wantYAMLError[ctNumber]("n: true\n")
+		}},
+		{"numeric", "a YAML json.Number keeps a valid number", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctNumber]([]byte("n: 12\n"), model.FormatYAML)
+			if err != nil || got.N != "12" {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"numeric", "a json.Number with trailing space is rejected", 0, func() error {
+			if err := wantError[ctNumber](`{"n":"12 "}`); err != nil {
+				return err
+			}
+			return wantError[ctNumber](`{"n":"12\n"}`)
+		}},
 		{"numeric", "uint rejects a negative", 0, func() error { return wantError[ctUint](`{"v":-1}`) }},
 		{"numeric", "minimum int8 still fits", 0, func() error { return wantValue(`{"v":-128}`, ctI8{V: -128}) }},
 		{"numeric", "maximum uint8 still fits", 0, func() error { return wantValue(`{"v":"255"}`, ctU8{V: 255}) }},
@@ -1246,6 +1292,38 @@ func contractRows() []contractRow {
 				return fmt.Errorf("got %v", err)
 			}
 			return nil
+		}},
+		{"yaml", "interface map values still coerce", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctAnyKeyInts]([]byte("meta:\n  a: \"12\"\n"), model.FormatYAML)
+			if err != nil || got.Meta["a"] != 12 {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"yaml", "interface map values honour json tags", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctAnyKeyStructs]([]byte("m:\n  a: {user_name: bob}\n"), model.FormatYAML)
+			if err != nil || got.M["a"].UserName != "bob" {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"yaml", "interface map errors name the entry", 0, func() error {
+			_, err := model.ParseIntoWithFormat[ctAnyKeyInts]([]byte("meta:\n  a: x\n"), model.FormatYAML)
+			var parseErr *model.ParseError
+			if !errors.As(err, &parseErr) || parseErr.Field != "Meta[a]" {
+				return fmt.Errorf("got %v", err)
+			}
+			return nil
+		}},
+		{"yaml", "interface map takes a null key", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctAnyKeyInts]([]byte("meta:\n  ~: 1\n"), model.FormatYAML)
+			if err != nil || got.Meta[nil] != 1 {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"yaml", "interface map rejects a key that cannot be hashed", 0, func() error {
+			return wantYAMLError[ctAnyKeyInts]("meta:\n  ? [1, 2]\n  : 1\n")
 		}},
 		{"yaml", "plain alias", 0, func() error {
 			const body = "x: &x {a: 1, b: 2}\nv: *x\n"
@@ -1552,6 +1630,15 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
+		{"validation", "cross-field rule in an embed reads the embed, not a shadowing field", 0, func() error {
+			if _, err := model.ParseInto[ctShadowOuter]([]byte(`{"pass":"a","confirm":"a","outer_pass":"z"}`)); err != nil {
+				return err
+			}
+			if _, err := model.ParseInto[ctShadowOuter]([]byte(`{"pass":"a","confirm":"b","outer_pass":"b"}`)); err == nil {
+				return errors.New("mismatch passed")
+			}
+			return nil
+		}},
 		{"validation", "rules behind an unexported embedded pointer run", 0, func() error {
 			if err := model.Validate(&ctEmbedPtr{&ctEmbedPtrBase{}}); err == nil {
 				return errors.New("zero X passed required")
@@ -1562,6 +1649,14 @@ func contractRows() []contractRow {
 			_, err := model.ParseInto[ctItem]([]byte(`[1]`))
 			var list model.ErrorList
 			if !errors.As(err, &list) || len(list) != 1 {
+				return fmt.Errorf("got %v", err)
+			}
+			return nil
+		}},
+		{"validation", "CoerceValue keeps rules on the other fields", 0, func() error {
+			_, err := model.CoerceValue(map[string]interface{}{"age": "x"}, reflect.TypeOf(ctCoerceTwo{}), "u")
+			var list model.ErrorList
+			if !errors.As(err, &list) || len(list) != 2 || len(list.ValidationErrors()) != 1 {
 				return fmt.Errorf("got %v", err)
 			}
 			return nil
@@ -1943,6 +2038,13 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
+		{"errors", "a sensitive key in an interface map is redacted", 0, func() error {
+			_, err := model.ParseIntoWithFormat[ctAnyKeyInts]([]byte("meta:\n  password: hunter2\n"), model.FormatYAML)
+			if err == nil || strings.Contains(err.Error(), "hunter2") {
+				return fmt.Errorf("got %v", err)
+			}
+			return nil
+		}},
 		{"errors", "a rejected object does not carry its contents", 0, func() error {
 			_, err := model.ParseInto[ctCfgString]([]byte(`{"cfg":{"password":"hunter2"}}`))
 			var parseErr *model.ParseError
@@ -1983,6 +2085,12 @@ func TestContract(t *testing.T) {
 		return nil
 	})
 
+	model.RegisterGlobalCrossFieldFunc("ct_same_pass", func(field string, value interface{}, parent reflect.Value, _ map[string]interface{}) error {
+		if parent.Interface() == nil || parent.FieldByName("Pass").String() != value.(string) {
+			return model.NewValidationError(field, value, "ct_same_pass", "fields differ")
+		}
+		return nil
+	})
 	model.RegisterGlobalCrossFieldFunc("ct_cross_iface", func(field string, value interface{}, parent reflect.Value, _ map[string]interface{}) error {
 		if parent.Interface() == nil || parent.FieldByName("A").String() != value.(string) {
 			return model.NewValidationError(field, value, "ct_cross_iface", "cannot read the struct")

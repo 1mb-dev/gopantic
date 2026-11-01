@@ -60,7 +60,7 @@ func NewCachedParser[T any](config *CacheConfig) *CachedParser[T] {
 		config = DefaultCacheConfig()
 	}
 
-	class := classifyRefs(reflect.TypeFor[T](), make(map[reflect.Type]refClass))
+	class := classOf(reflect.TypeFor[T]())
 
 	cp := &CachedParser[T]{
 		cache:       make(map[cacheKey]cacheEntry[T]),
@@ -209,7 +209,11 @@ func (cp *CachedParser[T]) ClearCache() {
 // After calling Close, the parser can still be used but expired entries
 // will only be cleaned up on access rather than proactively.
 func (cp *CachedParser[T]) Close() {
-	cp.closeOnce.Do(func() { close(cp.stopCleanup) })
+	cp.closeOnce.Do(func() {
+		if cp.stopCleanup != nil {
+			close(cp.stopCleanup)
+		}
+	})
 }
 
 // cleanupLoop runs periodically to remove expired entries
@@ -268,18 +272,41 @@ type refClass struct {
 	uncopyable bool // Holds a reference detachRefs cannot reach
 }
 
+// refClasses caches classOf. It runs on every interface value in a result, so a type must not
+// be classified again each time.
+var refClasses sync.Map // map[reflect.Type]refClass
+
+func classOf(typ reflect.Type) refClass {
+	if class, ok := refClasses.Load(typ); ok {
+		return class.(refClass)
+	}
+	class := classifyRefs(typ, make(map[reflect.Type]refClass))
+	refClasses.Store(typ, class)
+	return class
+}
+
 // classifyRefs classifies typ. seen keeps results rather than a visited flag: a type reached a
 // second time, through an unexported field, still has to answer. A type in progress answers
-// zero, which is safe because recursion passes through a reference kind that answers for itself.
+// with its kind, because recursion always passes through a reference kind, and an unexported
+// field of that kind has to count as holding one.
 func classifyRefs(typ reflect.Type, seen map[reflect.Type]refClass) refClass {
 	if class, ok := seen[typ]; ok {
 		return class
 	}
-	seen[typ] = refClass{}
+	seen[typ] = refClass{holdsRefs: isReferenceKind(typ.Kind())}
 
 	class := classifyKind(typ, seen)
 	seen[typ] = class
 	return class
+}
+
+func isReferenceKind(kind reflect.Kind) bool {
+	switch kind {
+	case reflect.Ptr, reflect.Slice, reflect.Map, reflect.Interface, reflect.Chan, reflect.Func, reflect.UnsafePointer:
+		return true
+	default:
+		return false
+	}
 }
 
 func classifyKind(typ reflect.Type, seen map[reflect.Type]refClass) refClass {
@@ -371,6 +398,10 @@ func detachSlice(v reflect.Value, depth int) bool {
 	}
 	fresh := reflect.MakeSlice(v.Type(), v.Len(), v.Len())
 	reflect.Copy(fresh, v)
+	if !classOf(v.Type().Elem()).holdsRefs {
+		v.Set(fresh)
+		return true
+	}
 	for i := 0; i < fresh.Len(); i++ {
 		if !detachRefs(fresh.Index(i), depth+1) {
 			return false
@@ -406,7 +437,7 @@ func detachInterface(v reflect.Value, depth int) bool {
 		return true
 	}
 	inner := v.Elem()
-	class := classifyRefs(inner.Type(), make(map[reflect.Type]refClass))
+	class := classOf(inner.Type())
 	if class.uncopyable {
 		return false
 	}

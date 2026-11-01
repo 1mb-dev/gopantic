@@ -229,15 +229,16 @@ func (p *fieldPath) sensitive() bool {
 	return false
 }
 
-// failedPaths returns the paths decoding could not set.
-func failedPaths(errs ErrorList) map[string]bool {
+// failedPaths returns the paths decoding could not set, as the validation walk spells them.
+// prefix is a name the decoder's paths start with and the walk's do not.
+func failedPaths(errs ErrorList, prefix string) map[string]bool {
 	if len(errs) == 0 {
 		return nil
 	}
 	paths := make(map[string]bool, len(errs))
 	for _, err := range errs {
 		if parseErr, ok := err.(*ParseError); ok {
-			paths[parseErr.Field] = true
+			paths[strings.TrimPrefix(strings.TrimPrefix(parseErr.Field, prefix), ".")] = true
 		}
 	}
 	return paths
@@ -253,11 +254,6 @@ type validationWalk struct {
 	// Their containers stay closed: a back-pointer would cycle, and a foreign type's tags are
 	// not ours to check.
 	populated bool
-
-	// owner is the struct holding the unexported embed being walked, if any. reflect marks an
-	// unexported embed read-only, so a cross-field rule inside it gets the owner, where the
-	// same fields are promoted.
-	owner reflect.Value
 }
 
 func (w validationWalk) run(val reflect.Value) error {
@@ -362,7 +358,7 @@ func (w *validationWalk) field(parent reflect.Value, i int, validation *StructVa
 
 	// The exported fields of an unexported embedded struct stay reachable.
 	if field.Anonymous && !field.IsExported() && embedsStruct(field.Type) {
-		w.embedded(parent, fieldVal, path.hiddenIf(access.jsonHidden), depth)
+		w.value(fieldVal, path.hiddenIf(access.jsonHidden), depth+1)
 		return
 	}
 
@@ -380,35 +376,51 @@ func (w *validationWalk) field(parent reflect.Value, i int, validation *StructVa
 		return
 	}
 	if walkable {
-		w.descend(fieldVal, here, depth+1)
+		w.value(fieldVal, here, depth+1)
 	}
 	if len(rules) > 0 {
 		w.applyRules(fieldVal, rules, parent, here)
 	}
 }
 
-func (w *validationWalk) descend(val reflect.Value, path *fieldPath, depth int) {
-	owner := w.owner
-	w.owner = reflect.Value{}
-	w.value(val, path, depth)
-	w.owner = owner
-}
-
 func (w *validationWalk) applyRules(val reflect.Value, rules []ValidationRule, parent reflect.Value, path *fieldPath) {
-	if w.owner.IsValid() {
-		parent = w.owner
+	if !parent.CanInterface() && hasCrossFieldRule(rules) {
+		parent = readableCopy(parent)
 	}
 	if err := ValidateValueWithStruct(path.name, val.Interface(), rules, parent); err != nil {
 		w.errs.addCapped(withFieldPath(err, path.String(), path.sensitive()))
 	}
 }
 
-func (w *validationWalk) embedded(parent, embed reflect.Value, path *fieldPath, depth int) {
-	if !w.owner.IsValid() {
-		w.owner = parent
-		defer func() { w.owner = reflect.Value{} }()
+func hasCrossFieldRule(rules []ValidationRule) bool {
+	for i := range rules {
+		if _, ok := rules[i].Validator.(*CrossFieldValidator); ok {
+			return true
+		}
 	}
-	w.value(embed, path, depth+1)
+	return false
+}
+
+// readableCopy rebuilds an unexported embed from its exported fields. reflect marks the embed
+// read-only, and a cross-field rule has to be able to call Interface on the struct it is given.
+// Handing it the outer struct instead would resolve names through promotion, where a field of
+// the outer struct can shadow the one the rule means.
+func readableCopy(embed reflect.Value) reflect.Value {
+	out := reflect.New(embed.Type()).Elem()
+	copyExported(out, embed)
+	return out
+}
+
+func copyExported(dst, src reflect.Value) {
+	for i := 0; i < src.NumField(); i++ {
+		field := src.Type().Field(i)
+		switch {
+		case field.IsExported():
+			dst.Field(i).Set(src.Field(i))
+		case field.Anonymous && field.Type.Kind() == reflect.Struct:
+			copyExported(dst.Field(i), src.Field(i))
+		}
+	}
 }
 
 func embedsStruct(typ reflect.Type) bool {

@@ -63,6 +63,31 @@ type ctCacheBig struct {
 	N *big.Int `json:"n"`
 }
 
+// ctCacheList keeps its tail in an unexported field of its own pointer type.
+type ctCacheListNode struct {
+	Val  int `json:"val"`
+	next *ctCacheListNode
+}
+
+func (n *ctCacheListNode) UnmarshalJSON([]byte) error {
+	n.next = &ctCacheListNode{Val: 1}
+	return nil
+}
+
+type ctCacheList struct {
+	Head *ctCacheListNode `json:"head"`
+}
+
+// ctCacheKids is a slice whose elements hide more of the same slice type.
+type ctCacheKid struct {
+	kids []ctCacheKid
+}
+
+func (k *ctCacheKid) UnmarshalJSON([]byte) error {
+	k.kids = make([]ctCacheKid, 1)
+	return nil
+}
+
 // ctCacheTwice reaches the same type twice, and only the second field is out of reach.
 type ctCacheTwice struct {
 	Shown  ctCacheLeaf `json:"shown"`
@@ -197,6 +222,42 @@ func TestCachedParserBypassesUncopyableTypes(t *testing.T) {
 		}
 	})
 
+	t.Run("unexported field of the pointer type being classified", func(t *testing.T) {
+		cached := model.NewCachedParser[ctCacheList](nil)
+		defer cached.Close()
+
+		input := []byte(`{"head":{}}`)
+		first, err := cached.Parse(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := cached.Parse(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if first.Head.next == second.Head.next {
+			t.Fatal("results share a node")
+		}
+	})
+
+	t.Run("unexported field of the slice type being classified", func(t *testing.T) {
+		cached := model.NewCachedParser[[]ctCacheKid](nil)
+		defer cached.Close()
+
+		input := []byte(`[{}]`)
+		first, err := cached.Parse(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := cached.Parse(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if &first[0].kids[0] == &second[0].kids[0] {
+			t.Fatal("results share a backing array")
+		}
+	})
+
 	t.Run("big.Int behind a pointer", func(t *testing.T) {
 		cached := model.NewCachedParser[ctCacheBig](nil)
 		defer cached.Close()
@@ -250,6 +311,11 @@ func TestCachedParserChecksSizeFirst(t *testing.T) {
 	if _, err := cached.ParseWithFormat(input, model.FormatJSON); err == nil || !strings.Contains(err.Error(), "exceeds maximum") {
 		t.Fatalf("ParseWithFormat: %v", err)
 	}
+}
+
+func TestCachedParserZeroValueCloses(t *testing.T) {
+	var cached model.CachedParser[int]
+	cached.Close()
 }
 
 func TestCachedParserCloseIsConcurrent(t *testing.T) {

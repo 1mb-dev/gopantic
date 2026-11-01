@@ -75,7 +75,7 @@ func walkInto[T any](root *node, format Format) (T, error) {
 	out := reflect.ValueOf(&result).Elem()
 	w.assign(root, out, nil)
 
-	if err := validateParsed(out, w.errs, failedPaths(w.errs)); err != nil {
+	if err := validateParsed(out, w.errs, failedPaths(w.errs, "")); err != nil {
 		return zero, err
 	}
 	return result, nil
@@ -136,6 +136,8 @@ type node struct {
 	values []*node
 	raw    []byte
 	yml    *yaml.Node
+
+	keyNodes []*yaml.Node // Parallel to keys, for YAML mappings
 }
 
 func (n *node) decodeInto(out interface{}) error {
@@ -305,6 +307,7 @@ func addYAMLMapping(n *node, y *yaml.Node, seen map[string]bool) {
 		}
 		seen[key.Value] = true
 		n.keys = append(n.keys, key.Value)
+		n.keyNodes = append(n.keyNodes, key)
 		n.values = append(n.values, yamlToNode(value))
 	}
 
@@ -457,7 +460,7 @@ func (w *walker) assignScalar(n *node, out reflect.Value, path *fieldPath) {
 		w.fail(path, n, out.Type(), fmt.Sprintf("cannot coerce %s to %s", n.describe(), out.Type()))
 		return
 	}
-	if !isYAMLFloatForNumber(n, out) {
+	if !yamlDecoderMisreads(n, out) {
 		if err := n.decodeInto(out.Addr().Interface()); err == nil {
 			return
 		}
@@ -465,11 +468,17 @@ func (w *walker) assignScalar(n *node, out reflect.Value, path *fieldPath) {
 	w.coerceScalar(n, out, path)
 }
 
-// isYAMLFloatForNumber picks out the one case yaml.v3 gets wrong: it truncates a float into an
-// integer and does not range-check a float. Its other number handling has to stay, since it
-// also parses "30s" into a time.Duration.
-func isYAMLFloatForNumber(n *node, out reflect.Value) bool {
-	if n.yml == nil || !(out.CanInt() || out.CanUint() || out.CanFloat()) {
+// yamlDecoderMisreads picks out what yaml.v3 gets wrong: it truncates a float into an integer,
+// does not range-check a float, and stores any scalar into a json.Number, which is a string
+// kind. Its other number handling has to stay, since it also parses "30s" into a time.Duration.
+func yamlDecoderMisreads(n *node, out reflect.Value) bool {
+	if n.yml == nil {
+		return false
+	}
+	if out.Type() == jsonNumberType {
+		return true
+	}
+	if !(out.CanInt() || out.CanUint() || out.CanFloat()) {
 		return false
 	}
 	_, isFloat := n.value().(float64)
@@ -631,19 +640,40 @@ func (w *walker) assignMap(n *node, out reflect.Value, path *fieldPath) {
 		w.fail(path, n, typ, fmt.Sprintf("cannot coerce %s to %s", n.describe(), typ))
 		return
 	}
-	// The node tree keeps keys as strings, and only yaml.v3 has their real types.
-	if n.yml != nil && typ.Key().Kind() == reflect.Interface {
-		if err := n.decodeInto(out.Addr().Interface()); err != nil {
-			w.fail(path, n, typ, err.Error())
-		}
-		return
-	}
 	if out.IsNil() {
 		out.Set(reflect.MakeMapWithSize(typ, len(n.keys)))
 	}
 	for i, key := range n.keys {
+		if n.yml != nil && typ.Key().Kind() == reflect.Interface {
+			w.assignTypedKeyEntry(n.keyNodes[i], key, n.values[i], out, path)
+			continue
+		}
 		w.assignMapEntry(key, n.values[i], out, path)
 	}
+}
+
+// assignTypedKeyEntry keeps the type of a YAML key for an interface-keyed map. Only the key goes
+// to yaml.v3: the value stays on the walker, or it would lose coercion, json tags and redaction.
+func (w *walker) assignTypedKeyEntry(keyNode *yaml.Node, key string, value *node, out reflect.Value, path *fieldPath) {
+	here := &fieldPath{parent: path, kind: pathKey, key: key}
+	keyType := out.Type().Key()
+
+	var typed interface{}
+	if err := keyNode.Decode(&typed); err != nil {
+		w.report(here, key, keyType.String(), err.Error())
+		return
+	}
+
+	mapKey := reflect.New(keyType).Elem()
+	if typed != nil {
+		typedType := reflect.TypeOf(typed)
+		if !typedType.Comparable() || !typedType.AssignableTo(keyType) {
+			w.report(here, key, keyType.String(), fmt.Sprintf("cannot use %s as a map key", typedType))
+			return
+		}
+		mapKey.Set(reflect.ValueOf(typed))
+	}
+	w.setMapEntry(mapKey, value, out, here)
 }
 
 func (w *walker) assignMapEntry(key string, value *node, out reflect.Value, path *fieldPath) {
@@ -655,7 +685,11 @@ func (w *walker) assignMapEntry(key string, value *node, out reflect.Value, path
 		w.report(here, key, typ.Key().String(), err.Error())
 		return
 	}
-	elem := reflect.New(typ.Elem()).Elem()
+	w.setMapEntry(mapKey, value, out, here)
+}
+
+func (w *walker) setMapEntry(mapKey reflect.Value, value *node, out reflect.Value, here *fieldPath) {
+	elem := reflect.New(out.Type().Elem()).Elem()
 	w.assign(value, elem, here)
 	out.SetMapIndex(mapKey, elem)
 }
@@ -983,10 +1017,7 @@ func coerceContainer(value interface{}, targetType reflect.Type, fieldName strin
 		path = &fieldPath{kind: pathField, name: fieldName}
 	}
 	w.assign(root, out, path)
-	err = w.errs.AsError()
-	if err == nil {
-		err = validateParsed(out, nil, nil)
-	}
+	err = validateParsed(out, w.errs, failedPaths(w.errs, fieldName))
 	if list, isList := err.(ErrorList); isList && len(list) == 1 {
 		return nil, list[0]
 	}

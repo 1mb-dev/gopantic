@@ -74,8 +74,16 @@ func coerceValue(value interface{}, targetType reflect.Type, fieldName string, f
 	}
 }
 
+// isJSONNumber checks both ends as well, since json.Valid allows surrounding whitespace.
 func isJSONNumber(s string) bool {
-	return s != "" && (s[0] == '-' || (s[0] >= '0' && s[0] <= '9')) && json.Valid([]byte(s))
+	if s == "" || !json.Valid([]byte(s)) {
+		return false
+	}
+	return (s[0] == '-' || isDigit(s[0])) && isDigit(s[len(s)-1])
+}
+
+func isDigit(c byte) bool {
+	return c >= '0' && c <= '9'
 }
 
 // coerceToString converts scalars to string. Containers are rejected, since formatting one

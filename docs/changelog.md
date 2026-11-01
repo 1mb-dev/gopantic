@@ -15,7 +15,9 @@ Input that used to pass can now be rejected, depending on the data:
 
 - **Rules run on elements and values.** v1.4 skipped rules on slice elements, array elements, map values and top-level slices on some paths. You will see validation errors on data that passed before. Fix the data or loosen the rule. Tests: `validation/[]struct elements`, `validation/map[string]struct elements`, `validation/top-level []struct`.
 - **Rules run on every parse.** v1.4 could stop checking nested structs for the rest of the process after the first parse of a type. You will see errors that came and went before. Tests: `validation/nested rule, second parse`, `validation/pointer rule, second parse`.
-- **Numbers must fit.** `300` into an `int8`, `4.7` into an `int` and `-1` into a `uint` used to wrap, truncate or pass. They are now parse errors, in fields, slices, arrays and pointers. Use a wider type, or a float if fractions are real. Tests: the `numeric` group.
+- **Numbers must fit.** `300` into an `int8`, `4.7` into an `int` and `-1` into a `uint` used to wrap, truncate or pass. They're now parse errors, in fields, slices, arrays and pointers, and in YAML as well as JSON. Use a wider type, or a float if fractions are real. Tests: the `numeric` group, and `numeric/YAML float does not truncate into an int`.
+- **Unix timestamps must fall in years 1 to 9999.** `1e300` and YAML `.nan` into a `time.Time` used to give a garbage date. Tests: `numeric/time rejects a huge number`, `numeric/time rejects YAML NaN`.
+- **`json.Number` must hold a number.** `{"n":"abc"}` used to store `abc`. YAML keeps the digits as written, and spellings only YAML has, like `0x10`, store their value. Tests: `numeric/an invalid json.Number is rejected`, `numeric/a YAML json.Number keeps its digits`.
 - **Floats at or past 2^53 no longer convert to integers.** `1e16` into an `int` errors. Send the digits. Test: `numeric/exponent integer past 2^53 rejected`.
 - **`"NaN"` and `"Inf"` no longer convert to floats.** Send a number, or take a string field. Tests: `numeric/string NaN rejected`, `numeric/string Inf rejected`.
 - **Objects no longer convert to strings.** v1.4 returned Go syntax such as `map[a:1]`. Use a struct, a map or `json.RawMessage`. Test: `numeric/object is not a string`.
@@ -41,6 +43,7 @@ Errors look different:
 - **`Field` is the leaf name and `FieldPath` the full path**, such as `Name` and `Items[1].Name`. Test: `validation/FieldPath is the full path`.
 - **A parse reports at most 100 errors**, then one saying it stopped. Test: `validation/error count is capped on []struct`.
 - **`ParseError` messages leave out values of sensitive fields.** Read `SanitizedValue()` or `Value` instead of parsing the message. Tests: the `errors` group.
+- **A rejected object or array no longer sits in `ParseError.Value`.** It holds `"object"` or `"array"`, since a secret could be nested inside. Test: `errors/a rejected object does not carry its contents`.
 
 `CachedParser` differs:
 
@@ -66,7 +69,7 @@ Errors look different:
 
 - Rules on a registered name take effect at once: registering on the default registry clears cached rules, so `ClearValidationCache` is no longer needed for that.
 - `yaml.v3` is the only dependency. `go-playground/validator` left the module graph; the comparison benchmarks are a nested module. The minimum Go version stays 1.24.
-- Correctly typed JSON now parses and validates in about half the time of v1.4.1, because it no longer decodes twice. YAML takes about 17% less, and input needing coercion about the same. See [Benchmarks](benchmarks.md).
+- Correctly typed JSON now parses and validates in about half the time of v1.4.1, because it no longer decodes twice. YAML takes about 23% less, and input needing coercion about 14% less. See [Benchmarks](benchmarks.md).
 
 ### Fixed
 

@@ -33,7 +33,7 @@ _, err := model.ParseInto[User]([]byte(`{"id": 1.5, "name": "A", "email": "nope"
 
 gopantic suits code that reads input it doesn't control: API payloads where numbers arrive as strings, config files that may be JSON or YAML, data imports. You write one struct and get decoding, conversion and validation together, with every problem reported at once.
 
-If your input is already well typed and JSON only, use `encoding/json` with [go-playground/validator](https://github.com/go-playground/validator). It has far more rules, and you wouldn't be using what gopantic adds. The two are within 25% of each other on correctly typed JSON, so speed won't decide it. Input that needs converting takes about 3.5 times as long. Figures are on the [benchmarks page](https://1mb-dev.github.io/gopantic/benchmarks/).
+If your input is already well typed and JSON only, use `encoding/json` with [go-playground/validator](https://github.com/go-playground/validator). It has far more rules, and you wouldn't be using what gopantic adds. The two are within 30% of each other on correctly typed JSON, so speed won't decide it. Input that needs converting takes about 3 times as long. Figures are on the [benchmarks page](https://1mb-dev.github.io/gopantic/benchmarks/).
 
 ## Install
 

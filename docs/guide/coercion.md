@@ -14,7 +14,7 @@ gopantic hands input to the standard decoder first. Only when that decoder rejec
 
 The strings accepted as booleans are `true`, `1`, `yes`, `on` and `false`, `0`, `no`, `off`, in lower, title or upper case. The empty string is false.
 
-Times parse as RFC 3339, `2006-01-02T15:04:05`, `2006-01-02 15:04:05` or `2006-01-02`.
+Times parse as RFC 3339, `2006-01-02T15:04:05`, `2006-01-02 15:04:05` or `2006-01-02`. Unix seconds have to fall in years 1 to 9999.
 
 The rules are the same inside slices, arrays, pointers and map values, and in map keys, so `map[int]string` reads `{"1": "a"}`.
 
@@ -31,8 +31,10 @@ Coercion refuses anything that would change the value:
 | `1e16` | `int` | Written as a float at or past 2^53, so it may have been rounded already |
 | `"NaN"`, `"Inf"` | Any float | Not a number gopantic will return |
 | `{"a": 1}` | `string` | Would hand back Go syntax as if it were the input |
+| `1e300` | `time.Time` | Past year 9999 |
+| `abc` | `json.Number` | Not a number |
 
-Whole numbers written out in full are read digit by digit, so `9007199254740993` stays exact in an `int64`.
+Whole numbers written out in full are read digit by digit, so `9007199254740993` stays exact in an `int64`. The rules are the same in YAML, where `yaml.v3` alone would turn `1.9` into `1`. A `json.Number` keeps the digits as written.
 
 ## Types that decode themselves
 

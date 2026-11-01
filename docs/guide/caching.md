@@ -16,7 +16,7 @@ A parser holds one type and is safe for concurrent use, so create one and share 
 
 Each caller gets its own copy, so changing a returned slice or map can't affect the cache or anyone else. That copy is the price of a hit: a struct of plain values costs nothing extra, while one holding slices and maps pays to copy them each time.
 
-A type holding references gopantic can't copy, such as an unexported slice or a `*big.Int`, is parsed on every call, and `Stats` shows a hit rate of zero.
+A type holding references gopantic can't copy, such as an unexported slice, a `*big.Int` or a `netip.Addr`, is parsed on every call, and `Stats` shows a hit rate of zero. So is a value nested past 1,024 levels of copying.
 
 ## Configuration
 

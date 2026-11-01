@@ -19,7 +19,7 @@ The string `"42"` becomes the int `42` because that conversion loses nothing. `"
 
 gopantic suits code that reads input it doesn't control: API payloads where numbers arrive as strings, config files that may be JSON or YAML, data imports. You write one struct and get decoding, conversion and validation together, with every problem reported at once.
 
-If your input is already well typed and JSON only, use `encoding/json` with [go-playground/validator](https://github.com/go-playground/validator). It has far more rules, and you wouldn't be using what gopantic adds. The two are within 25% of each other on correctly typed JSON, so speed won't decide it. Input that needs converting takes about 3.5 times as long; see [Benchmarks](benchmarks.md).
+If your input is already well typed and JSON only, use `encoding/json` with [go-playground/validator](https://github.com/go-playground/validator). It has far more rules, and you wouldn't be using what gopantic adds. The two are within 30% of each other on correctly typed JSON, so speed won't decide it. Input that needs converting takes about 3 times as long; see [Benchmarks](benchmarks.md).
 
 ## Install
 

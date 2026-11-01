@@ -24,7 +24,11 @@ The built-in set is small. There's no `url`, `uuid`, `oneof` or `gt`, and unknow
 
 A value with a real pointer loop, not tagged `json:"-"`, stops at the depth limit with an error, though nothing is wrong with it.
 
+An element that fails to decode can be reported twice: `{"items":[5]}` into a `[]Item` gives the conversion error, and also a `required` error for the zero value. The same goes for a map key with more than one spelling, like `"007"` into a `map[int]Item`. No bad value gets through, but you may see an extra line.
+
 ## Formats
+
+An inline map needs string keys: `map[interface{}]T` with `yaml:",inline"` errors on every key, as it does in `yaml.v3`.
 
 Input starting with `{` or `[` is treated as JSON, so one-line YAML like `{a: 1}` is a syntax error under `ParseInto`. Use `ParseIntoWithFormat` with `FormatYAML`.
 
@@ -41,5 +45,9 @@ Errors keep the rejected value in `Value`. Log `SanitizedValue()`.
 ## Caching
 
 `MaxEntries` counts entries. There's no memory limit, and eviction scans the whole cache, which is fine at the default of 1000 and slower far past it.
+
+A hit copies through reflection, so the saving shrinks as a type holds more slices and maps. A large `map[string]any` can take almost as long to copy as to parse, and allocate as much.
+
+Only `time.Time` is treated as immutable. Other types holding hidden pointers aren't cached, even when sharing them would be safe.
 
 A hit skips validation; see [Keys and staleness](guide/caching.md#keys-and-staleness).

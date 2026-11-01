@@ -139,7 +139,7 @@ if errors.As(err, &v) {
 
 ## Sensitive values
 
-Errors keep the rejected value in their `Value` field. `SanitizedValue()` returns `[REDACTED]` instead when the field is sensitive, and `ToJSON` uses it. A `ParseError` on a sensitive field also leaves the value out of its message, which would otherwise quote it.
+Errors keep the rejected value in their `Value` field, or `"object"` or `"array"` in place of a rejected container, since a secret could sit inside one. `SanitizedValue()` returns `[REDACTED]` instead when the field is sensitive, and `ToJSON` uses it. A `ParseError` on a sensitive field also leaves the value out of its message, which would otherwise quote it.
 
 A field is sensitive when it, or anything above it, has a Go name or input key containing `password`, `passwd`, `secret`, `token`, `key`, `credential`, `auth`, `api_key`, `apikey`, `private` or `bearer`, or is tagged `json:"-"`. The match ignores case and looks anywhere in the name, so `Author` and `Monkey` count too. Change the list with `model.SetSensitiveFieldPatterns` or `model.AddSensitiveFieldPattern`.
 

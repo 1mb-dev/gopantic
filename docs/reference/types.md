@@ -8,7 +8,7 @@ Anything `encoding/json` decodes, gopantic decodes the same way. These are the c
 | `time.Time` | RFC 3339, plus the other formats in the coercion guide and Unix seconds |
 | Structs, pointers | Rules inside them run. A nil pointer has nothing to check |
 | Slices, arrays | Rules run on each element |
-| `map[K]V` | Rules run on each value. `K` can be a string or an integer |
+| `map[K]V` | Rules run on each value. `K` can be a string or an integer, and `interface{}` for YAML, which keeps the key's type |
 | `interface{}` | Holds what the decoder produced. `required` works, and nothing goes inside it |
 | `json.RawMessage` | Keeps its bytes as they arrived |
 | Types with `UnmarshalJSON`, `UnmarshalYAML` or `UnmarshalText` | Decode themselves. `validate` tags still apply to them |

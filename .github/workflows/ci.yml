@@ -17,6 +17,8 @@ permissions:
 jobs:
   ci:
     uses: 1mb-dev/.github/.github/workflows/ci-go.yml@main
+    with:
+      go-versions: '["1.24", "1.26", "1.27"]'
 
   # Not required: `go test ./...` does not run the example mains.
   examples:
@@ -34,3 +36,9 @@ jobs:
           for ex in quickstart yaml cache_demo pointers cross_field_validation; do
             (cd "examples/$ex" && go run main.go)
           done
+      # Reusable CI stays in the root module, so this is the only check on benchmarks/.
+      - name: Check comparison benchmarks
+        working-directory: benchmarks
+        run: |
+          go mod tidy -diff
+          go test -run='^$' -bench=. -benchtime=1x ./...

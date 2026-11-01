@@ -24,7 +24,7 @@ deps: ## Download and verify dependencies
 	go mod verify
 
 install: ## Install development dependencies
-	@which golangci-lint > /dev/null || (echo "Installing golangci-lint..." && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.7.1)
+	@which golangci-lint > /dev/null || (echo "Installing golangci-lint..." && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0)
 	@which gocyclo > /dev/null || (echo "Installing gocyclo..." && go install github.com/fzipp/gocyclo/cmd/gocyclo@latest)
 	@which deadcode > /dev/null || (echo "Installing deadcode..." && go install golang.org/x/tools/cmd/deadcode@latest)
 	@echo "Development dependencies installed"
@@ -75,8 +75,8 @@ bench-full: ## Run comprehensive benchmark analysis
 	@echo "Running comprehensive benchmark analysis..."
 	go test -bench=. -benchmem -count=3 ./tests
 
-bench-compare: ## Run comparison benchmarks (gopantic vs standard library)
-	go test -bench="Benchmark.*Parsing.*" -benchmem -count=3 ./tests
+bench-compare: ## Run comparison benchmarks (gopantic vs encoding/json and go-playground/validator)
+	cd benchmarks && go test -run='^$$' -bench=. -benchmem -count=3 ./...
 
 bench-memory: ## Run memory allocation benchmarks
 	go test -bench="BenchmarkMemory" -benchmem -count=3 ./tests
@@ -95,8 +95,10 @@ bench-profile: ## Run benchmarks with CPU and memory profiling
 	@echo "View memory profile: go tool pprof benchmark_results/mem.prof"
 
 # Examples
-examples: ## Run all examples
-	@find examples -name "main.go" -exec go run {} \;
+examples: ## Run all examples except api_validation, an interactive server
+	@set -e; for ex in quickstart yaml cache_demo pointers cross_field_validation; do \
+		(cd examples/$$ex && go run main.go); \
+	done
 
 # Documentation
 docs: ## Generate and serve documentation

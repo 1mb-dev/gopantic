@@ -426,6 +426,77 @@ type ctFractionLength struct {
 
 type ctContainerCycle []ctContainerCycle
 
+type ctDashRule struct {
+	A string `json:"-" validate:"required"`
+}
+
+type ctDashCoerced struct {
+	N int    `json:"n"`
+	A string `json:"-" validate:"required"`
+}
+
+type ctDashYAMLRule struct {
+	A string `json:"-" yaml:"a" validate:"required"`
+}
+
+type ctDashNoRule struct {
+	A string `json:"-"`
+	B string `json:"b" validate:"required"`
+}
+
+type ctDashKey struct {
+	A string `json:"-," validate:"required"`
+}
+
+type ctDashYAMLOff struct {
+	A string `json:"a" yaml:"-" validate:"required"`
+}
+
+type ctDashBoth struct {
+	A string `json:"-" yaml:"-" validate:"required"`
+}
+
+type ctDashNested struct {
+	Inner ctItem `json:"-" yaml:"inner"`
+}
+
+type ctDashList struct {
+	Items []ctItem `json:"-" yaml:"items"`
+}
+
+type ctDashInline struct {
+	ctItem `json:"-" yaml:",inline"`
+}
+
+type ctDashTypo struct {
+	A string `json:"-" validate:"requird"`
+}
+
+type ctDashYAMLTypo struct {
+	Inner ctTypoItem `json:"-" yaml:"inner"`
+}
+
+// ctForeign stands for a type from another library, tagged for another validator.
+type ctForeign struct {
+	Name string `validate:"required_with=Other"`
+}
+
+type ctDashForeign struct {
+	Owner *ctForeign `json:"-"`
+	Name  string     `json:"name"`
+}
+
+type ctDashTree struct {
+	Name     string        `json:"name" validate:"required"`
+	Children []*ctDashTree `json:"children"`
+	Parent   *ctDashTree   `json:"-"`
+}
+
+type ctDashHiddenEmbed struct {
+	ctItem `json:"-"`
+	N      int `json:"n"`
+}
+
 type ctMinOverride struct {
 	A string `json:"a" validate:"ct_override=abc"`
 }
@@ -982,6 +1053,78 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
+		{"validation", "input cannot set a json:\"-\" field, so its rule waits", 0, func() error {
+			return wantValue(`{}`, ctDashRule{})
+		}},
+		{"validation", "the coercion path agrees", 0, func() error {
+			return wantValue(`{"n":"1"}`, ctDashCoerced{N: 1})
+		}},
+		{"validation", "Validate runs the rule on a json:\"-\" field", 0, func() error {
+			if err := model.Validate(&ctDashRule{}); err == nil {
+				return errors.New("empty field passed required")
+			}
+			return model.Validate(&ctDashRule{A: "set by the caller"})
+		}},
+		{"validation", "a field no decoder sets is treated alike", 0, func() error {
+			if err := wantValue(`{}`, ctDashBoth{}); err != nil {
+				return err
+			}
+			if err := model.Validate(&ctDashBoth{}); err == nil {
+				return errors.New("empty field passed required")
+			}
+			return nil
+		}},
+		{"validation", "input does not choose the format that skips a rule", 0, func() error {
+			if err := wantError[ctDashYAMLRule](`{}`); err != nil {
+				return fmt.Errorf("JSON input: %w", err)
+			}
+			if _, err := model.ParseIntoWithFormat[ctDashYAMLRule]([]byte("b: 1\n"), model.FormatYAML); err == nil {
+				return errors.New("YAML input: no error")
+			}
+			_, err := model.ParseIntoWithFormat[ctDashYAMLRule]([]byte("a: x\n"), model.FormatYAML)
+			return err
+		}},
+		{"validation", "a field only JSON sets keeps its rule on YAML", 0, func() error {
+			if _, err := model.ParseIntoWithFormat[ctDashYAMLOff]([]byte("b: 1\n"), model.FormatYAML); err == nil {
+				return errors.New("no error")
+			}
+			return nil
+		}},
+		{"validation", "rules inside a struct only YAML sets", 0, func() error {
+			_, err := model.ParseIntoWithFormat[ctDashNested]([]byte("inner: {name: \"\"}\n"), model.FormatYAML)
+			if err == nil {
+				return errors.New("no error")
+			}
+			return nil
+		}},
+		{"validation", "rules inside a slice only YAML sets", 0, func() error {
+			_, err := model.ParseIntoWithFormat[ctDashList]([]byte("items: [{name: \"\"}]\n"), model.FormatYAML)
+			if err == nil {
+				return errors.New("no error")
+			}
+			return nil
+		}},
+		{"validation", "rules inside an inline struct", 0, func() error {
+			_, err := model.ParseIntoWithFormat[ctDashInline]([]byte("name: \"\"\n"), model.FormatYAML)
+			if err == nil {
+				return errors.New("no error")
+			}
+			return nil
+		}},
+		{"validation", "Validate stops at a back-pointer", 0, func() error {
+			root := &ctDashTree{Name: "root"}
+			root.Children = []*ctDashTree{{Name: "child", Parent: root}}
+			return model.Validate(root)
+		}},
+		{"validation", "hidden embedded struct waits for Validate", 0, func() error {
+			if err := wantValue(`{"n":1}`, ctDashHiddenEmbed{N: 1}); err != nil {
+				return err
+			}
+			if err := model.Validate(&ctDashHiddenEmbed{}); err == nil {
+				return errors.New("embedded rule did not run")
+			}
+			return nil
+		}},
 		{"validation", "error count is capped on []struct", 0, func() error {
 			input := `{"trigger":1,"items":[` + strings.Repeat(`{},`, 5000) + `{}]}`
 			_, err := model.ParseInto[ctSliceOuter]([]byte(input))
@@ -1054,6 +1197,18 @@ func contractRows() []contractRow {
 		{"tags", "unknown tag reported under an empty top-level map", 0, func() error {
 			return wantTagError[map[string]*ctTypoItem](`{}`)
 		}},
+		{"tags", "bad tag on a json:\"-\" field", 0, func() error { return wantTagError[ctDashTypo](`{}`) }},
+		{"tags", "bad tag behind a field only YAML sets", 0, func() error { return wantTagError[ctDashYAMLTypo](`{}`) }},
+		{"tags", "foreign tags behind a field no decoder sets", 0, func() error {
+			if err := wantValue(`{"name":"x"}`, ctDashForeign{Name: "x"}); err != nil {
+				return err
+			}
+			return model.Validate(&ctDashForeign{Owner: &ctForeign{}})
+		}},
+		{"tags", "json:\"-\" field with no rule stays allowed", 0, func() error {
+			return wantValue(`{"b":"x"}`, ctDashNoRule{B: "x"})
+		}},
+		{"tags", "rule on the key named by json:\"-,\" runs", 0, func() error { return wantError[ctDashKey](`{"other":1}`) }},
 		{"tags", "recursive container type terminates", 0, func() error {
 			_, err := model.ParseInto[ctContainerCycle]([]byte(`[[],[[]]]`))
 			return err

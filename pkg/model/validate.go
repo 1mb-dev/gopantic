@@ -45,7 +45,8 @@ type StructValidation struct {
 	// it. Parsing and Validate return these instead of validating.
 	TagErrors []error
 
-	holdsRules bool // A rule exists in this type or one reachable from it
+	holdsRules bool   // A rule exists in this type or one reachable from it
+	decodable  []bool // By field index: either decoder can set the field
 }
 
 // ValidatorFunc represents a custom validation function for field-level validation.
@@ -477,24 +478,30 @@ func (v *StructValidation) collect(root, typ reflect.Type, seen map[reflect.Type
 		fields, tagErrs := structRules(typ)
 		if typ == root {
 			v.Fields = fields
+			v.decodable = make([]bool, typ.NumField())
+			for i := range v.decodable {
+				v.decodable[i] = decodable(typ.Field(i))
+			}
 		}
 		v.TagErrors = append(v.TagErrors, tagErrs...)
 		v.holdsRules = v.holdsRules || len(fields) > 0
 
 		for i := 0; i < typ.NumField(); i++ {
-			if field := typ.Field(i); isWalked(field) {
+			// A type behind a field neither decoder sets may carry another library's tags, and
+			// parsing never touches it, so its tags must not fail the parse.
+			if field := typ.Field(i); decodable(field) || field.Anonymous {
 				v.collect(root, field.Type, seen)
 			}
 		}
 	}
 }
 
-// isWalked reports whether the validation walk enters a field.
-func isWalked(field reflect.StructField) bool {
-	if field.Anonymous && !field.IsExported() {
-		return field.Type.Kind() == reflect.Struct
-	}
-	return field.IsExported() && getFieldKey(field, FormatJSON) != "-"
+// decodable reports whether either decoder can set a field. It takes no format: ParseInto picks
+// the format from the input, so a format test would let the input choose which rules run.
+func decodable(field reflect.StructField) bool {
+	_, jsonSkips := jsonFieldName(field)
+	_, _, yamlSkips := yamlFieldName(field)
+	return !jsonSkips || !yamlSkips
 }
 
 // structRules parses the validate tags of one struct, reporting tags that cannot run.
@@ -518,9 +525,6 @@ func structRules(structType reflect.Type) ([]FieldValidation, []error) {
 
 		// Parse JSON key
 		jsonKey := getFieldKey(field, FormatJSON)
-		if jsonKey == "-" {
-			continue // Field is excluded from JSON
-		}
 
 		// Parse validation rules
 		rules, err := parseValidationRules(validateTag)

@@ -32,6 +32,14 @@ func CoerceValue(value interface{}, targetType reflect.Type, fieldName string) (
 // - Array/slice element coercion
 // - Map -> struct conversion with nested coercion
 func CoerceValueWithFormat(value interface{}, targetType reflect.Type, fieldName string, format Format) (interface{}, error) {
+	coerced, err := coerceValue(value, targetType, fieldName, format)
+	if parseErr, ok := err.(*ParseError); ok && IsSensitiveField(fieldName) {
+		parseErr.redact()
+	}
+	return coerced, err
+}
+
+func coerceValue(value interface{}, targetType reflect.Type, fieldName string, format Format) (interface{}, error) {
 	if value == nil {
 		return getZeroValueForType(targetType), nil
 	}

@@ -357,7 +357,15 @@ type walker struct {
 }
 
 func (w *walker) fail(path *fieldPath, n *node, typ reflect.Type, message string) {
-	w.errs.addCapped(NewParseError(path.String(), n.value(), typ.String(), message))
+	w.report(path, n.value(), typ.String(), message)
+}
+
+func (w *walker) report(path *fieldPath, value interface{}, typ, message string) {
+	parseErr := NewParseError(path.String(), value, typ, message)
+	if path.sensitive() {
+		parseErr.redact()
+	}
+	w.errs.addCapped(parseErr)
 }
 
 func (w *walker) assign(n *node, out reflect.Value, path *fieldPath) {
@@ -436,6 +444,9 @@ func (w *walker) coerceScalar(n *node, out reflect.Value, path *fieldPath) {
 		var parseErr *ParseError
 		if errors.As(err, &parseErr) {
 			parseErr.Field = path.String()
+			if path.sensitive() {
+				parseErr.redact()
+			}
 		}
 		w.errs.addCapped(err)
 		return
@@ -476,10 +487,10 @@ func (w *walker) assignStruct(n *node, out reflect.Value, path *fieldPath) {
 			w.assignInline(table, key, n.values[i], out, path)
 			continue
 		}
-		here := &fieldPath{parent: path, kind: pathField, name: entry.path}
+		here := &fieldPath{parent: path, kind: pathField, name: entry.path, key: key}
 		dst, err := fieldByIndex(out, entry.index)
 		if err != nil {
-			w.errs.addCapped(NewParseError(here.String(), nil, out.Type().String(), err.Error()))
+			w.report(here, nil, out.Type().String(), err.Error())
 			continue
 		}
 		w.assign(n.values[i], dst, here)
@@ -552,7 +563,7 @@ func (w *walker) assignMapEntry(key string, value *node, out reflect.Value, path
 
 	mapKey, err := coerceMapKey(key, typ.Key())
 	if err != nil {
-		w.errs.addCapped(NewParseError(here.String(), key, typ.Key().String(), err.Error()))
+		w.report(here, key, typ.Key().String(), err.Error())
 		return
 	}
 	elem := reflect.New(typ.Elem()).Elem()

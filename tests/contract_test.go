@@ -431,7 +431,25 @@ type ctMinOverride struct {
 }
 
 type ctSensitive struct {
-	Pin int `json:"pin"`
+	Password int `json:"p"`
+}
+
+type ctSensitiveKey struct {
+	P int `json:"api_key"`
+}
+
+type ctSensitiveTime struct {
+	Password time.Time `json:"p"`
+}
+
+type ctSensitiveParent struct {
+	Credentials struct {
+		Value int `json:"value"`
+	} `json:"c"`
+}
+
+type ctSensitiveSlice struct {
+	Passwords []int `json:"p"`
 }
 
 type ctTagged struct {
@@ -585,6 +603,26 @@ func wantTagError[T any](input string) error {
 	_, err := model.ParseInto[T]([]byte(input))
 	if err == nil || !strings.Contains(err.Error(), "invalid validate tag") {
 		return fmt.Errorf("got %v", err)
+	}
+	return nil
+}
+
+// wantRedacted requires a ParseError that hides the value everywhere except its raw Value field.
+func wantRedacted[T any](input string) error {
+	_, err := model.ParseInto[T]([]byte(input))
+	var list model.ErrorList
+	if !errors.As(err, &list) || len(list) != 1 {
+		return fmt.Errorf("unexpected error %v", err)
+	}
+	if strings.Contains(err.Error(), "4321") {
+		return fmt.Errorf("value in message: %v", err)
+	}
+	var parseErr *model.ParseError
+	if !errors.As(list[0], &parseErr) {
+		return fmt.Errorf("not a ParseError: %v", list[0])
+	}
+	if got := parseErr.SanitizedValue(); got != model.RedactedValue {
+		return fmt.Errorf("SanitizedValue returned %v", got)
 	}
 	return nil
 }
@@ -1140,13 +1178,35 @@ func contractRows() []contractRow {
 		}},
 
 		// Error messages.
-		{"errors", "sensitive value stays out of ParseError", 7, func() error {
-			_, err := model.ParseInto[ctSensitive]([]byte(`{"pin":"not-a-pin-4321"}`))
-			if err == nil {
-				return errors.New("no error")
+		{"errors", "sensitive Go name keeps the value out of the message", 0, func() error {
+			return wantRedacted[ctSensitive](`{"p":"not-a-pin-4321"}`)
+		}},
+		{"errors", "sensitive input key keeps the value out of the message", 0, func() error {
+			return wantRedacted[ctSensitiveKey](`{"api_key":"not-a-pin-4321"}`)
+		}},
+		{"errors", "sensitive time field", 0, func() error {
+			return wantRedacted[ctSensitiveTime](`{"p":"not-a-pin-4321"}`)
+		}},
+		{"errors", "field under a sensitive parent", 0, func() error {
+			return wantRedacted[ctSensitiveParent](`{"c":{"value":"not-a-pin-4321"}}`)
+		}},
+		{"errors", "slice element of a sensitive field", 0, func() error {
+			return wantRedacted[ctSensitiveSlice](`{"p":["not-a-pin-4321"]}`)
+		}},
+		{"errors", "sensitive map key", 0, func() error {
+			return wantRedacted[map[string]int](`{"password":"not-a-pin-4321"}`)
+		}},
+		{"errors", "CoerceValue on a sensitive field", 0, func() error {
+			_, err := model.CoerceValue("not-a-pin-4321", reflect.TypeOf(0), "password")
+			if err == nil || strings.Contains(err.Error(), "4321") {
+				return fmt.Errorf("got %v", err)
 			}
-			if strings.Contains(err.Error(), "4321") {
-				return fmt.Errorf("value in message: %v", err)
+			return nil
+		}},
+		{"errors", "ordinary field keeps the value in the message", 0, func() error {
+			_, err := model.ParseInto[ctInt]([]byte(`{"v":"not-a-number-4321"}`))
+			if err == nil || !strings.Contains(err.Error(), "4321") {
+				return fmt.Errorf("got %v", err)
 			}
 			return nil
 		}},

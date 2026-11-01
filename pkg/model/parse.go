@@ -229,14 +229,29 @@ func (p *fieldPath) String() string {
 		case pathIndex:
 			fmt.Fprintf(&b, "[%d]", segment.index)
 		case pathKey:
-			key := segment.key
-			if len(key) > maxPathKey {
-				key = strings.ToValidUTF8(key[:maxPathKey], "") + "..."
-			}
-			fmt.Fprintf(&b, "[%s]", key)
+			fmt.Fprintf(&b, "[%s]", boundedKey(segment.key))
 		}
 	}
 	return b.String()
+}
+
+// boundedKey keeps input-sized map keys out of error text and sensitive-field matching, which
+// run once per error.
+func boundedKey(key string) string {
+	if len(key) > maxPathKey {
+		return strings.ToValidUTF8(key[:maxPathKey], "") + "..."
+	}
+	return key
+}
+
+// sensitive reports whether any segment names a sensitive field, by Go name or input key.
+func (p *fieldPath) sensitive() bool {
+	for ; p != nil; p = p.parent {
+		if IsSensitiveField(p.name) || IsSensitiveField(boundedKey(p.key)) {
+			return true
+		}
+	}
+	return false
 }
 
 // failedPaths returns the paths decoding could not set.

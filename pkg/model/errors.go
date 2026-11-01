@@ -19,6 +19,8 @@ type ParseError struct {
 	Value   interface{}
 	Type    string
 	Message string
+
+	sensitive bool // Matched on the input key, which Field does not carry
 }
 
 func (e ParseError) Error() string {
@@ -37,6 +39,22 @@ func NewParseError(field string, value interface{}, targetType, message string) 
 		Type:    targetType,
 		Message: message,
 	}
+}
+
+// SanitizedValue returns the error value with sensitive data redacted.
+// If the field matches a sensitive pattern, returns RedactedValue ("[REDACTED]").
+// Otherwise returns the original value unchanged.
+func (e ParseError) SanitizedValue() interface{} {
+	if e.sensitive || IsSensitiveField(e.Field) {
+		return RedactedValue
+	}
+	return e.Value
+}
+
+// redact replaces the message, which can quote the input, and marks the value as sensitive.
+func (e *ParseError) redact() {
+	e.sensitive = true
+	e.Message = "invalid value for " + e.Type
 }
 
 // ValidationError represents a validation failure with detailed field and rule information.

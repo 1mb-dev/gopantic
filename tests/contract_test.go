@@ -812,6 +812,10 @@ type ctLoopRule struct {
 	Next *ctLoopRule `json:"next"`
 }
 
+type ctNegativeCache struct {
+	A string `json:"a" validate:"required"`
+}
+
 type ctMinOverride struct {
 	A string `json:"a" validate:"ct_override=abc"`
 }
@@ -1843,6 +1847,13 @@ func contractRows() []contractRow {
 				return fmt.Errorf("got %v", err)
 			}
 			return nil
+		}},
+		{"validation", "a negative cache size does not panic", 0, func() error {
+			orig := model.GetMaxCacheSize()
+			model.SetMaxCacheSize(-1)
+			defer model.SetMaxCacheSize(orig)
+			model.ClearValidationCache()
+			return wantValue(`{"a":"x"}`, ctNegativeCache{A: "x"})
 		}},
 		{"validation", "error count is capped on []struct", 0, func() error {
 			input := `{"trigger":1,"items":[` + strings.Repeat(`{},`, 5000) + `{}]}`

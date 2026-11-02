@@ -73,6 +73,9 @@ func GetMaxCacheSize() int {
 	initConfigOnce()
 	configMu.RLock()
 	defer configMu.RUnlock()
+	if configValues.maxCacheSize < 0 {
+		return defaultMaxCacheSize
+	}
 	return configValues.maxCacheSize
 }
 

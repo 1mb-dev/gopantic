@@ -296,7 +296,9 @@ var validationCache sync.Map
 //
 // WARNING: Direct modification of this variable is NOT thread-safe.
 // For concurrent access, use GetMaxCacheSize() and SetMaxCacheSize().
-var MaxCacheSize = 1000
+var MaxCacheSize = defaultMaxCacheSize
+
+const defaultMaxCacheSize = 1000
 
 // MaxValidationDepth is the maximum depth of nested struct validation.
 // This prevents stack overflow and DoS attacks from deeply nested structures.

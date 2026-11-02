@@ -13,7 +13,7 @@ user, err := model.ParseInto[User]([]byte(`{"id": "42", "name": "Alice", "email"
 // user.ID == 42
 ```
 
-The string `"42"` becomes the int `42` because that conversion loses nothing. `"42.5"` wouldn't fit an int, so it's an error. The same struct reads YAML with no other change.
+The string `"42"` becomes the int `42` because that conversion loses nothing. `"42.5"` wouldn't fit an int, so it's an error. The same struct reads YAML, and [naming the format](getting-started.md#yaml) avoids detection missing a short document.
 
 ## Who it is for
 

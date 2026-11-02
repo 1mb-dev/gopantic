@@ -87,7 +87,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
     body, _ := io.ReadAll(r.Body)
 
     // Parse and validate in one step
-    account, err := model.ParseInto[Account](body)
+    account, err := model.ParseIntoWithFormat[Account](body, model.FormatJSON)
     if err != nil {
         http.Error(w, err.Error(), http.StatusBadRequest)
         return

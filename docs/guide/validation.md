@@ -112,7 +112,7 @@ type CreateChat struct {
     KBID    string `json:"-" validate:"required"`
 }
 
-req, err := model.ParseInto[CreateChat](body) // KBID is not checked here
+req, err := model.ParseIntoWithFormat[CreateChat](body, model.FormatJSON) // KBID is not checked here
 if err != nil {
     return err
 }

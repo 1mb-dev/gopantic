@@ -20,7 +20,7 @@ user, err := model.ParseInto[User](raw)
 // user.ID == 42, user.Age == 28
 ```
 
-The same struct takes YAML with no other change. Input that doesn't fit is an error:
+The same struct takes YAML. Detection can miss a short YAML document, so name the format for files and one-liners with `ParseIntoWithFormat`. Input that doesn't fit is an error:
 
 ```go
 _, err := model.ParseInto[User]([]byte(`{"id": 1.5, "name": "A", "email": "nope", "age": 28}`))

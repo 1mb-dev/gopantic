@@ -740,15 +740,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#150-2026-11-01" class="md-nav__link">
+  <a href="#150-2026-11-02" class="md-nav__link">
     <span class="md-ellipsis">
       
-        [1.5.0] - 2026-11-01
+        [1.5.0] - 2026-11-02
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="[1.5.0] - 2026-11-01">
+    <nav class="md-nav" aria-label="[1.5.0] - 2026-11-02">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1295,15 +1295,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#150-2026-11-01" class="md-nav__link">
+  <a href="#150-2026-11-02" class="md-nav__link">
     <span class="md-ellipsis">
       
-        [1.5.0] - 2026-11-01
+        [1.5.0] - 2026-11-02
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="[1.5.0] - 2026-11-01">
+    <nav class="md-nav" aria-label="[1.5.0] - 2026-11-02">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1839,7 +1839,7 @@
 <p>All notable changes to this project will be documented in this file.</p>
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
-<h2 id="150-2026-11-01">[1.5.0] - 2026-11-01</h2>
+<h2 id="150-2026-11-02">[1.5.0] - 2026-11-02</h2>
 <p>A value gopantic returns without error is now the value the input meant, and every rule on a field either decoder can set has run. So input that v1.4 accepted can fail. If you need time to adapt, stay on v1.4.1 and work through <strong>Behavior changes</strong> below. Each item says what you will see and what to do, and names the row in <code>tests/contract_test.go</code> that holds it.</p>
 <h3 id="behavior-changes">Behavior changes</h3>
 <p>Input that used to pass can now be rejected, depending on the data:</p>
@@ -1850,8 +1850,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li><strong>Unix timestamps must fall in years 1 to 9999.</strong> <code>1e300</code> and YAML <code>.nan</code> into a <code>time.Time</code> used to give a garbage date. Tests: <code>numeric/time rejects a huge number</code>, <code>numeric/time rejects YAML NaN</code>.</li>
 <li><strong><code>json.Number</code> must hold a number.</strong> <code>{"n":"abc"}</code> used to store <code>abc</code>. YAML keeps the digits as written, and spellings only YAML has, like <code>0x10</code>, store their value. Tests: <code>numeric/an invalid json.Number is rejected</code>, <code>numeric/a YAML json.Number keeps its digits</code>.</li>
 <li><strong>Floats at or past 2^53 no longer convert to integers.</strong> <code>1e16</code> into an <code>int</code> errors. Send the digits. Test: <code>numeric/exponent integer past 2^53 rejected</code>.</li>
+<li><strong>A time with no date is rejected.</strong> <code>12:30:00</code> used to parse to year 0. Send a full date. Test: <code>numeric/a time with no date is rejected</code>.</li>
 <li><strong><code>"NaN"</code> and <code>"Inf"</code> no longer convert to floats.</strong> Send a number, or take a string field. Tests: <code>numeric/string NaN rejected</code>, <code>numeric/string Inf rejected</code>.</li>
 <li><strong>Objects no longer convert to strings.</strong> v1.4 returned Go syntax such as <code>map[a:1]</code>. Use a struct, a map or <code>json.RawMessage</code>. Test: <code>numeric/object is not a string</code>.</li>
+<li><strong><code>required</code> fails on a zero fixed array.</strong> It always passed. Test: <code>validation/required fails on a zero fixed array</code>.</li>
 <li>
 <p><strong>Rules past 32 levels of nesting are errors.</strong> v1.4 skipped the limit on inputs that needed coercion. A rule that deep now fails rather than going unchecked; raise it with <code>SetMaxValidationDepth</code>. Types with no rules aren't affected. Test: <code>validation/rule below the depth limit fails closed</code>.</p>
 </li>
@@ -1859,17 +1861,12 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <p><strong>Large YAML mappings can be refused.</strong> A document needing more than 50,000,000 key comparisons now errors before decoding: one mapping of 10,000 keys, or 100 of 1,000. Raise it with <code>SetMaxYAMLKeyComparisons</code>, or pass 0 to turn the budget off. Test: <code>TestYAMLGuardChargesAllComparisons</code>.</p>
 </li>
 <li>
-<p><strong>Some YAML keys are now errors.</strong> A null key can't go in a typed map, and a key that appears with two types through a merge can't go in an interface-keyed map. Both used to store the wrong thing. A null key on a struct is still ignored like any unknown key. Tests: <code>yaml/a null key cannot go in a string map</code>, <code>yaml/merged keys of two types cannot share an interface map</code>.</p>
+<p><strong>Some YAML keys are now errors.</strong> A null key can't go in a typed map, and two keys that land on one Go key, like <code>0x10</code> and <code>16</code> into <code>map[int]string</code>, are refused. A float key into an integer key type follows the rule for values, so <code>1.5</code> is an error. A null key on a struct is still ignored like any unknown key. Tests: <code>yaml/a null key cannot go in a string map</code>, <code>yaml/two spellings of one key are refused</code>, <code>yaml/a float key does not truncate into an int key</code>.</p>
 </li>
 </ul>
 <p>Types that used to work can now fail on every parse:</p>
 <ul>
-<li>
-<p><strong>A tag that can't run is an error</strong>, for every parse and <code>Validate</code> of that type, even under an empty slice. This covers misspelled rules, a missing or malformed parameter such as <code>min</code> or <code>min=abc</code>, and stray commas. Rules that were never built in are the likely surprise: older docs showed <code>gtfield</code> as a feature, and it never existed. <code>eqfield</code> and <code>oneof</code> appeared as custom rules to register, so they fail only if you copied the tag without the registration. Register the rule or remove the tag. Use <code>ParseValidationTags(...).TagErrors</code> to find these in a test. Tests: the <code>tags</code> group.</p>
-</li>
-<li>
-<p><strong>Two fields claiming one YAML key is an error</strong>, as it is in <code>yaml.v3</code>. An inline struct is the usual cause. Test: <code>yaml/two fields claiming one key is an error</code>.</p>
-</li>
+<li><strong>A tag that can't run is an error</strong>, for every parse and <code>Validate</code> of that type, even under an empty slice. This covers misspelled rules, a missing or malformed parameter such as <code>min</code> or <code>min=abc</code>, and stray commas. Rules that were never built in are the likely surprise: older docs showed <code>gtfield</code> as a feature, and it never existed. <code>eqfield</code> and <code>oneof</code> appeared as custom rules to register, so they fail only if you copied the tag without the registration. Register the rule or remove the tag. Use <code>ParseValidationTags(...).TagErrors</code> to find these in a test. Tests: the <code>tags</code> group.</li>
 </ul>
 <p><code>Validate</code> can now fail where it passed:</p>
 <ul>
@@ -1887,7 +1884,17 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li><strong><code>Field</code> is the leaf name and <code>FieldPath</code> the full path</strong>, such as <code>Name</code> and <code>Items[1].Name</code>. Test: <code>validation/FieldPath is the full path</code>.</li>
 <li><strong>A parse reports at most 100 errors</strong>, then one saying it stopped. Test: <code>validation/error count is capped on []struct</code>.</li>
 <li><strong><code>ParseError</code> messages leave out values of sensitive fields.</strong> Read <code>SanitizedValue()</code> or <code>Value</code> instead of parsing the message. Tests: the <code>errors</code> group.</li>
-<li><strong>A rejected object or array no longer sits in <code>ParseError.Value</code>.</strong> It holds <code>"object"</code> or <code>"array"</code>, since a secret could be nested inside. Test: <code>errors/a rejected object does not carry its contents</code>.</li>
+<li>
+<p><strong>A rejected object or array no longer sits in <code>ParseError.Value</code>.</strong> It holds <code>"object"</code> or <code>"array"</code>, since a secret could be nested inside. Test: <code>errors/a rejected object does not carry its contents</code>.</p>
+</li>
+<li>
+<p><strong><code>SanitizedValue</code> hides containers.</strong> A failed rule on a slice or map returns <code>[REDACTED]</code>. <code>Value</code> still holds it. Test: <code>errors/a failed rule on a container keeps its contents out of the report</code>.</p>
+</li>
+</ul>
+<p>Settings:</p>
+<ul>
+<li><strong><code>SetMaxValidationDepth(0)</code> no longer turns the limit off</strong>, since a pointer loop would then overflow the stack. Zero or less means the default of 32. Test: <code>validation/a depth of 0 cannot turn the limit off</code>.</li>
+<li><strong>A negative <code>SetMaxCacheSize</code> means the default</strong>, where it used to panic. Test: <code>validation/a negative cache size does not panic</code>.</li>
 </ul>
 <p><code>CachedParser</code> differs:</p>
 <ul>
@@ -1896,10 +1903,11 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="security">Security</h3>
 <ul>
 <li>A small YAML document could exhaust memory or CPU. <code>yaml.v3</code> compares every pair of keys and formats an error for each duplicate, so 15 KB of repeated keys allocated 800 MB and 1.2 MB of distinct keys took 2 minutes, far below <code>MaxInputSize</code>. <code>ParseInto</code> auto-detects YAML, so this reached endpoints that only expect JSON. Duplicates are now rejected in linear time and the remaining cost has a budget. Use <code>ParseIntoWithFormat</code> with <code>FormatJSON</code> for JSON-only input.</li>
+<li>A YAML merge with a sequence for a key panicked inside <code>yaml.v3</code>, on 18 bytes of input. It's now a parse error.</li>
 <li>Validation could be skipped: nested rules stopped running after the first parse of a type, and rules on slice elements, map values and top-level slices didn't always run. Input that should have been rejected was returned as valid.</li>
 <li><code>CachedParser</code> returned shared slices and maps, so one caller could alter what the next received. Keys for input under 1 KB used a 64-bit FNV hash, which can be made to collide; they are now SHA-256.</li>
 <li>Integers wrapped silently on overflow, so a limit checked after parsing could be passed with a value that wrapped into range.</li>
-<li><code>ParseError</code> messages quoted values of sensitive fields, and values of <code>json:"-"</code> fields reached <code>ToJSON</code>.</li>
+<li><code>ParseError</code> messages quoted values of sensitive fields, and values of <code>json:"-"</code> fields and of nested fields inside a failed container reached <code>ToJSON</code>.</li>
 <li>The YAML depth limit missed maps with non-string keys.</li>
 <li>The validator registry had a data race under concurrent registration.</li>
 </ul>
@@ -1915,12 +1923,13 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <ul>
 <li>Rules on a registered name take effect at once: registering on the default registry clears cached rules, so <code>ClearValidationCache</code> is no longer needed for that.</li>
 <li><code>yaml.v3</code> is the only dependency. <code>go-playground/validator</code> left the module graph; the comparison benchmarks are a nested module. The minimum Go version stays 1.24.</li>
-<li>Correctly typed JSON now parses and validates in about half the time of v1.4.1, because it no longer decodes twice. YAML takes about 23% less, and input needing coercion about 14% less. See <a href="../benchmarks/">Benchmarks</a>.</li>
+<li>Correctly typed JSON now parses and validates in about half the time of v1.4.1, because it no longer decodes twice. YAML takes about 28% less, and input needing coercion about 12% less. See <a href="../benchmarks/">Benchmarks</a>.</li>
 </ul>
 <h3 id="fixed">Fixed</h3>
 <ul>
 <li><code>NewCachedParser[any]</code> and a second <code>Close</code> no longer panic, and neither do <code>map</code> or pointer targets needing coercion.</li>
 <li><code>NaN</code> now fails <code>required</code>, <code>min</code> and <code>max</code>.</li>
+<li>The package builds on 32-bit platforms again, with a CI job to keep it that way.</li>
 <li><code>CachedParser</code> checks input size before hashing.</li>
 <li>Docs rewritten against the code, and a test now holds their examples, tags and links to it.</li>
 </ul>

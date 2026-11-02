@@ -928,7 +928,7 @@
 
 
 <h1 id="benchmarks">Benchmarks</h1>
-<p>Measured on 2026-11-01 at commit <code>86e26f1</code>, with Go 1.27.3 on an Intel Core i5-8257U at 1.40 GHz under macOS. Each figure is the median of three runs, and runs of the same benchmark differed by up to 20%. Treat differences smaller than that as ties.</p>
+<p>Measured on 2026-11-02 at commit <code>194ec36</code>, with Go 1.27.3 on an Intel Core i5-8257U at 1.40 GHz under macOS. Each figure is the median of three runs, and runs of the same benchmark differed by up to 7%. Treat differences smaller than that as ties.</p>
 <p>The small struct has four fields and nine rules. The complex one adds a nested struct and a list of addresses, for 18 rules.</p>
 <h2 id="correctly-typed-json-parsed-and-validated">Correctly typed JSON, parsed and validated</h2>
 <table>
@@ -942,19 +942,19 @@
 <tbody>
 <tr>
 <td>Small struct</td>
-<td>2,275 ns, 10 allocs</td>
-<td>2,596 ns, 10 allocs</td>
+<td>2,217 ns, 10 allocs</td>
+<td>2,501 ns, 10 allocs</td>
 </tr>
 <tr>
 <td>Complex struct</td>
-<td>6,701 ns, 29 allocs</td>
-<td>5,224 ns, 19 allocs</td>
+<td>6,365 ns, 29 allocs</td>
+<td>5,006 ns, 19 allocs</td>
 </tr>
 </tbody>
 </table>
-<p>These are close enough that speed should not decide between them. gopantic allocates more memory on both: 453 bytes against 186 on the small struct, and 1,526 against 520 on the complex one.</p>
+<p>These are close enough that speed should not decide between them. gopantic allocates more memory on both: 453 bytes against 186 on the small struct, and 1,531 against 520 on the complex one.</p>
 <h2 id="what-the-extras-cost">What the extras cost</h2>
-<p>These use the small struct, against 2,275 ns for correctly typed JSON.</p>
+<p>These use the small struct, against 2,217 ns for correctly typed JSON.</p>
 <table>
 <thead>
 <tr>
@@ -966,13 +966,13 @@
 <tbody>
 <tr>
 <td>Numbers sent as strings</td>
-<td>6,958 ns</td>
-<td>3.1x</td>
+<td>7,099 ns</td>
+<td>3.2x</td>
 </tr>
 <tr>
 <td>YAML</td>
-<td>18,639 ns</td>
-<td>8.4x (against 2,230 ns for JSON through the same call)</td>
+<td>17,381 ns</td>
+<td>7.8x (against 2,215 ns for JSON through the same call)</td>
 </tr>
 </tbody>
 </table>
@@ -990,18 +990,18 @@
 <tbody>
 <tr>
 <td>Small struct</td>
-<td>1,218 ns</td>
-<td>1,615 ns</td>
+<td>1,263 ns</td>
+<td>1,575 ns</td>
 </tr>
 <tr>
 <td>Complex struct</td>
-<td>2,941 ns</td>
-<td>2,207 ns</td>
+<td>2,891 ns</td>
+<td>2,152 ns</td>
 </tr>
 </tbody>
 </table>
 <h2 id="caching">Caching</h2>
-<p>For the same input, a parse took 2,982 ns and a cache hit 692 ns, about 4x less. A hit on this struct allocates once. A struct holding slices or maps pays to copy them on every hit, so its gain is smaller. See the <a href="../guide/caching/">caching guide</a>.</p>
+<p>For the same input, a parse took 2,918 ns and a cache hit 686 ns, about 4x less. A hit on this struct allocates once. A struct holding slices or maps pays to copy them on every hit, so its gain is smaller. See the <a href="../guide/caching/">caching guide</a>.</p>
 <h2 id="hostile-input">Hostile input</h2>
 <p>From <code>tests/adversarial_bench_test.go</code>. Each input needs coercion, so each goes through the walker.</p>
 <table>
@@ -1014,15 +1014,15 @@
 <tbody>
 <tr>
 <td>20,000 array items</td>
-<td>40 ms</td>
+<td>41 ms</td>
 </tr>
 <tr>
 <td>50,000 unknown keys</td>
-<td>24 ms</td>
+<td>25 ms</td>
 </tr>
 <tr>
 <td>Nesting 30 levels deep</td>
-<td>69 µs</td>
+<td>72 µs</td>
 </tr>
 </tbody>
 </table>

@@ -6,6 +6,7 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -126,13 +127,30 @@ func NewValidationErrorWithDetails(field, fieldPath string, value interface{}, r
 }
 
 // SanitizedValue returns the error value with sensitive data redacted.
-// If the field name matches any sensitive pattern, or the field is kept out of JSON, returns
-// RedactedValue ("[REDACTED]"). Otherwise returns the original value unchanged.
+// If the field name matches any sensitive pattern, the field is kept out of JSON, or the value is
+// a container, returns RedactedValue ("[REDACTED]"). Otherwise returns the value unchanged.
 func (e ValidationError) SanitizedValue() interface{} {
-	if e.sensitive || IsSensitiveField(e.Field) || IsSensitiveField(e.FieldPath) {
+	if e.sensitive || IsSensitiveField(e.Field) || IsSensitiveField(e.FieldPath) || !isScalarValue(e.Value) {
 		return RedactedValue
 	}
 	return e.Value
+}
+
+// isScalarValue reports whether a value has no fields of its own. Sensitivity is judged on the
+// path down to a value, so a container could hold a secret nothing here has looked at.
+func isScalarValue(value interface{}) bool {
+	v := reflect.ValueOf(value)
+	for v.Kind() == reflect.Ptr && !v.IsNil() {
+		v = v.Elem()
+	}
+	switch v.Kind() {
+	case reflect.Slice, reflect.Array, reflect.Map, reflect.Interface:
+		return false
+	case reflect.Struct:
+		return v.Type() == timeType
+	default:
+		return true
+	}
 }
 
 // IsSensitiveField checks if a field name matches any sensitive field pattern.

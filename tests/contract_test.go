@@ -798,6 +798,15 @@ type ctYClash struct {
 	ctYClashInner `yaml:",inline"`
 }
 
+type ctPwUser struct {
+	Name     string `json:"name"`
+	Password string `json:"password"`
+}
+
+type ctPwUsers struct {
+	Users []ctPwUser `json:"users" validate:"min=2"`
+}
+
 type ctMinOverride struct {
 	A string `json:"a" validate:"ct_override=abc"`
 }
@@ -2186,6 +2195,18 @@ func contractRows() []contractRow {
 			}
 			if got := fmt.Sprint(parseErr.SanitizedValue()); strings.Contains(got, "hunter2") {
 				return fmt.Errorf("SanitizedValue returned %s", got)
+			}
+			return nil
+		}},
+		{"errors", "a failed rule on a container keeps its contents out of the report", 0, func() error {
+			_, err := model.ParseInto[ctPwUsers]([]byte(`{"users":[{"name":"a","password":"hunter2"}]}`))
+			var list model.ErrorList
+			if !errors.As(err, &list) {
+				return fmt.Errorf("got %v", err)
+			}
+			report, jsonErr := list.ToJSON()
+			if jsonErr != nil || strings.Contains(string(report), "hunter2") {
+				return fmt.Errorf("report %s, err %v", report, jsonErr)
 			}
 			return nil
 		}},

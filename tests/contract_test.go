@@ -772,6 +772,32 @@ type ctAnyKeyAges struct {
 	M map[interface{}]ctYExtraItem `yaml:"m"`
 }
 
+type ctYKeyMap struct {
+	Attrs map[string]int `yaml:"attrs"`
+}
+
+type ctYKeyInline struct {
+	Name  string         `yaml:"name"`
+	Extra map[string]int `yaml:",inline"`
+}
+
+type ctYAnyStrings struct {
+	M map[interface{}]string `yaml:"m"`
+}
+
+type ctYStrings struct {
+	M map[string]string `yaml:"m"`
+}
+
+type ctYClashInner struct {
+	ID string `yaml:"id"`
+}
+
+type ctYClash struct {
+	ID            string `yaml:"id"`
+	ctYClashInner `yaml:",inline"`
+}
+
 type ctMinOverride struct {
 	A string `json:"a" validate:"ct_override=abc"`
 }
@@ -1383,6 +1409,39 @@ func contractRows() []contractRow {
 				}
 			}
 			return nil
+		}},
+		{"yaml", "a later aliased key wins over an earlier key", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctYKeyMap]([]byte("x: &k a\nattrs: {a: 1, *k : 2}\n"), model.FormatYAML)
+			if err != nil || got.Attrs["a"] != 2 {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"yaml", "a null key cannot go in a string map", 0, func() error {
+			return wantYAMLError[ctYKeyMap]("attrs: {~: 1, a: 3}\n")
+		}},
+		{"yaml", "a null key cannot go in an inline map", 0, func() error {
+			return wantYAMLError[ctYKeyInline]("name: x\n~: 1\n")
+		}},
+		{"yaml", "a null key is an unknown key on a struct", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctYMerge]([]byte("~: 1\ntrigger: 2\n"), model.FormatYAML)
+			if err != nil || got.Trigger != 2 {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"yaml", "merged keys of two types cannot share an interface map", 0, func() error {
+			return wantYAMLError[ctYAnyStrings]("b: &b {\"1\": str}\nm:\n  <<: *b\n  1: int\n")
+		}},
+		{"yaml", "an explicit key still beats a merged one in a string map", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctYStrings]([]byte("b: &b {\"1\": str}\nm:\n  <<: *b\n  1: int\n"), model.FormatYAML)
+			if err != nil || got.M["1"] != "int" {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"yaml", "two fields claiming one key is an error", 0, func() error {
+			return wantYAMLError[ctYClash]("id: x\n")
 		}},
 		{"yaml", "plain alias", 0, func() error {
 			const body = "x: &x {a: 1, b: 2}\nv: *x\n"

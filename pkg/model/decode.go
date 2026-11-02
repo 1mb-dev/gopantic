@@ -227,6 +227,13 @@ type node struct {
 	yml    *yaml.Node
 
 	keyNodes []*yaml.Node // Parallel to keys, for YAML mappings
+	mixedKey string       // A key that appears with two types, which keys cannot tell apart
+}
+
+// isNullKey reports a YAML null key. Its text is whatever the document spelled it as, so it must
+// not be taken for a string.
+func (n *node) isNullKey(i int) bool {
+	return i < len(n.keyNodes) && n.keyNodes[i].ShortTag() == "!!null"
 }
 
 func (n *node) decodeInto(out interface{}) error {
@@ -369,7 +376,7 @@ func yamlToNode(y *yaml.Node) *node {
 		return n
 	case yaml.MappingNode:
 		n := &node{kind: nodeObject, yml: y}
-		addYAMLMapping(n, y, map[string]bool{})
+		addYAMLMapping(n, y, map[string]int{}, false)
 		return n
 	default:
 		return &node{kind: nodeNull}
@@ -380,7 +387,9 @@ func yamlToNode(y *yaml.Node) *node {
 // a later << replaces an earlier one, and earlier sources in a merge list win. Keys already
 // seen are skipped before their value is visited, so this expands no more than the
 // whole-document decode that vetted it.
-func addYAMLMapping(n *node, y *yaml.Node, seen map[string]bool) {
+// addYAMLMapping flattens a mapping and its merges. A key repeated in the mapping itself, which
+// only an alias can do, takes the later value. A merged key never replaces one already there.
+func addYAMLMapping(n *node, y *yaml.Node, seen map[string]int, merged bool) {
 	var merge *yaml.Node
 	for i := 0; i+1 < len(y.Content); i += 2 {
 		key, value := y.Content[i], y.Content[i+1]
@@ -391,10 +400,16 @@ func addYAMLMapping(n *node, y *yaml.Node, seen map[string]bool) {
 		if key.Kind == yaml.AliasNode {
 			key = key.Alias
 		}
-		if seen[key.Value] {
+		if at, repeated := seen[key.Value]; repeated {
+			if n.keyNodes[at].ShortTag() != key.ShortTag() {
+				n.mixedKey = key.Value
+			}
+			if !merged {
+				n.keyNodes[at], n.values[at] = key, yamlToNode(value)
+			}
 			continue
 		}
-		seen[key.Value] = true
+		seen[key.Value] = len(n.keys)
 		n.keys = append(n.keys, key.Value)
 		n.keyNodes = append(n.keyNodes, key)
 		n.values = append(n.values, yamlToNode(value))
@@ -412,7 +427,7 @@ func addYAMLMapping(n *node, y *yaml.Node, seen map[string]bool) {
 			source = source.Alias
 		}
 		if source.Kind == yaml.MappingNode {
-			addYAMLMapping(n, source, seen)
+			addYAMLMapping(n, source, seen, true)
 		}
 	}
 }
@@ -623,9 +638,19 @@ func (w *walker) assignStruct(n *node, out reflect.Value, path *fieldPath) {
 	}
 
 	table := fieldsOf(out.Type(), w.format)
+	if table.clash != "" {
+		w.fail(path, n, out.Type(), fmt.Sprintf("two fields claim the key %q", table.clash))
+		return
+	}
 	for i, key := range n.keys {
 		if w.errs.full() {
 			return
+		}
+		if n.isNullKey(i) {
+			if table.inlineMap != nil {
+				w.report(table.inlineField(path), nil, out.Type().String(), "a null key cannot go in this map")
+			}
+			continue
 		}
 		entry := table.lookup(key, w.format)
 		if entry == nil {
@@ -686,7 +711,7 @@ func (w *walker) assignInline(table *fieldTable, key string, value *node, out re
 	if table.inlineMap == nil {
 		return
 	}
-	here := &fieldPath{parent: path, kind: pathField, name: table.inlinePath, hidden: table.inlineHidden}
+	here := table.inlineField(path)
 	dst, err := fieldByIndex(out, table.inlineMap)
 	if err != nil {
 		w.report(here, nil, out.Type().String(), err.Error())
@@ -738,15 +763,23 @@ func (w *walker) assignMap(n *node, out reflect.Value, path *fieldPath) {
 		w.fail(path, n, typ, fmt.Sprintf("cannot coerce %s to %s", n.describe(), typ))
 		return
 	}
+	typedKeys := n.yml != nil && typ.Key().Kind() == reflect.Interface
+	if typedKeys && n.mixedKey != "" {
+		w.fail(path, n, typ, fmt.Sprintf("key %q appears with two types", n.mixedKey))
+		return
+	}
 	if out.IsNil() {
 		out.Set(reflect.MakeMapWithSize(typ, len(n.keys)))
 	}
 	for i, key := range n.keys {
-		if n.yml != nil && typ.Key().Kind() == reflect.Interface {
+		switch {
+		case typedKeys:
 			w.assignTypedKeyEntry(n.keyNodes[i], key, n.values[i], out, path)
-			continue
+		case n.isNullKey(i):
+			w.report(path, nil, typ.String(), "a null key cannot go in this map")
+		default:
+			w.assignMapEntry(key, n.values[i], out, path)
 		}
-		w.assignMapEntry(key, n.values[i], out, path)
 	}
 }
 
@@ -842,7 +875,12 @@ type fieldTable struct {
 	inlineMap []int
 
 	inlinePath   string
-	inlineHidden bool // The inline map is kept out of JSON
+	clash        string // A YAML key two fields claim, which yaml.v3 refuses
+	inlineHidden bool   // The inline map is kept out of JSON
+}
+
+func (t *fieldTable) inlineField(path *fieldPath) *fieldPath {
+	return &fieldPath{parent: path, kind: pathField, name: t.inlinePath, hidden: t.inlineHidden}
 }
 
 // lookup matches like the format's decoder: encoding/json falls back to case folding, and
@@ -1023,6 +1061,13 @@ func buildYAMLFields(typ reflect.Type) *fieldTable {
 	built := newFieldTable(fields)
 	built.inlineMap = table.inlineMap
 	built.inlinePath = table.inlinePath
+	claimed := make(map[string]bool, len(fields))
+	for _, field := range fields {
+		if claimed[field.name] {
+			built.clash = field.name
+		}
+		claimed[field.name] = true
+	}
 	built.inlineHidden = table.inlineHidden
 	return built
 }

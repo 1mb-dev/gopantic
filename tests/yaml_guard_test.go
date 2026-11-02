@@ -2,9 +2,11 @@ package tests
 
 import (
 	"fmt"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/1mb-dev/gopantic/pkg/model"
 )
@@ -177,5 +179,75 @@ func TestYAMLKeyComparisonsSetting(t *testing.T) {
 	model.SetMaxYAMLKeyComparisons(-1)
 	if got := model.GetMaxYAMLKeyComparisons(); got != 50_000_000 {
 		t.Fatalf("negative limit gave %d", got)
+	}
+}
+
+type mustParseServer struct {
+	Host    string        `yaml:"host"`
+	Port    int           `yaml:"port"`
+	Timeout time.Duration `yaml:"timeout"`
+}
+
+type mustParseConfig struct {
+	Name    string            `yaml:"name"`
+	Enabled bool              `yaml:"enabled"`
+	Ratio   float64           `yaml:"ratio"`
+	Start   time.Time         `yaml:"start"`
+	Size    int               `yaml:"size"`
+	Tags    []string          `yaml:"tags"`
+	Labels  map[string]string `yaml:"labels"`
+	Limits  map[int]string    `yaml:"limits"`
+	Server  mustParseServer   `yaml:"server"`
+	Backup  *mustParseServer  `yaml:"backup"`
+}
+
+// Rejections cannot be caught by comparing accepted output, and a strict fix looks like a pass.
+// These are ordinary documents, with fixed answers, that have to keep parsing.
+func TestYAMLMustParse(t *testing.T) {
+	want := mustParseConfig{
+		Name: "api", Enabled: true, Ratio: 0.5, Size: 1000,
+		Start:  time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC),
+		Tags:   []string{"a", "b"},
+		Labels: map[string]string{"tier": "web", "yes": "no"},
+		Limits: map[int]string{1: "one"},
+		Server: mustParseServer{Host: "h", Port: 80, Timeout: 30 * time.Second},
+		Backup: &mustParseServer{Host: "h", Port: 80, Timeout: 30 * time.Second},
+	}
+	const body = `# A comment first
+defaults: &srv
+  host: h
+  port: 80
+  timeout: 30s
+name: api
+"enabled": yes
+ratio: 0.5
+start: 2026-01-02
+size: 1_000
+tags: [a, b]
+labels:
+  tier: web
+  "yes": "no"
+limits: {1: one}
+server: *srv
+backup:
+  <<: *srv
+unknown: {ignored: true}
+~: also ignored
+`
+	for name, input := range map[string]string{
+		"plain":            body,
+		"document marker":  "---\n" + body,
+		"multiple docs":    body + "---\nname: second\n",
+		"trailing newline": body + "\n\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			got, err := model.ParseIntoWithFormat[mustParseConfig]([]byte(input), model.FormatYAML)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("got  %+v\nwant %+v", got, want)
+			}
+		})
 	}
 }

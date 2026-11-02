@@ -34,9 +34,9 @@ When two fields claim one YAML key, usually through an inline struct, one of the
 
 An inline map needs string keys: `map[interface{}]T` with `yaml:",inline"` errors on every key, as it does in `yaml.v3`.
 
-Format detection reads the first few lines, and it guesses wrong on some YAML. A single line like `name: Alice`, a block of comments at the top, quoted keys, and parents with nothing after the colon can all be taken for JSON, which then fails as a syntax error. Use `ParseIntoWithFormat` with `FormatYAML` when you know the format.
+Format detection guesses wrong on some YAML. Input starting with `{` or `[` is always JSON, so one-line YAML like `{a: 1}` is a syntax error under `ParseInto`. A single line like `name: Alice`, a block of comments at the top, quoted keys, and parents with nothing after the colon can also be taken for JSON. Use `ParseIntoWithFormat` with `FormatYAML` when you know the format.
 
-Input starting with `{` or `[` is treated as JSON, so one-line YAML like `{a: 1}` is a syntax error under `ParseInto`. Use `ParseIntoWithFormat` with `FormatYAML`.
+A mapping with a merge skips the check for two keys landing on one Go key, so `{<<: {}, 0x10: a, 16: b}` into `map[int]string` keeps only `b`. `yaml.v3` does the same.
 
 A YAML document can't need more than 50,000,000 key comparisons, because `yaml.v3` compares every pair of keys in a mapping, and again for each alias of it. That's one mapping of 10,000 keys, or 100 of 1,000. `SetMaxYAMLKeyComparisons` changes it. A Go map target decodes its keys once more, so it costs about twice what the budget counts.
 

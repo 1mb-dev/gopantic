@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.5.0] - 2026-11-02
 
-A value gopantic returns without error is now the value the input meant, and every rule on a field either decoder can set has run. So input that v1.4 accepted can fail. If you need time to adapt, stay on v1.4.1 and work through **Behavior changes** below. Each item says what you will see and what to do, and names the row in `tests/contract_test.go` that holds it.
+A value gopantic returns without error is now the value the input meant, and every rule on a field either decoder can set has run. So input that v1.4 accepted can fail. If you need time to adapt, you can stay on v1.4.1, which still has the problems listed under Security, and work through **Behavior changes** below. Each item says what you will see and what to do, and names the row in `tests/contract_test.go` that holds it.
 
 ### Behavior changes
 
@@ -64,7 +64,7 @@ Settings:
 
 ### Security
 
-- A small YAML document could exhaust memory or CPU. `yaml.v3` compares every pair of keys and formats an error for each duplicate, so 15 KB of repeated keys allocated 800 MB and 1.2 MB of distinct keys took 2 minutes, far below `MaxInputSize`. `ParseInto` auto-detects YAML, so this reached endpoints that only expect JSON. Duplicates are now rejected in linear time and the remaining cost has a budget. Use `ParseIntoWithFormat` with `FormatJSON` for JSON-only input.
+- A small YAML document could exhaust memory or CPU. `yaml.v3` compares every pair of keys and formats an error for each duplicate, so 15 KB of repeated keys allocated 800 MB and 1.2 MB of distinct keys took 2 minutes, far below `MaxInputSize`. Duplicates are now rejected in linear time, and key comparisons have a budget. Parsing a large document still costs memory, and `ParseInto` still accepts YAML on an endpoint that only expects JSON, so use `ParseIntoWithFormat` with `FormatJSON` there. See [Known limitations](known-limitations.md).
 - A YAML merge with a sequence for a key panicked inside `yaml.v3`, on 21 bytes of input. It's now a parse error.
 - Validation could be skipped: nested rules stopped running after the first parse of a type, and rules on slice elements, map values and top-level slices didn't always run. Input that should have been rejected was returned as valid.
 - `CachedParser` returned shared slices and maps, so one caller could alter what the next received. Keys for input under 1 KB used a 64-bit FNV hash, which can be made to collide; they are now SHA-256.

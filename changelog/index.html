@@ -1840,7 +1840,7 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="150-2026-11-02">[1.5.0] - 2026-11-02</h2>
-<p>A value gopantic returns without error is now the value the input meant, and every rule on a field either decoder can set has run. So input that v1.4 accepted can fail. If you need time to adapt, stay on v1.4.1 and work through <strong>Behavior changes</strong> below. Each item says what you will see and what to do, and names the row in <code>tests/contract_test.go</code> that holds it.</p>
+<p>A value gopantic returns without error is now the value the input meant, and every rule on a field either decoder can set has run. So input that v1.4 accepted can fail. If you need time to adapt, you can stay on v1.4.1, which still has the problems listed under Security, and work through <strong>Behavior changes</strong> below. Each item says what you will see and what to do, and names the row in <code>tests/contract_test.go</code> that holds it.</p>
 <h3 id="behavior-changes">Behavior changes</h3>
 <p>Input that used to pass can now be rejected, depending on the data:</p>
 <ul>
@@ -1902,7 +1902,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="security">Security</h3>
 <ul>
-<li>A small YAML document could exhaust memory or CPU. <code>yaml.v3</code> compares every pair of keys and formats an error for each duplicate, so 15 KB of repeated keys allocated 800 MB and 1.2 MB of distinct keys took 2 minutes, far below <code>MaxInputSize</code>. <code>ParseInto</code> auto-detects YAML, so this reached endpoints that only expect JSON. Duplicates are now rejected in linear time and the remaining cost has a budget. Use <code>ParseIntoWithFormat</code> with <code>FormatJSON</code> for JSON-only input.</li>
+<li>A small YAML document could exhaust memory or CPU. <code>yaml.v3</code> compares every pair of keys and formats an error for each duplicate, so 15 KB of repeated keys allocated 800 MB and 1.2 MB of distinct keys took 2 minutes, far below <code>MaxInputSize</code>. Duplicates are now rejected in linear time, and key comparisons have a budget. Parsing a large document still costs memory, and <code>ParseInto</code> still accepts YAML on an endpoint that only expects JSON, so use <code>ParseIntoWithFormat</code> with <code>FormatJSON</code> there. See <a href="../known-limitations/">Known limitations</a>.</li>
 <li>A YAML merge with a sequence for a key panicked inside <code>yaml.v3</code>, on 21 bytes of input. It's now a parse error.</li>
 <li>Validation could be skipped: nested rules stopped running after the first parse of a type, and rules on slice elements, map values and top-level slices didn't always run. Input that should have been rejected was returned as valid.</li>
 <li><code>CachedParser</code> returned shared slices and maps, so one caller could alter what the next received. Keys for input under 1 KB used a 64-bit FNV hash, which can be made to collide; they are now SHA-256.</li>

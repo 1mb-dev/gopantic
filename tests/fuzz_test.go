@@ -6,6 +6,7 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -419,6 +420,7 @@ func FuzzYAMLDifferential(f *testing.F) {
 		"attrs: {a: 1}\nby_id: {1: a}\n", "any_keys: {a: b, 2: c}\n", "any: {a: [1, 2]}\n",
 		"next: {name: b}\nptr: 3\n", "other: 1\n", "base: &b {a: 1}\nattrs:\n  <<: *b\n  c: 2\n",
 		"a: &x 1\nb: *x\n", "- a\n- 1\n", "a: 1\nb: 2\n", "any_keys:\n  <<: {1: x}\n  2: y\n",
+		"x: &k a\nattrs: {a: 1, *k : 2}\n", "attrs: {~: 1}\n", "?", "b: &b {\"1\": s}\nany_keys:\n  <<: *b\n  1: t\n",
 	} {
 		f.Add([]byte(seed))
 	}
@@ -431,5 +433,20 @@ func FuzzYAMLDifferential(f *testing.F) {
 		checkAcceptedMatchesYAML[map[string]interface{}](t, data)
 		checkAcceptedMatchesYAML[[]interface{}](t, data)
 		checkAcceptedMatchesYAML[interface{}](t, data)
+		checkYAMLAccepted(t, data)
 	})
+}
+
+// checkYAMLAccepted is the other direction, for wrongful rejection. An untyped target gives
+// coercion nothing to refuse, so anything yaml.v3 accepts must parse, unless a limit stopped it.
+func checkYAMLAccepted(t *testing.T, data []byte) {
+	t.Helper()
+	var want interface{}
+	if err := yaml.Unmarshal(data, &want); err != nil {
+		return
+	}
+	_, err := model.ParseIntoWithFormat[interface{}](data, model.FormatYAML)
+	if err != nil && !strings.Contains(err.Error(), "key comparisons") && !strings.Contains(err.Error(), "depth") {
+		t.Fatalf("%q: yaml.v3 accepted it, gopantic said %v", data, err)
+	}
 }

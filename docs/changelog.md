@@ -25,9 +25,13 @@ Input that used to pass can now be rejected, depending on the data:
 
 - **Large YAML mappings can be refused.** A document needing more than 50,000,000 key comparisons now errors before decoding: one mapping of 10,000 keys, or 100 of 1,000. Raise it with `SetMaxYAMLKeyComparisons`, or pass 0 to turn the budget off. Test: `TestYAMLGuardChargesAllComparisons`.
 
+- **Some YAML keys are now errors.** A null key can't go in a typed map, and a key that appears with two types through a merge can't go in an interface-keyed map. Both used to store the wrong thing. A null key on a struct is still ignored like any unknown key. Tests: `yaml/a null key cannot go in a string map`, `yaml/merged keys of two types cannot share an interface map`.
+
 Types that used to work can now fail on every parse:
 
 - **A tag that can't run is an error**, for every parse and `Validate` of that type, even under an empty slice. This covers misspelled rules, a missing or malformed parameter such as `min` or `min=abc`, and stray commas. Rules that were never built in are the likely surprise: older docs showed `gtfield` as a feature, and it never existed. `eqfield` and `oneof` appeared as custom rules to register, so they fail only if you copied the tag without the registration. Register the rule or remove the tag. Use `ParseValidationTags(...).TagErrors` to find these in a test. Tests: the `tags` group.
+
+- **Two fields claiming one YAML key is an error**, as it is in `yaml.v3`. An inline struct is the usual cause. Test: `yaml/two fields claiming one key is an error`.
 
 `Validate` can now fail where it passed:
 

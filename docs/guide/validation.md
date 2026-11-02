@@ -135,7 +135,7 @@ if errors.As(err, &v) {
 }
 ```
 
-`errors.As` stops at the first match. `list.ValidationErrors()` returns them all, `list.GroupByField()` groups them, and `list.ToJSON()` renders a report of every error, which you can return from an API. Conversion failures are `*model.ParseError`, and appear there under the rule `parse`. A parse reports at most 100 errors and then one saying it stopped.
+`errors.As` stops at the first match. `list.ValidationErrors()` returns them all, `list.GroupByField()` groups them, and `list.ToJSON()` renders the validation errors as a report for an API. Conversion failures are `*model.ParseError`, and aren't in that report, so check for them before returning one. A parse reports at most 100 errors and then one saying it stopped.
 
 ## Sensitive values
 

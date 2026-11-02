@@ -638,10 +638,6 @@ func (w *walker) assignStruct(n *node, out reflect.Value, path *fieldPath) {
 	}
 
 	table := fieldsOf(out.Type(), w.format)
-	if table.clash != "" {
-		w.fail(path, n, out.Type(), fmt.Sprintf("two fields claim the key %q", table.clash))
-		return
-	}
 	for i, key := range n.keys {
 		if w.errs.full() {
 			return
@@ -875,8 +871,7 @@ type fieldTable struct {
 	inlineMap []int
 
 	inlinePath   string
-	clash        string // A YAML key two fields claim, which yaml.v3 refuses
-	inlineHidden bool   // The inline map is kept out of JSON
+	inlineHidden bool // The inline map is kept out of JSON
 }
 
 func (t *fieldTable) inlineField(path *fieldPath) *fieldPath {
@@ -1061,13 +1056,6 @@ func buildYAMLFields(typ reflect.Type) *fieldTable {
 	built := newFieldTable(fields)
 	built.inlineMap = table.inlineMap
 	built.inlinePath = table.inlinePath
-	claimed := make(map[string]bool, len(fields))
-	for _, field := range fields {
-		if claimed[field.name] {
-			built.clash = field.name
-		}
-		claimed[field.name] = true
-	}
 	built.inlineHidden = table.inlineHidden
 	return built
 }

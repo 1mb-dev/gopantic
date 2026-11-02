@@ -789,15 +789,6 @@ type ctYStrings struct {
 	M map[string]string `yaml:"m"`
 }
 
-type ctYClashInner struct {
-	ID string `yaml:"id"`
-}
-
-type ctYClash struct {
-	ID            string `yaml:"id"`
-	ctYClashInner `yaml:",inline"`
-}
-
 type ctPwUser struct {
 	Name     string `json:"name"`
 	Password string `json:"password"`
@@ -1465,9 +1456,6 @@ func contractRows() []contractRow {
 				return fmt.Errorf("got %+v, err %v", got, err)
 			}
 			return nil
-		}},
-		{"yaml", "two fields claiming one key is an error", 0, func() error {
-			return wantYAMLError[ctYClash]("id: x\n")
 		}},
 		{"yaml", "plain alias", 0, func() error {
 			const body = "x: &x {a: 1, b: 2}\nv: *x\n"

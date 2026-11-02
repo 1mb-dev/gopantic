@@ -30,6 +30,8 @@ An element that fails to decode can be reported twice: `{"items":[5]}` into a `[
 
 ## Formats
 
+When two fields claim one YAML key, usually through an inline struct, one of them silently gets the value. `yaml.v3` refuses such a type.
+
 An inline map needs string keys: `map[interface{}]T` with `yaml:",inline"` errors on every key, as it does in `yaml.v3`.
 
 Format detection reads the first few lines, and it guesses wrong on some YAML. A single line like `name: Alice`, a block of comments at the top, quoted keys, and parents with nothing after the colon can all be taken for JSON, which then fails as a syntax error. Use `ParseIntoWithFormat` with `FormatYAML` when you know the format.
@@ -47,6 +49,8 @@ Matching is by substring on names. It over-redacts `Author`, and it can't know `
 Long map keys match on their first 64 bytes, because scanning whole keys would let one long key cost time on every error. A key that only looks sensitive past that point isn't redacted.
 
 Errors keep the rejected value in `Value`. Log `SanitizedValue()`.
+
+`ToJSON` only reports validation errors. A failed parse has none, so its report is empty: check `ValidationErrors()` for a length, or use the error itself.
 
 ## Caching
 

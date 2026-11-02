@@ -33,8 +33,6 @@ Types that used to work can now fail on every parse:
 
 - **A tag that can't run is an error**, for every parse and `Validate` of that type, even under an empty slice. This covers misspelled rules, a missing or malformed parameter such as `min` or `min=abc`, and stray commas. Rules that were never built in are the likely surprise: older docs showed `gtfield` as a feature, and it never existed. `eqfield` and `oneof` appeared as custom rules to register, so they fail only if you copied the tag without the registration. Register the rule or remove the tag. Use `ParseValidationTags(...).TagErrors` to find these in a test. Tests: the `tags` group.
 
-- **Two fields claiming one YAML key is an error**, as it is in `yaml.v3`. An inline struct is the usual cause. Test: `yaml/two fields claiming one key is an error`.
-
 `Validate` can now fail where it passed:
 
 - **`Validate` runs rules on `json:"-"` fields.** v1.4 skipped them everywhere. Parsing still skips them when no decoder can set the field, but a field with `json:"-" yaml:"x"` keeps its rules on every parse, and `required` there now fails on JSON input. See [Fields input cannot set](guide/validation.md#fields-input-cannot-set). Tests: `validation/Validate runs the rule on a json:"-" field`, `validation/input does not choose the format that skips a rule`.
@@ -53,7 +51,6 @@ Errors look different:
 - **`ParseError` messages leave out values of sensitive fields.** Read `SanitizedValue()` or `Value` instead of parsing the message. Tests: the `errors` group.
 - **A rejected object or array no longer sits in `ParseError.Value`.** It holds `"object"` or `"array"`, since a secret could be nested inside. Test: `errors/a rejected object does not carry its contents`.
 
-- **`ToJSON` reports every error.** It only read validation errors, so a failed parse gave an empty report. Parse errors now appear with the rule `parse`, and anything else with `error`, in the order they happened. Test: `errors/ToJSON reports a failed parse`.
 - **`SanitizedValue` hides containers.** A failed rule on a slice or map returns `[REDACTED]`. `Value` still holds it. Test: `errors/a failed rule on a container keeps its contents out of the report`.
 
 Settings:

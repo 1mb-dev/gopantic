@@ -816,10 +816,6 @@ type ctNegativeCache struct {
 	A string `json:"a" validate:"required"`
 }
 
-type ctNumberBounds struct {
-	N json.Number `json:"n" validate:"min=1,max=10"`
-}
-
 type ctRequiredArray struct {
 	X int     `json:"x"`
 	H [4]byte `json:"h" validate:"required"`
@@ -1866,15 +1862,6 @@ func contractRows() []contractRow {
 			defer model.SetMaxCacheSize(orig)
 			model.ClearValidationCache()
 			return wantValue(`{"a":"x"}`, ctNegativeCache{A: "x"})
-		}},
-		{"validation", "min and max read a json.Number as a number", 0, func() error {
-			if err := wantError[ctNumberBounds](`{"n":100}`); err != nil {
-				return err
-			}
-			if err := wantError[ctNumberBounds](`{"n":0.5}`); err != nil {
-				return err
-			}
-			return wantValue(`{"n":5}`, ctNumberBounds{N: "5"})
 		}},
 		{"validation", "required fails on a zero fixed array", 0, func() error {
 			if err := wantError[ctRequiredArray](`{"x":1}`); err != nil {

@@ -22,7 +22,6 @@ Input that used to pass can now be rejected, depending on the data:
 - **A time with no date is rejected.** `12:30:00` used to parse to year 0. Send a full date. Test: `numeric/a time with no date is rejected`.
 - **`"NaN"` and `"Inf"` no longer convert to floats.** Send a number, or take a string field. Tests: `numeric/string NaN rejected`, `numeric/string Inf rejected`.
 - **Objects no longer convert to strings.** v1.4 returned Go syntax such as `map[a:1]`. Use a struct, a map or `json.RawMessage`. Test: `numeric/object is not a string`.
-- **`min` and `max` read a `json.Number` as a number.** They compared its length, so `max=10` passed `100`. Test: `validation/min and max read a json.Number as a number`.
 - **`required` fails on a zero fixed array.** It always passed. Test: `validation/required fails on a zero fixed array`.
 - **Rules past 32 levels of nesting are errors.** v1.4 skipped the limit on inputs that needed coercion. A rule that deep now fails rather than going unchecked; raise it with `SetMaxValidationDepth`. Types with no rules aren't affected. Test: `validation/rule below the depth limit fails closed`.
 

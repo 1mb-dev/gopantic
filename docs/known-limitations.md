@@ -18,6 +18,8 @@ If you parse into a type with a rule on a `json:"-"` field and never call `Valid
 
 `required` means not zero, so it can't tell a sent `0` from an absent key. Use a pointer.
 
+`min` and `max` on a `json.Number` compare its length, since its kind is string. Use a numeric field if the bound matters.
+
 Rules inside whatever an `interface{}` field holds don't run.
 
 The built-in set is small. There's no `url`, `uuid`, `oneof` or `gt`, and unknown rules are errors, so anything else has to be [registered](guide/validation.md#your-own-rules).

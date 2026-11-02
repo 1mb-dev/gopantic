@@ -23,6 +23,8 @@ Input that used to pass can now be rejected, depending on the data:
 - **Objects no longer convert to strings.** v1.4 returned Go syntax such as `map[a:1]`. Use a struct, a map or `json.RawMessage`. Test: `numeric/object is not a string`.
 - **Rules past 32 levels of nesting are errors.** v1.4 skipped the limit on inputs that needed coercion. A rule that deep now fails rather than going unchecked; raise it with `SetMaxValidationDepth`. Types with no rules aren't affected. Test: `validation/rule below the depth limit fails closed`.
 
+- **Large YAML mappings can be refused.** A document needing more than 50,000,000 key comparisons now errors before decoding: one mapping of 10,000 keys, or 100 of 1,000. Raise it with `SetMaxYAMLKeyComparisons`, or pass 0 to turn the budget off. Test: `TestYAMLGuardChargesAllComparisons`.
+
 Types that used to work can now fail on every parse:
 
 - **A tag that can't run is an error**, for every parse and `Validate` of that type, even under an empty slice. This covers misspelled rules, a missing or malformed parameter such as `min` or `min=abc`, and stray commas. Rules that were never built in are the likely surprise: older docs showed `gtfield` as a feature, and it never existed. `eqfield` and `oneof` appeared as custom rules to register, so they fail only if you copied the tag without the registration. Register the rule or remove the tag. Use `ParseValidationTags(...).TagErrors` to find these in a test. Tests: the `tags` group.
@@ -51,6 +53,7 @@ Errors look different:
 
 ### Security
 
+- A small YAML document could exhaust memory or CPU. `yaml.v3` compares every pair of keys and formats an error for each duplicate, so 15 KB of repeated keys allocated 800 MB and 1.2 MB of distinct keys took 2 minutes, far below `MaxInputSize`. `ParseInto` auto-detects YAML, so this reached endpoints that only expect JSON. Duplicates are now rejected in linear time and the remaining cost has a budget. Use `ParseIntoWithFormat` with `FormatJSON` for JSON-only input.
 - Validation could be skipped: nested rules stopped running after the first parse of a type, and rules on slice elements, map values and top-level slices didn't always run. Input that should have been rejected was returned as valid.
 - `CachedParser` returned shared slices and maps, so one caller could alter what the next received. Keys for input under 1 KB used a 64-bit FNV hash, which can be made to collide; they are now SHA-256.
 - Integers wrapped silently on overflow, so a limit checked after parsing could be passed with a value that wrapped into range.
@@ -61,6 +64,7 @@ Errors look different:
 ### Added
 
 - `len` as another name for `length`.
+- `SetMaxYAMLKeyComparisons`.
 - `ParseError.SanitizedValue()`, and `StructValidation.TagErrors`.
 - `ErrorList` works with `errors.As` and `errors.Is`. The documented `errors.As` pattern didn't work before.
 - A contract test suite, and differential fuzzing against `encoding/json` and `yaml.v3`.

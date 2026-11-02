@@ -32,6 +32,8 @@ An inline map needs string keys: `map[interface{}]T` with `yaml:",inline"` error
 
 Input starting with `{` or `[` is treated as JSON, so one-line YAML like `{a: 1}` is a syntax error under `ParseInto`. Use `ParseIntoWithFormat` with `FormatYAML`.
 
+A YAML document can't need more than 50,000,000 key comparisons, because `yaml.v3` compares every pair of keys in a mapping, and again for each alias of it. That's one mapping of 10,000 keys, or 100 of 1,000. `SetMaxYAMLKeyComparisons` changes it.
+
 YAML always takes the slow path through the walker, because `yaml.v3` ignores `json` tags. [Benchmarks](benchmarks.md) has the cost.
 
 ## Sensitive values

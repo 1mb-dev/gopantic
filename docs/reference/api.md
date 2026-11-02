@@ -97,6 +97,7 @@ Custom rules build their errors with `NewValidationError`, or `NewValidationErro
 |---------|---------|---------|
 | `SetMaxInputSize` | 10 MB | Larger input is rejected; 0 turns the check off |
 | `SetMaxStructureDepth` | 64 | Deeper input is rejected; 0 turns the check off |
+| `SetMaxYAMLKeyComparisons` | 50,000,000 | YAML needing more key comparisons is rejected; 0 turns the budget off |
 | `SetMaxValidationDepth` | 32 | Rules reached deeper than this are an error |
 | `SetMaxCacheSize` | 1000 | Types whose rules stay cached; 0 is unlimited |
 

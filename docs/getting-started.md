@@ -38,7 +38,7 @@ age: 30
 `))
 ```
 
-Detection reads the first byte, so `{` or `[` always means JSON. If you know the format, say so:
+Detection reads the first byte, so `{` or `[` always means JSON. If you know the format, say so, and do this on any endpoint that only expects JSON, since otherwise a client can send YAML:
 
 ```go
 user, err := model.ParseIntoWithFormat[User](data, model.FormatYAML)

@@ -237,7 +237,7 @@ func handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse and validate request using gopantic
-	createReq, err := model.ParseInto[CreateUserRequest](body)
+	createReq, err := model.ParseIntoWithFormat[CreateUserRequest](body, model.FormatJSON)
 	if err != nil {
 		// Convert gopantic errors to structured API response
 		if errorList, ok := err.(model.ErrorList); ok {
@@ -321,7 +321,7 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request, id int) {
 	}
 
 	// Parse and validate update request using gopantic
-	updateReq, err := model.ParseInto[UpdateUserRequest](body)
+	updateReq, err := model.ParseIntoWithFormat[UpdateUserRequest](body, model.FormatJSON)
 	if err != nil {
 		// Convert gopantic errors to structured API response
 		if errorList, ok := err.(model.ErrorList); ok {

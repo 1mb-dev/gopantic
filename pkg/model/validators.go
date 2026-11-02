@@ -1,12 +1,26 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"reflect"
 	"regexp"
 	"strings"
 )
+
+// numberValue gives a json.Number its numeric value: its kind is string, so the bounds would
+// otherwise compare its length. One that is not a number becomes NaN, which fails both bounds.
+func numberValue(val reflect.Value) reflect.Value {
+	if val.Type() != jsonNumberType {
+		return val
+	}
+	f, err := json.Number(val.String()).Float64()
+	if err != nil {
+		return reflect.ValueOf(math.NaN())
+	}
+	return reflect.ValueOf(f)
+}
 
 // RequiredValidator checks that a field has a non-zero value
 type RequiredValidator struct{}
@@ -88,6 +102,7 @@ func (v *MinValidator) Validate(fieldName string, value interface{}) error {
 		}
 		val = val.Elem()
 	}
+	val = numberValue(val)
 
 	switch val.Kind() {
 	case reflect.String:
@@ -148,6 +163,7 @@ func (v *MaxValidator) Validate(fieldName string, value interface{}) error {
 		}
 		val = val.Elem()
 	}
+	val = numberValue(val)
 
 	switch val.Kind() {
 	case reflect.String:

@@ -816,6 +816,10 @@ type ctNegativeCache struct {
 	A string `json:"a" validate:"required"`
 }
 
+type ctNumberBounds struct {
+	N json.Number `json:"n" validate:"min=1,max=10"`
+}
+
 type ctMinOverride struct {
 	A string `json:"a" validate:"ct_override=abc"`
 }
@@ -1854,6 +1858,15 @@ func contractRows() []contractRow {
 			defer model.SetMaxCacheSize(orig)
 			model.ClearValidationCache()
 			return wantValue(`{"a":"x"}`, ctNegativeCache{A: "x"})
+		}},
+		{"validation", "min and max read a json.Number as a number", 0, func() error {
+			if err := wantError[ctNumberBounds](`{"n":100}`); err != nil {
+				return err
+			}
+			if err := wantError[ctNumberBounds](`{"n":0.5}`); err != nil {
+				return err
+			}
+			return wantValue(`{"n":5}`, ctNumberBounds{N: "5"})
 		}},
 		{"validation", "error count is capped on []struct", 0, func() error {
 			input := `{"trigger":1,"items":[` + strings.Repeat(`{},`, 5000) + `{}]}`

@@ -19,8 +19,11 @@ Input that used to pass can now be rejected, depending on the data:
 - **Unix timestamps must fall in years 1 to 9999.** `1e300` and YAML `.nan` into a `time.Time` used to give a garbage date. Tests: `numeric/time rejects a huge number`, `numeric/time rejects YAML NaN`.
 - **`json.Number` must hold a number.** `{"n":"abc"}` used to store `abc`. YAML keeps the digits as written, and spellings only YAML has, like `0x10`, store their value. Tests: `numeric/an invalid json.Number is rejected`, `numeric/a YAML json.Number keeps its digits`.
 - **Floats at or past 2^53 no longer convert to integers.** `1e16` into an `int` errors. Send the digits. Test: `numeric/exponent integer past 2^53 rejected`.
+- **A time with no date is rejected.** `12:30:00` used to parse to year 0. Send a full date. Test: `numeric/a time with no date is rejected`.
 - **`"NaN"` and `"Inf"` no longer convert to floats.** Send a number, or take a string field. Tests: `numeric/string NaN rejected`, `numeric/string Inf rejected`.
 - **Objects no longer convert to strings.** v1.4 returned Go syntax such as `map[a:1]`. Use a struct, a map or `json.RawMessage`. Test: `numeric/object is not a string`.
+- **`min` and `max` read a `json.Number` as a number.** They compared its length, so `max=10` passed `100`. Test: `validation/min and max read a json.Number as a number`.
+- **`required` fails on a zero fixed array.** It always passed. Test: `validation/required fails on a zero fixed array`.
 - **Rules past 32 levels of nesting are errors.** v1.4 skipped the limit on inputs that needed coercion. A rule that deep now fails rather than going unchecked; raise it with `SetMaxValidationDepth`. Types with no rules aren't affected. Test: `validation/rule below the depth limit fails closed`.
 
 - **Large YAML mappings can be refused.** A document needing more than 50,000,000 key comparisons now errors before decoding: one mapping of 10,000 keys, or 100 of 1,000. Raise it with `SetMaxYAMLKeyComparisons`, or pass 0 to turn the budget off. Test: `TestYAMLGuardChargesAllComparisons`.
@@ -51,6 +54,14 @@ Errors look different:
 - **`ParseError` messages leave out values of sensitive fields.** Read `SanitizedValue()` or `Value` instead of parsing the message. Tests: the `errors` group.
 - **A rejected object or array no longer sits in `ParseError.Value`.** It holds `"object"` or `"array"`, since a secret could be nested inside. Test: `errors/a rejected object does not carry its contents`.
 
+- **`ToJSON` reports every error.** It only read validation errors, so a failed parse gave an empty report. Parse errors now appear with the rule `parse`, and anything else with `error`, in the order they happened. Test: `errors/ToJSON reports a failed parse`.
+- **`SanitizedValue` hides containers.** A failed rule on a slice or map returns `[REDACTED]`. `Value` still holds it. Test: `errors/a failed rule on a container keeps its contents out of the report`.
+
+Settings:
+
+- **`SetMaxValidationDepth(0)` no longer turns the limit off**, since a pointer loop would then overflow the stack. Zero or less means the default of 32. Test: `validation/a depth of 0 cannot turn the limit off`.
+- **A negative `SetMaxCacheSize` means the default**, where it used to panic. Test: `validation/a negative cache size does not panic`.
+
 `CachedParser` differs:
 
 - **Results are copies.** Code that relied on two callers sharing a slice, which was never safe, will no longer see it. Types holding references gopantic can't copy are parsed on every call. Tests: `cache/mutating a hit does not reach the next caller`, `TestCachedParserBypassesUncopyableTypes`.
@@ -61,7 +72,7 @@ Errors look different:
 - Validation could be skipped: nested rules stopped running after the first parse of a type, and rules on slice elements, map values and top-level slices didn't always run. Input that should have been rejected was returned as valid.
 - `CachedParser` returned shared slices and maps, so one caller could alter what the next received. Keys for input under 1 KB used a 64-bit FNV hash, which can be made to collide; they are now SHA-256.
 - Integers wrapped silently on overflow, so a limit checked after parsing could be passed with a value that wrapped into range.
-- `ParseError` messages quoted values of sensitive fields, and values of `json:"-"` fields reached `ToJSON`.
+- `ParseError` messages quoted values of sensitive fields, and values of `json:"-"` fields and of nested fields inside a failed container reached `ToJSON`.
 - The YAML depth limit missed maps with non-string keys.
 - The validator registry had a data race under concurrent registration.
 
@@ -83,6 +94,7 @@ Errors look different:
 
 - `NewCachedParser[any]` and a second `Close` no longer panic, and neither do `map` or pointer targets needing coercion.
 - `NaN` now fails `required`, `min` and `max`.
+- The package builds on 32-bit platforms again, with a CI job to keep it that way.
 - `CachedParser` checks input size before hashing.
 - Docs rewritten against the code, and a test now holds their examples, tags and links to it.
 

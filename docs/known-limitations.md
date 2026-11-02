@@ -30,6 +30,8 @@ An element that fails to decode can be reported twice: `{"items":[5]}` into a `[
 
 An inline map needs string keys: `map[interface{}]T` with `yaml:",inline"` errors on every key, as it does in `yaml.v3`.
 
+Format detection reads the first few lines, and it guesses wrong on some YAML. A single line like `name: Alice`, a block of comments at the top, quoted keys, and parents with nothing after the colon can all be taken for JSON, which then fails as a syntax error. Use `ParseIntoWithFormat` with `FormatYAML` when you know the format.
+
 Input starting with `{` or `[` is treated as JSON, so one-line YAML like `{a: 1}` is a syntax error under `ParseInto`. Use `ParseIntoWithFormat` with `FormatYAML`.
 
 A YAML document can't need more than 50,000,000 key comparisons, because `yaml.v3` compares every pair of keys in a mapping, and again for each alias of it. That's one mapping of 10,000 keys, or 100 of 1,000. `SetMaxYAMLKeyComparisons` changes it.

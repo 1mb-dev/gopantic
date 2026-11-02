@@ -421,6 +421,8 @@ func FuzzYAMLDifferential(f *testing.F) {
 		"next: {name: b}\nptr: 3\n", "other: 1\n", "base: &b {a: 1}\nattrs:\n  <<: *b\n  c: 2\n",
 		"a: &x 1\nb: *x\n", "- a\n- 1\n", "a: 1\nb: 2\n", "any_keys:\n  <<: {1: x}\n  2: y\n",
 		"x: &k a\nattrs: {a: 1, *k : 2}\n", "attrs: {~: 1}\n", "?", "b: &b {\"1\": s}\nany_keys:\n  <<: *b\n  1: t\n",
+		"b: &b {0x10: m}\nby_id:\n  <<: *b\n  16: e\n", "b: &b {0x10: m}\nany_keys:\n  <<: *b\n  16: e\n",
+		"<<: {\"~\": m}\n~: y\n", "b: &b {true: m}\nany_keys:\n  <<: *b\n  True: e\n",
 	} {
 		f.Add([]byte(seed))
 	}

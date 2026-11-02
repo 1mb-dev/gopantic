@@ -27,7 +27,7 @@ Input that used to pass can now be rejected, depending on the data:
 
 - **Large YAML mappings can be refused.** A document needing more than 50,000,000 key comparisons now errors before decoding: one mapping of 10,000 keys, or 100 of 1,000. Raise it with `SetMaxYAMLKeyComparisons`, or pass 0 to turn the budget off. Test: `TestYAMLGuardChargesAllComparisons`.
 
-- **Some YAML keys are now errors.** A null key can't go in a typed map, and a key that appears with two types through a merge can't go in an interface-keyed map. Both used to store the wrong thing. A null key on a struct is still ignored like any unknown key. Tests: `yaml/a null key cannot go in a string map`, `yaml/merged keys of two types cannot share an interface map`.
+- **Some YAML keys are now errors.** A null key can't go in a typed map, and two keys that land on one Go key, like `0x10` and `16` into `map[int]string`, are refused. A float key into an integer key type follows the rule for values, so `1.5` is an error. A null key on a struct is still ignored like any unknown key. Tests: `yaml/a null key cannot go in a string map`, `yaml/two spellings of one key are refused`, `yaml/a float key does not truncate into an int key`.
 
 Types that used to work can now fail on every parse:
 
@@ -65,6 +65,7 @@ Settings:
 ### Security
 
 - A small YAML document could exhaust memory or CPU. `yaml.v3` compares every pair of keys and formats an error for each duplicate, so 15 KB of repeated keys allocated 800 MB and 1.2 MB of distinct keys took 2 minutes, far below `MaxInputSize`. `ParseInto` auto-detects YAML, so this reached endpoints that only expect JSON. Duplicates are now rejected in linear time and the remaining cost has a budget. Use `ParseIntoWithFormat` with `FormatJSON` for JSON-only input.
+- A YAML merge with a sequence for a key panicked inside `yaml.v3`, on 18 bytes of input. It's now a parse error.
 - Validation could be skipped: nested rules stopped running after the first parse of a type, and rules on slice elements, map values and top-level slices didn't always run. Input that should have been rejected was returned as valid.
 - `CachedParser` returned shared slices and maps, so one caller could alter what the next received. Keys for input under 1 KB used a 64-bit FNV hash, which can be made to collide; they are now SHA-256.
 - Integers wrapped silently on overflow, so a limit checked after parsing could be passed with a value that wrapped into range.

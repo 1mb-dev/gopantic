@@ -18,7 +18,7 @@ If you parse into a type with a rule on a `json:"-"` field and never call `Valid
 
 `required` means not zero, so it can't tell a sent `0` from an absent key. Use a pointer.
 
-`min` and `max` on a `json.Number` compare its length, since its kind is string. Use a numeric field if the bound matters.
+`min` and `max` on a `json.Number` compare its length, since its kind is string, so `max=10` passes `100`. Use a numeric field if the bound matters.
 
 Rules inside whatever an `interface{}` field holds don't run.
 
@@ -38,7 +38,7 @@ Format detection reads the first few lines, and it guesses wrong on some YAML. A
 
 Input starting with `{` or `[` is treated as JSON, so one-line YAML like `{a: 1}` is a syntax error under `ParseInto`. Use `ParseIntoWithFormat` with `FormatYAML`.
 
-A YAML document can't need more than 50,000,000 key comparisons, because `yaml.v3` compares every pair of keys in a mapping, and again for each alias of it. That's one mapping of 10,000 keys, or 100 of 1,000. `SetMaxYAMLKeyComparisons` changes it.
+A YAML document can't need more than 50,000,000 key comparisons, because `yaml.v3` compares every pair of keys in a mapping, and again for each alias of it. That's one mapping of 10,000 keys, or 100 of 1,000. `SetMaxYAMLKeyComparisons` changes it. A Go map target decodes its keys once more, so it costs about twice what the budget counts.
 
 YAML always takes the slow path through the walker, because `yaml.v3` ignores `json` tags. [Benchmarks](benchmarks.md) has the cost.
 

@@ -56,9 +56,17 @@ func parseYAML[T any](raw []byte) (T, error) {
 	return walkInto[T](yamlToNode(doc), FormatYAML)
 }
 
-// decodeYAML is the one route from input into yaml.v3's decoder.
-func decodeYAML(raw []byte) (*yaml.Node, interface{}, error) {
-	doc := &yaml.Node{}
+// decodeYAML is the one route from input into yaml.v3's decoder. A merge with a sequence for a
+// key panics inside yaml.v3, on 18 bytes of input. No user code runs here, so a recover can only
+// be catching yaml.v3.
+func decodeYAML(raw []byte) (doc *yaml.Node, generic interface{}, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			doc, generic, err = nil, nil, fmt.Errorf("yaml parse error: %v", recovered)
+		}
+	}()
+
+	doc = &yaml.Node{}
 	if err := yaml.Unmarshal(raw, doc); err != nil {
 		return nil, nil, fmt.Errorf("yaml parse error: %w", err)
 	}
@@ -71,7 +79,6 @@ func decodeYAML(raw []byte) (*yaml.Node, interface{}, error) {
 	// and self-reference checks only while decoding a whole document: a Node target returns
 	// before expanding, and Node.Decode at a leaf starts with fresh counters, so the walk
 	// has no protection against an alias bomb except this.
-	var generic interface{}
 	if err := doc.Decode(&generic); err != nil {
 		return nil, nil, fmt.Errorf("yaml parse error: %w", err)
 	}
@@ -227,13 +234,52 @@ type node struct {
 	yml    *yaml.Node
 
 	keyNodes []*yaml.Node // Parallel to keys, for YAML mappings
-	mixedKey string       // A key that appears with two types, which keys cannot tell apart
+
+	repeatedKey string // A key repeated through an alias, which yaml.v3 refuses on a struct
+	hasMerge    bool
 }
 
 // isNullKey reports a YAML null key. Its text is whatever the document spelled it as, so it must
 // not be taken for a string.
 func (n *node) isNullKey(i int) bool {
 	return i < len(n.keyNodes) && n.keyNodes[i].ShortTag() == "!!null"
+}
+
+func (n *node) hasNullKey() bool {
+	for i := range n.keyNodes {
+		if n.isNullKey(i) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasLossyFloatKey reports a float key yaml.v3 would change, as it does a value: it truncates a
+// fraction into an integer key, and does not range-check a float32 key.
+func (n *node) hasLossyFloatKey(keyType reflect.Type) bool {
+	if !isIntegerKind(keyType.Kind()) && keyType.Kind() != reflect.Float32 {
+		return false
+	}
+	for _, key := range n.keyNodes {
+		if key.ShortTag() != "!!float" {
+			continue
+		}
+		var value float64
+		if keyType.Kind() == reflect.Float32 || key.Decode(&value) != nil || value != math.Trunc(value) {
+			return true
+		}
+	}
+	return false
+}
+
+func isIntegerKind(kind reflect.Kind) bool {
+	switch kind {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return true
+	default:
+		return false
+	}
 }
 
 func (n *node) decodeInto(out interface{}) error {
@@ -400,16 +446,19 @@ func addYAMLMapping(n *node, y *yaml.Node, seen map[string]int, merged bool) {
 		if key.Kind == yaml.AliasNode {
 			key = key.Alias
 		}
-		if at, repeated := seen[key.Value]; repeated {
-			if n.keyNodes[at].ShortTag() != key.ShortTag() {
-				n.mixedKey = key.Value
-			}
+		// A null key is not the string spelled the same way.
+		id := key.Value
+		if key.ShortTag() == "!!null" {
+			id = "\x00null"
+		}
+		if at, repeated := seen[id]; repeated {
 			if !merged {
+				n.repeatedKey = key.Value
 				n.keyNodes[at], n.values[at] = key, yamlToNode(value)
 			}
 			continue
 		}
-		seen[key.Value] = len(n.keys)
+		seen[id] = len(n.keys)
 		n.keys = append(n.keys, key.Value)
 		n.keyNodes = append(n.keyNodes, key)
 		n.values = append(n.values, yamlToNode(value))
@@ -418,6 +467,7 @@ func addYAMLMapping(n *node, y *yaml.Node, seen map[string]int, merged bool) {
 	if merge == nil {
 		return
 	}
+	n.hasMerge = true
 	sources := []*yaml.Node{merge}
 	if merge.Kind == yaml.SequenceNode {
 		sources = merge.Content
@@ -638,6 +688,10 @@ func (w *walker) assignStruct(n *node, out reflect.Value, path *fieldPath) {
 	}
 
 	table := fieldsOf(out.Type(), w.format)
+	if n.repeatedKey != "" && table.lookup(n.repeatedKey, w.format) != nil {
+		w.fail(path, n, out.Type(), fmt.Sprintf("field %q is set twice", n.repeatedKey))
+		return
+	}
 	for i, key := range n.keys {
 		if w.errs.full() {
 			return
@@ -759,48 +813,66 @@ func (w *walker) assignMap(n *node, out reflect.Value, path *fieldPath) {
 		w.fail(path, n, typ, fmt.Sprintf("cannot coerce %s to %s", n.describe(), typ))
 		return
 	}
-	typedKeys := n.yml != nil && typ.Key().Kind() == reflect.Interface
-	if typedKeys && n.mixedKey != "" {
-		w.fail(path, n, typ, fmt.Sprintf("key %q appears with two types", n.mixedKey))
+	// Checked before either path, so the answer does not depend on some other key.
+	if typ.Key().Kind() != reflect.Interface && n.hasNullKey() {
+		w.report(path, nil, typ.String(), "a null key cannot go in this map")
+		return
+	}
+	if n.yml != nil && !n.hasLossyFloatKey(typ.Key()) && w.assignYAMLMap(n, out, path) {
 		return
 	}
 	if out.IsNil() {
 		out.Set(reflect.MakeMapWithSize(typ, len(n.keys)))
 	}
 	for i, key := range n.keys {
-		switch {
-		case typedKeys:
-			w.assignTypedKeyEntry(n.keyNodes[i], key, n.values[i], out, path)
-		case n.isNullKey(i):
-			w.report(path, nil, typ.String(), "a null key cannot go in this map")
-		default:
-			w.assignMapEntry(key, n.values[i], out, path)
-		}
+		w.assignMapEntry(key, n.values[i], out, path)
 	}
 }
 
-// assignTypedKeyEntry keeps the type of a YAML key for an interface-keyed map. Only the key goes
-// to yaml.v3: the value stays on the walker, or it would lose coercion, json tags and redaction.
-func (w *walker) assignTypedKeyEntry(keyNode *yaml.Node, key string, value *node, out reflect.Value, path *fieldPath) {
-	keyType := out.Type().Key()
-
-	var typed interface{}
-	if err := keyNode.Decode(&typed); err != nil {
-		w.report(&fieldPath{parent: path, kind: pathKey, key: key}, key, keyType.String(), err.Error())
-		return
-	}
-
-	// The validation walk labels entries this way, and it skips failed paths by label.
-	here := &fieldPath{parent: path, kind: pathKey, key: fmt.Sprint(typed)}
-	mapKey := reflect.New(keyType).Elem()
-	if typed != nil {
-		if !reflect.TypeOf(typed).AssignableTo(keyType) {
-			w.report(here, key, keyType.String(), fmt.Sprintf("cannot use %T as a map key", typed))
-			return
+// assignYAMLMap lets yaml.v3 settle the keys, by decoding into nodes. It identifies a key by its
+// decoded value for the target key type, and merges depend on that, so comparing key text here
+// can only approximate it. Values stay on the walker, for coercion, json tags and redaction.
+//
+// It reports false when yaml.v3 refuses, and the text keys take over. That covers "1" into an
+// int key, and a fresh decoder tripping the alias ratio on a large merge. An interface key has no
+// such fallback, since text would turn 1 into "1".
+func (w *walker) assignYAMLMap(n *node, out reflect.Value, path *fieldPath) bool {
+	typ := out.Type()
+	decoded := reflect.New(reflect.MapOf(typ.Key(), yamlNodeType))
+	if err := n.yml.Decode(decoded.Interface()); err != nil {
+		if typ.Key().Kind() != reflect.Interface {
+			return false
 		}
-		mapKey.Set(reflect.ValueOf(typed))
+		w.fail(path, n, typ, err.Error())
+		return true
 	}
-	w.setMapEntry(mapKey, value, out, here)
+	if !n.hasMerge && decoded.Elem().Len() != len(n.keys) {
+		w.fail(path, n, typ, "two keys are the same map key")
+		return true
+	}
+
+	type entry struct {
+		label string
+		key   reflect.Value
+		value *yaml.Node
+	}
+	entries := make([]entry, 0, decoded.Elem().Len())
+	for iter := decoded.Elem().MapRange(); iter.Next(); {
+		value := iter.Value().Interface().(yaml.Node)
+		entries = append(entries, entry{label: fmt.Sprint(iter.Key().Interface()), key: iter.Key(), value: &value})
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].label < entries[j].label })
+
+	if out.IsNil() {
+		out.Set(reflect.MakeMapWithSize(typ, len(entries)))
+	}
+	for _, e := range entries {
+		if w.errs.full() {
+			break
+		}
+		w.setMapEntry(e.key, yamlToNode(e.value), out, &fieldPath{parent: path, kind: pathKey, key: e.label})
+	}
+	return true
 }
 
 func (w *walker) assignMapEntry(key string, value *node, out reflect.Value, path *fieldPath) {
@@ -810,6 +882,11 @@ func (w *walker) assignMapEntry(key string, value *node, out reflect.Value, path
 	mapKey, err := coerceMapKey(key, typ.Key())
 	if err != nil {
 		w.report(here, key, typ.Key().String(), err.Error())
+		return
+	}
+	// JSON keeps the last, as encoding/json does.
+	if w.format == FormatYAML && out.MapIndex(mapKey).IsValid() {
+		w.report(here, key, typ.Key().String(), "two keys are the same map key")
 		return
 	}
 	w.setMapEntry(mapKey, value, out, here)

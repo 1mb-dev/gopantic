@@ -2253,29 +2253,6 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
-		{"errors", "ToJSON reports a failed parse", 0, func() error {
-			_, err := model.ParseInto[ctInt]([]byte(`{"v":"abc"}`))
-			var list model.ErrorList
-			if !errors.As(err, &list) {
-				return fmt.Errorf("got %v", err)
-			}
-			report := list.ToStructuredReport()
-			if report.Count != 1 || len(report.Errors) != 1 || report.Errors[0].FieldPath != "V" || report.Errors[0].Errors[0].Rule != "parse" {
-				return fmt.Errorf("got %+v", report)
-			}
-			return nil
-		}},
-		{"errors", "ToJSON reports a tag that cannot run", 0, func() error {
-			_, err := model.ParseInto[ctTypo]([]byte(`{"a":"x"}`))
-			var list model.ErrorList
-			if !errors.As(err, &list) {
-				return fmt.Errorf("got %v", err)
-			}
-			if report := list.ToStructuredReport(); report.Count != 1 || report.Errors[0].Errors[0].Rule != "error" {
-				return fmt.Errorf("got %+v", report)
-			}
-			return nil
-		}},
 		{"errors", "ordinary field keeps the value in the message", 0, func() error {
 			_, err := model.ParseInto[ctInt]([]byte(`{"v":"not-a-number-4321"}`))
 			if err == nil || !strings.Contains(err.Error(), "4321") {

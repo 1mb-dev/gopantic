@@ -1903,7 +1903,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="security">Security</h3>
 <ul>
 <li>A small YAML document could exhaust memory or CPU. <code>yaml.v3</code> compares every pair of keys and formats an error for each duplicate, so 15 KB of repeated keys allocated 800 MB and 1.2 MB of distinct keys took 2 minutes, far below <code>MaxInputSize</code>. <code>ParseInto</code> auto-detects YAML, so this reached endpoints that only expect JSON. Duplicates are now rejected in linear time and the remaining cost has a budget. Use <code>ParseIntoWithFormat</code> with <code>FormatJSON</code> for JSON-only input.</li>
-<li>A YAML merge with a sequence for a key panicked inside <code>yaml.v3</code>, on 18 bytes of input. It's now a parse error.</li>
+<li>A YAML merge with a sequence for a key panicked inside <code>yaml.v3</code>, on 21 bytes of input. It's now a parse error.</li>
 <li>Validation could be skipped: nested rules stopped running after the first parse of a type, and rules on slice elements, map values and top-level slices didn't always run. Input that should have been rejected was returned as valid.</li>
 <li><code>CachedParser</code> returned shared slices and maps, so one caller could alter what the next received. Keys for input under 1 KB used a 64-bit FNV hash, which can be made to collide; they are now SHA-256.</li>
 <li>Integers wrapped silently on overflow, so a limit checked after parsing could be passed with a value that wrapped into range.</li>

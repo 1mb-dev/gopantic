@@ -40,6 +40,8 @@ Input starting with `{` or `[` is treated as JSON, so one-line YAML like `{a: 1}
 
 A YAML document can't need more than 50,000,000 key comparisons, because `yaml.v3` compares every pair of keys in a mapping, and again for each alias of it. That's one mapping of 10,000 keys, or 100 of 1,000. `SetMaxYAMLKeyComparisons` changes it. A Go map target decodes its keys once more, so it costs about twice what the budget counts.
 
+YAML is parsed into memory before any limit on its keys applies, so a document costs far more than its size even when it's rejected: 10 MB of repeated keys peaked at 925 MB and took 2.8 seconds. Since `ParseInto` picks the format from the input, this reaches endpoints that only expect JSON. Use `ParseIntoWithFormat` with `FormatJSON` on those, and a lower `SetMaxInputSize` wherever you accept YAML from untrusted clients.
+
 YAML always takes the slow path through the walker, because `yaml.v3` ignores `json` tags. [Benchmarks](benchmarks.md) has the cost.
 
 ## Sensitive values

@@ -65,7 +65,7 @@ Settings:
 ### Security
 
 - A small YAML document could exhaust memory or CPU. `yaml.v3` compares every pair of keys and formats an error for each duplicate, so 15 KB of repeated keys allocated 800 MB and 1.2 MB of distinct keys took 2 minutes, far below `MaxInputSize`. `ParseInto` auto-detects YAML, so this reached endpoints that only expect JSON. Duplicates are now rejected in linear time and the remaining cost has a budget. Use `ParseIntoWithFormat` with `FormatJSON` for JSON-only input.
-- A YAML merge with a sequence for a key panicked inside `yaml.v3`, on 18 bytes of input. It's now a parse error.
+- A YAML merge with a sequence for a key panicked inside `yaml.v3`, on 21 bytes of input. It's now a parse error.
 - Validation could be skipped: nested rules stopped running after the first parse of a type, and rules on slice elements, map values and top-level slices didn't always run. Input that should have been rejected was returned as valid.
 - `CachedParser` returned shared slices and maps, so one caller could alter what the next received. Keys for input under 1 KB used a 64-bit FNV hash, which can be made to collide; they are now SHA-256.
 - Integers wrapped silently on overflow, so a limit checked after parsing could be passed with a value that wrapped into range.

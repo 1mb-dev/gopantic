@@ -1858,10 +1858,18 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>
 <p><strong>Large YAML mappings can be refused.</strong> A document needing more than 50,000,000 key comparisons now errors before decoding: one mapping of 10,000 keys, or 100 of 1,000. Raise it with <code>SetMaxYAMLKeyComparisons</code>, or pass 0 to turn the budget off. Test: <code>TestYAMLGuardChargesAllComparisons</code>.</p>
 </li>
+<li>
+<p><strong>Some YAML keys are now errors.</strong> A null key can't go in a typed map, and a key that appears with two types through a merge can't go in an interface-keyed map. Both used to store the wrong thing. A null key on a struct is still ignored like any unknown key. Tests: <code>yaml/a null key cannot go in a string map</code>, <code>yaml/merged keys of two types cannot share an interface map</code>.</p>
+</li>
 </ul>
 <p>Types that used to work can now fail on every parse:</p>
 <ul>
-<li><strong>A tag that can't run is an error</strong>, for every parse and <code>Validate</code> of that type, even under an empty slice. This covers misspelled rules, a missing or malformed parameter such as <code>min</code> or <code>min=abc</code>, and stray commas. Rules that were never built in are the likely surprise: older docs showed <code>gtfield</code> as a feature, and it never existed. <code>eqfield</code> and <code>oneof</code> appeared as custom rules to register, so they fail only if you copied the tag without the registration. Register the rule or remove the tag. Use <code>ParseValidationTags(...).TagErrors</code> to find these in a test. Tests: the <code>tags</code> group.</li>
+<li>
+<p><strong>A tag that can't run is an error</strong>, for every parse and <code>Validate</code> of that type, even under an empty slice. This covers misspelled rules, a missing or malformed parameter such as <code>min</code> or <code>min=abc</code>, and stray commas. Rules that were never built in are the likely surprise: older docs showed <code>gtfield</code> as a feature, and it never existed. <code>eqfield</code> and <code>oneof</code> appeared as custom rules to register, so they fail only if you copied the tag without the registration. Register the rule or remove the tag. Use <code>ParseValidationTags(...).TagErrors</code> to find these in a test. Tests: the <code>tags</code> group.</p>
+</li>
+<li>
+<p><strong>Two fields claiming one YAML key is an error</strong>, as it is in <code>yaml.v3</code>. An inline struct is the usual cause. Test: <code>yaml/two fields claiming one key is an error</code>.</p>
+</li>
 </ul>
 <p><code>Validate</code> can now fail where it passed:</p>
 <ul>

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.5.0] - 2026-11-01
+## [1.5.0] - 2026-11-02
 
 A value gopantic returns without error is now the value the input meant, and every rule on a field either decoder can set has run. So input that v1.4 accepted can fail. If you need time to adapt, stay on v1.4.1 and work through **Behavior changes** below. Each item says what you will see and what to do, and names the row in `tests/contract_test.go` that holds it.
 
@@ -85,7 +85,7 @@ Settings:
 
 - Rules on a registered name take effect at once: registering on the default registry clears cached rules, so `ClearValidationCache` is no longer needed for that.
 - `yaml.v3` is the only dependency. `go-playground/validator` left the module graph; the comparison benchmarks are a nested module. The minimum Go version stays 1.24.
-- Correctly typed JSON now parses and validates in about half the time of v1.4.1, because it no longer decodes twice. YAML takes about 23% less, and input needing coercion about 14% less. See [Benchmarks](benchmarks.md).
+- Correctly typed JSON now parses and validates in about half the time of v1.4.1, because it no longer decodes twice. YAML takes about 28% less, and input needing coercion about 12% less. See [Benchmarks](benchmarks.md).
 
 ### Fixed
 

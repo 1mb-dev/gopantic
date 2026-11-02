@@ -352,7 +352,7 @@ func mayHoldRules(elem reflect.Type) bool {
 }
 
 func (w *validationWalk) structFields(val reflect.Value, validation *StructValidation, path *fieldPath, depth int) {
-	if maxDepth := GetMaxValidationDepth(); maxDepth > 0 && depth > maxDepth {
+	if maxDepth := GetMaxValidationDepth(); depth > maxDepth {
 		w.errs.addCapped(fmt.Errorf("validation depth exceeded maximum of %d levels", maxDepth))
 		return
 	}

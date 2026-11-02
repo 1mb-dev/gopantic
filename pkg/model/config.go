@@ -95,6 +95,9 @@ func GetMaxValidationDepth() int {
 	initConfigOnce()
 	configMu.RLock()
 	defer configMu.RUnlock()
+	if configValues.maxValidationDepth <= 0 {
+		return defaultMaxValidationDepth
+	}
 	return configValues.maxValidationDepth
 }
 

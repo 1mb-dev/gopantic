@@ -807,6 +807,11 @@ type ctPwUsers struct {
 	Users []ctPwUser `json:"users" validate:"min=2"`
 }
 
+type ctLoopRule struct {
+	Name string      `validate:"required"`
+	Next *ctLoopRule `json:"next"`
+}
+
 type ctMinOverride struct {
 	A string `json:"a" validate:"ct_override=abc"`
 }
@@ -1824,6 +1829,18 @@ func contractRows() []contractRow {
 			var list model.ErrorList
 			if !errors.As(err, &list) || len(list) != 101 || !strings.Contains(list[100].Error(), "too many errors") {
 				return fmt.Errorf("got %d errors", len(list))
+			}
+			return nil
+		}},
+		{"validation", "a depth of 0 cannot turn the limit off", 0, func() error {
+			orig := model.GetMaxValidationDepth()
+			model.SetMaxValidationDepth(0)
+			defer model.SetMaxValidationDepth(orig)
+			loop := &ctLoopRule{Name: "x"}
+			loop.Next = loop
+			err := model.Validate(loop)
+			if err == nil || !strings.Contains(err.Error(), "depth") {
+				return fmt.Errorf("got %v", err)
 			}
 			return nil
 		}},

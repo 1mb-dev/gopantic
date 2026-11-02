@@ -789,13 +789,35 @@ type ctYStrings struct {
 	M map[string]string `yaml:"m"`
 }
 
-type ctYClashInner struct {
-	ID string `yaml:"id"`
+type ctPwUser struct {
+	Name     string `json:"name"`
+	Password string `json:"password"`
 }
 
-type ctYClash struct {
-	ID            string `yaml:"id"`
-	ctYClashInner `yaml:",inline"`
+type ctPwUsers struct {
+	Users []ctPwUser `json:"users" validate:"min=2"`
+}
+
+type ctLoopRule struct {
+	Name string      `validate:"required"`
+	Next *ctLoopRule `json:"next"`
+}
+
+type ctNegativeCache struct {
+	A string `json:"a" validate:"required"`
+}
+
+type ctRequiredArray struct {
+	X int     `json:"x"`
+	H [4]byte `json:"h" validate:"required"`
+}
+
+type ctYStructName struct {
+	Name string `yaml:"name"`
+}
+
+type ctYNullNamed struct {
+	V string `yaml:"null"`
 }
 
 type ctMinOverride struct {
@@ -1166,6 +1188,9 @@ func contractRows() []contractRow {
 			return wantYAMLError[ctNumber]("n: .inf\n")
 		}},
 		{"numeric", ",string rejects padding", 0, func() error { return wantError[ctQuotedInt](`{"a":" 12 "}`) }},
+		{"numeric", "a time with no date is rejected", 0, func() error {
+			return wantError[ctTimeField](`{"at":"12:30:00"}`)
+		}},
 		{"numeric", "uint rejects a negative", 0, func() error { return wantError[ctUint](`{"v":-1}`) }},
 		{"numeric", "minimum int8 still fits", 0, func() error { return wantValue(`{"v":-128}`, ctI8{V: -128}) }},
 		{"numeric", "maximum uint8 still fits", 0, func() error { return wantValue(`{"v":"255"}`, ctU8{V: 255}) }},
@@ -1420,6 +1445,48 @@ func contractRows() []contractRow {
 		{"yaml", "a null key cannot go in a string map", 0, func() error {
 			return wantYAMLError[ctYKeyMap]("attrs: {~: 1, a: 3}\n")
 		}},
+		{"yaml", "a null key beside a merge cannot go in a string map", 0, func() error {
+			return wantYAMLError[ctYKeyMap]("attrs:\n  <<: {a: 1}\n  ~: 2\n")
+		}},
+		{"yaml", "a null key is refused whichever path the map takes", 0, func() error {
+			return wantYAMLError[map[int]string]("~: a\nx: b\n")
+		}},
+		{"yaml", "a float key does not truncate into an int key", 0, func() error {
+			return wantYAMLError[map[int]string]("1.5: a\n")
+		}},
+		{"yaml", "a whole float key still works", 0, func() error {
+			got, err := model.ParseIntoWithFormat[map[int]string]([]byte("2.0: a\n"), model.FormatYAML)
+			if err != nil || got[2] != "a" {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"yaml", "two spellings of one key are refused", 0, func() error {
+			return wantYAMLError[map[int]string]("0x10: a\n16: b\n")
+		}},
+		{"yaml", "two keys coercing to one are refused", 0, func() error {
+			return wantYAMLError[map[int]string]("\"01\": a\n1: b\n")
+		}},
+		{"yaml", "a panic inside yaml.v3 is an error", 0, func() error {
+			return wantYAMLError[interface{}]("1: a\n<<: {? [x] : 1}\n")
+		}},
+		{"yaml", "a large merge decodes", 0, func() error {
+			var doc strings.Builder
+			doc.WriteString("b: &b\n")
+			for i := 0; i < 501; i++ {
+				fmt.Fprintf(&doc, "  k%d: %d\n", i, i)
+			}
+			doc.WriteString("m:\n  <<: *b\n")
+			got, err := model.ParseIntoWithFormat[map[string]map[string]int]([]byte(doc.String()), model.FormatYAML)
+			if err != nil || len(got["m"]) != 501 || got["m"]["k500"] != 500 {
+				return fmt.Errorf("got %d entries, err %.120v", len(got["m"]), err)
+			}
+			return nil
+		}},
+		{"parity", "colliding JSON map keys keep the last, as encoding/json does", 0, func() error {
+			const body = `"by_id":{"01":"a","1":"b"}}`
+			return wantSameAsJSON[ctIntKeys](`{"trigger":1,`+body, `{"trigger":"1",`+body)
+		}},
 		{"yaml", "a null key cannot go in an inline map", 0, func() error {
 			return wantYAMLError[ctYKeyInline]("name: x\n~: 1\n")
 		}},
@@ -1430,18 +1497,41 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
-		{"yaml", "merged keys of two types cannot share an interface map", 0, func() error {
-			return wantYAMLError[ctYAnyStrings]("b: &b {\"1\": str}\nm:\n  <<: *b\n  1: int\n")
-		}},
-		{"yaml", "an explicit key still beats a merged one in a string map", 0, func() error {
-			got, err := model.ParseIntoWithFormat[ctYStrings]([]byte("b: &b {\"1\": str}\nm:\n  <<: *b\n  1: int\n"), model.FormatYAML)
-			if err != nil || got.M["1"] != "int" {
+		{"yaml", "merged keys of two types stay apart in an interface map", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctYAnyStrings]([]byte("b: &b {\"1\": str}\nm:\n  <<: *b\n  1: int\n"), model.FormatYAML)
+			if err != nil || got.M["1"] != "str" || got.M[1] != "int" {
 				return fmt.Errorf("got %+v, err %v", got, err)
 			}
 			return nil
 		}},
-		{"yaml", "two fields claiming one key is an error", 0, func() error {
-			return wantYAMLError[ctYClash]("id: x\n")
+		{"yaml", "an explicit key beats a merged spelling of it", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctYAnyStrings]([]byte("b: &b {0x10: merged}\nm:\n  <<: *b\n  16: explicit\n"), model.FormatYAML)
+			if err != nil || len(got.M) != 1 || got.M[16] != "explicit" {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"yaml", "a key repeated through an alias is refused on a struct", 0, func() error {
+			return wantYAMLError[ctYStructName]("x: &k name\nname: a\n*k : b\n")
+		}},
+		{"yaml", "a null key does not hide a merged key of that spelling", 0, func() error {
+			got, err := model.ParseIntoWithFormat[ctYNullNamed]([]byte("<<: {\"null\": merged}\nnull: y\n"), model.FormatYAML)
+			if err != nil || got.V != "merged" {
+				return fmt.Errorf("got %+v, err %v", got, err)
+			}
+			return nil
+		}},
+		{"yaml", "merged keys into a string map match yaml.v3", 0, func() error {
+			const input = "b: &b {\"1\": str}\nm:\n  <<: *b\n  1: int\n"
+			var want ctYStrings
+			if err := yaml.Unmarshal([]byte(input), &want); err != nil {
+				return err
+			}
+			got, err := model.ParseIntoWithFormat[ctYStrings]([]byte(input), model.FormatYAML)
+			if err != nil || !reflect.DeepEqual(got, want) {
+				return fmt.Errorf("got %+v, want %+v, err %v", got, want, err)
+			}
+			return nil
 		}},
 		{"yaml", "plain alias", 0, func() error {
 			const body = "x: &x {a: 1, b: 2}\nv: *x\n"
@@ -1818,6 +1908,32 @@ func contractRows() []contractRow {
 			}
 			return nil
 		}},
+		{"validation", "a depth of 0 cannot turn the limit off", 0, func() error {
+			orig := model.GetMaxValidationDepth()
+			model.SetMaxValidationDepth(0)
+			defer model.SetMaxValidationDepth(orig)
+			loop := &ctLoopRule{Name: "x"}
+			loop.Next = loop
+			err := model.Validate(loop)
+			if err == nil || !strings.Contains(err.Error(), "depth") {
+				return fmt.Errorf("got %v", err)
+			}
+			return nil
+		}},
+		{"validation", "a negative cache size does not panic", 0, func() error {
+			orig := model.GetMaxCacheSize()
+			model.SetMaxCacheSize(-1)
+			defer model.SetMaxCacheSize(orig)
+			model.ClearValidationCache()
+			return wantValue(`{"a":"x"}`, ctNegativeCache{A: "x"})
+		}},
+		{"validation", "required fails on a zero fixed array", 0, func() error {
+			if err := wantError[ctRequiredArray](`{"x":1}`); err != nil {
+				return err
+			}
+			_, err := model.ParseInto[ctRequiredArray]([]byte(`{"h":[1,0,0,0]}`))
+			return err
+		}},
 		{"validation", "error count is capped on []struct", 0, func() error {
 			input := `{"trigger":1,"items":[` + strings.Repeat(`{},`, 5000) + `{}]}`
 			_, err := model.ParseInto[ctSliceOuter]([]byte(input))
@@ -2186,6 +2302,18 @@ func contractRows() []contractRow {
 			}
 			if got := fmt.Sprint(parseErr.SanitizedValue()); strings.Contains(got, "hunter2") {
 				return fmt.Errorf("SanitizedValue returned %s", got)
+			}
+			return nil
+		}},
+		{"errors", "a failed rule on a container keeps its contents out of the report", 0, func() error {
+			_, err := model.ParseInto[ctPwUsers]([]byte(`{"users":[{"name":"a","password":"hunter2"}]}`))
+			var list model.ErrorList
+			if !errors.As(err, &list) {
+				return fmt.Errorf("got %v", err)
+			}
+			report, jsonErr := list.ToJSON()
+			if jsonErr != nil || strings.Contains(string(report), "hunter2") {
+				return fmt.Errorf("report %s, err %v", report, jsonErr)
 			}
 			return nil
 		}},

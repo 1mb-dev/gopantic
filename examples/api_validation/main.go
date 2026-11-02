@@ -240,7 +240,8 @@ func handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	createReq, err := model.ParseIntoWithFormat[CreateUserRequest](body, model.FormatJSON)
 	if err != nil {
 		// Convert gopantic errors to structured API response
-		if errorList, ok := err.(model.ErrorList); ok {
+		// ToJSON only reports validation errors, so anything else takes the plain path below.
+		if errorList, ok := err.(model.ErrorList); ok && len(errorList.ValidationErrors()) == len(errorList) {
 			// Serialize validation errors to structured format
 			if jsonData, jsonErr := errorList.ToJSON(); jsonErr == nil {
 				var errorReport model.StructuredErrorReport
@@ -324,7 +325,8 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request, id int) {
 	updateReq, err := model.ParseIntoWithFormat[UpdateUserRequest](body, model.FormatJSON)
 	if err != nil {
 		// Convert gopantic errors to structured API response
-		if errorList, ok := err.(model.ErrorList); ok {
+		// ToJSON only reports validation errors, so anything else takes the plain path below.
+		if errorList, ok := err.(model.ErrorList); ok && len(errorList.ValidationErrors()) == len(errorList) {
 			if jsonData, jsonErr := errorList.ToJSON(); jsonErr == nil {
 				var errorReport model.StructuredErrorReport
 				if parseErr := json.Unmarshal(jsonData, &errorReport); parseErr == nil {

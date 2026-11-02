@@ -408,7 +408,6 @@ func parseTimeFromString(s, fieldName string) (time.Time, error) {
 	otherFormats := []string{
 		"2006-01-02 15:04:05", // Common format with space
 		"2006-01-02",          // Date only
-		"15:04:05",            // Time only (today's date)
 	}
 
 	for _, format := range otherFormats {

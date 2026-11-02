@@ -73,6 +73,9 @@ func GetMaxCacheSize() int {
 	initConfigOnce()
 	configMu.RLock()
 	defer configMu.RUnlock()
+	if configValues.maxCacheSize < 0 {
+		return defaultMaxCacheSize
+	}
 	return configValues.maxCacheSize
 }
 
@@ -95,6 +98,9 @@ func GetMaxValidationDepth() int {
 	initConfigOnce()
 	configMu.RLock()
 	defer configMu.RUnlock()
+	if configValues.maxValidationDepth <= 0 {
+		return defaultMaxValidationDepth
+	}
 	return configValues.maxValidationDepth
 }
 

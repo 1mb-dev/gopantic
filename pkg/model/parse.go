@@ -43,7 +43,8 @@ const defaultMaxYAMLKeyComparisons = 50_000_000
 
 // MaxYAMLKeyComparisons bounds the work yaml.v3 does looking for duplicate keys, which is
 // quadratic in the keys of each mapping and runs again for every alias. A mapping of 10,000 keys
-// costs about 50,000,000 comparisons, or about 0.3s. Set to 0 to disable the budget.
+// costs about 50,000,000 comparisons, or about 0.3s, and about twice that into a Go map, which
+// yaml.v3 decodes once more to settle the keys. Set to 0 to disable the budget.
 //
 // WARNING: Direct modification of this variable is NOT thread-safe.
 // For concurrent access, use GetMaxYAMLKeyComparisons() and SetMaxYAMLKeyComparisons().
@@ -352,7 +353,7 @@ func mayHoldRules(elem reflect.Type) bool {
 }
 
 func (w *validationWalk) structFields(val reflect.Value, validation *StructValidation, path *fieldPath, depth int) {
-	if maxDepth := GetMaxValidationDepth(); maxDepth > 0 && depth > maxDepth {
+	if maxDepth := GetMaxValidationDepth(); depth > maxDepth {
 		w.errs.addCapped(fmt.Errorf("validation depth exceeded maximum of %d levels", maxDepth))
 		return
 	}

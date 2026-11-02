@@ -18,6 +18,8 @@ If you parse into a type with a rule on a `json:"-"` field and never call `Valid
 
 `required` means not zero, so it can't tell a sent `0` from an absent key. Use a pointer.
 
+`min` and `max` on a `json.Number` compare its length, since its kind is string, so `max=10` passes `100`. Use a numeric field if the bound matters.
+
 Rules inside whatever an `interface{}` field holds don't run.
 
 The built-in set is small. There's no `url`, `uuid`, `oneof` or `gt`, and unknown rules are errors, so anything else has to be [registered](guide/validation.md#your-own-rules).
@@ -28,11 +30,15 @@ An element that fails to decode can be reported twice: `{"items":[5]}` into a `[
 
 ## Formats
 
+When two fields claim one YAML key, usually through an inline struct, one of them silently gets the value. `yaml.v3` refuses such a type.
+
 An inline map needs string keys: `map[interface{}]T` with `yaml:",inline"` errors on every key, as it does in `yaml.v3`.
+
+Format detection reads the first few lines, and it guesses wrong on some YAML. A single line like `name: Alice`, a block of comments at the top, quoted keys, and parents with nothing after the colon can all be taken for JSON, which then fails as a syntax error. Use `ParseIntoWithFormat` with `FormatYAML` when you know the format.
 
 Input starting with `{` or `[` is treated as JSON, so one-line YAML like `{a: 1}` is a syntax error under `ParseInto`. Use `ParseIntoWithFormat` with `FormatYAML`.
 
-A YAML document can't need more than 50,000,000 key comparisons, because `yaml.v3` compares every pair of keys in a mapping, and again for each alias of it. That's one mapping of 10,000 keys, or 100 of 1,000. `SetMaxYAMLKeyComparisons` changes it.
+A YAML document can't need more than 50,000,000 key comparisons, because `yaml.v3` compares every pair of keys in a mapping, and again for each alias of it. That's one mapping of 10,000 keys, or 100 of 1,000. `SetMaxYAMLKeyComparisons` changes it. A Go map target decodes its keys once more, so it costs about twice what the budget counts.
 
 YAML always takes the slow path through the walker, because `yaml.v3` ignores `json` tags. [Benchmarks](benchmarks.md) has the cost.
 
@@ -43,6 +49,8 @@ Matching is by substring on names. It over-redacts `Author`, and it can't know `
 Long map keys match on their first 64 bytes, because scanning whole keys would let one long key cost time on every error. A key that only looks sensitive past that point isn't redacted.
 
 Errors keep the rejected value in `Value`. Log `SanitizedValue()`.
+
+`ToJSON` only reports validation errors. A failed parse has none, so its report is empty: check `ValidationErrors()` for a length, or use the error itself.
 
 ## Caching
 

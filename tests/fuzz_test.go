@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/1mb-dev/gopantic/pkg/model"
+	"gopkg.in/yaml.v3"
 )
 
 // FuzzStruct is a struct used for fuzzing ParseInto
@@ -366,5 +367,69 @@ func FuzzNoPanicAnyTarget(f *testing.F) {
 			_, _ = model.ParseIntoWithFormat[ctOldYAMLField](data, format)
 			_, _ = model.ParseIntoWithFormat[ctYAMLNodeField](data, format)
 		}
+	})
+}
+
+// yamlZoo covers the walker's YAML paths. It is separate from fuzzZoo because keys come from
+// yaml tags here, and inline fields only exist in YAML.
+type yamlZoo struct {
+	Name    string                 `yaml:"name"`
+	Num     int64                  `yaml:"num"`
+	Flt     float64                `yaml:"flt"`
+	Ok      bool                   `yaml:"ok"`
+	Tags    []string               `yaml:"tags"`
+	Pair    [2]int                 `yaml:"pair"`
+	Attrs   map[string]int         `yaml:"attrs"`
+	ByID    map[int]string         `yaml:"by_id"`
+	AnyKeys map[interface{}]string `yaml:"any_keys"`
+	Ptr     *int                   `yaml:"ptr"`
+	Any     interface{}            `yaml:"any"`
+	Next    *yamlZoo               `yaml:"next"`
+	Extra   map[string]interface{} `yaml:",inline"`
+}
+
+// checkAcceptedMatchesYAML is one-sided. gopantic may reject what yaml.v3 accepts, as it does for
+// 1.9 into an int, and accept what yaml.v3 rejects, by coercing. When both accept, they must
+// agree. Marshalling compares by content, so pointers and NaN do not get in the way.
+func checkAcceptedMatchesYAML[T any](t *testing.T, data []byte) {
+	t.Helper()
+	got, err := model.ParseIntoWithFormat[T](data, model.FormatYAML)
+	if err != nil {
+		return
+	}
+	var want T
+	if err := yaml.Unmarshal(data, &want); err != nil {
+		return
+	}
+	gotText, gotErr := yaml.Marshal(got)
+	wantText, wantErr := yaml.Marshal(want)
+	if gotErr != nil || wantErr != nil {
+		t.Skip("not representable")
+	}
+	if !bytes.Equal(gotText, wantText) {
+		t.Fatalf("%q into %T\ngot  %s\nwant %s", data, want, gotText, wantText)
+	}
+}
+
+// FuzzYAMLDifferential compares accepted YAML with yaml.v3. FuzzWalkerDifferential cannot: it
+// builds JSON objects, so it never reaches the YAML paths.
+func FuzzYAMLDifferential(f *testing.F) {
+	for _, seed := range []string{
+		"name: a\nnum: 1\nflt: 1.5\nok: true\n", "tags: [a, b]\npair: [1, 2]\n",
+		"attrs: {a: 1}\nby_id: {1: a}\n", "any_keys: {a: b, 2: c}\n", "any: {a: [1, 2]}\n",
+		"next: {name: b}\nptr: 3\n", "other: 1\n", "base: &b {a: 1}\nattrs:\n  <<: *b\n  c: 2\n",
+		"a: &x 1\nb: *x\n", "- a\n- 1\n", "a: 1\nb: 2\n", "any_keys:\n  <<: {1: x}\n  2: y\n",
+	} {
+		f.Add([]byte(seed))
+	}
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		checkAcceptedMatchesYAML[yamlZoo](t, data)
+		checkAcceptedMatchesYAML[map[string]int](t, data)
+		checkAcceptedMatchesYAML[map[string]string](t, data)
+		checkAcceptedMatchesYAML[map[interface{}]string](t, data)
+		checkAcceptedMatchesYAML[map[string]interface{}](t, data)
+		checkAcceptedMatchesYAML[[]interface{}](t, data)
+		checkAcceptedMatchesYAML[interface{}](t, data)
 	})
 }

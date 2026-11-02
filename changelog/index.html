@@ -1852,7 +1852,12 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li><strong>Floats at or past 2^53 no longer convert to integers.</strong> <code>1e16</code> into an <code>int</code> errors. Send the digits. Test: <code>numeric/exponent integer past 2^53 rejected</code>.</li>
 <li><strong><code>"NaN"</code> and <code>"Inf"</code> no longer convert to floats.</strong> Send a number, or take a string field. Tests: <code>numeric/string NaN rejected</code>, <code>numeric/string Inf rejected</code>.</li>
 <li><strong>Objects no longer convert to strings.</strong> v1.4 returned Go syntax such as <code>map[a:1]</code>. Use a struct, a map or <code>json.RawMessage</code>. Test: <code>numeric/object is not a string</code>.</li>
-<li><strong>Rules past 32 levels of nesting are errors.</strong> v1.4 skipped the limit on inputs that needed coercion. A rule that deep now fails rather than going unchecked; raise it with <code>SetMaxValidationDepth</code>. Types with no rules aren't affected. Test: <code>validation/rule below the depth limit fails closed</code>.</li>
+<li>
+<p><strong>Rules past 32 levels of nesting are errors.</strong> v1.4 skipped the limit on inputs that needed coercion. A rule that deep now fails rather than going unchecked; raise it with <code>SetMaxValidationDepth</code>. Types with no rules aren't affected. Test: <code>validation/rule below the depth limit fails closed</code>.</p>
+</li>
+<li>
+<p><strong>Large YAML mappings can be refused.</strong> A document needing more than 50,000,000 key comparisons now errors before decoding: one mapping of 10,000 keys, or 100 of 1,000. Raise it with <code>SetMaxYAMLKeyComparisons</code>, or pass 0 to turn the budget off. Test: <code>TestYAMLGuardChargesAllComparisons</code>.</p>
+</li>
 </ul>
 <p>Types that used to work can now fail on every parse:</p>
 <ul>
@@ -1882,6 +1887,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="security">Security</h3>
 <ul>
+<li>A small YAML document could exhaust memory or CPU. <code>yaml.v3</code> compares every pair of keys and formats an error for each duplicate, so 15 KB of repeated keys allocated 800 MB and 1.2 MB of distinct keys took 2 minutes, far below <code>MaxInputSize</code>. <code>ParseInto</code> auto-detects YAML, so this reached endpoints that only expect JSON. Duplicates are now rejected in linear time and the remaining cost has a budget. Use <code>ParseIntoWithFormat</code> with <code>FormatJSON</code> for JSON-only input.</li>
 <li>Validation could be skipped: nested rules stopped running after the first parse of a type, and rules on slice elements, map values and top-level slices didn't always run. Input that should have been rejected was returned as valid.</li>
 <li><code>CachedParser</code> returned shared slices and maps, so one caller could alter what the next received. Keys for input under 1 KB used a 64-bit FNV hash, which can be made to collide; they are now SHA-256.</li>
 <li>Integers wrapped silently on overflow, so a limit checked after parsing could be passed with a value that wrapped into range.</li>
@@ -1892,6 +1898,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="added">Added</h3>
 <ul>
 <li><code>len</code> as another name for <code>length</code>.</li>
+<li><code>SetMaxYAMLKeyComparisons</code>.</li>
 <li><code>ParseError.SanitizedValue()</code>, and <code>StructValidation.TagErrors</code>.</li>
 <li><code>ErrorList</code> works with <code>errors.As</code> and <code>errors.Is</code>. The documented <code>errors.As</code> pattern didn't work before.</li>
 <li>A contract test suite, and differential fuzzing against <code>encoding/json</code> and <code>yaml.v3</code>.</li>

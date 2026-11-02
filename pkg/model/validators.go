@@ -59,8 +59,12 @@ func (v *RequiredValidator) Validate(fieldName string, value interface{}) error 
 		// For booleans, false is considered a valid value, so we don't fail
 		// This matches common validation library behavior
 		return nil
-	case reflect.Slice, reflect.Array, reflect.Map:
+	case reflect.Slice, reflect.Map:
 		if val.Len() == 0 {
+			return NewValidationError(fieldName, value, "required", "field is required")
+		}
+	case reflect.Array:
+		if val.IsZero() {
 			return NewValidationError(fieldName, value, "required", "field is required")
 		}
 	case reflect.Ptr, reflect.Interface:

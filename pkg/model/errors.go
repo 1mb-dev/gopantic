@@ -304,34 +304,32 @@ type ValidationErrorInfo struct {
 
 // ToStructuredReport converts an ErrorList to a structured error report for JSON serialization
 func (el ErrorList) ToStructuredReport() *StructuredErrorReport {
-	fieldGroups := el.GroupByField()
-	fieldErrors := make([]FieldError, 0, len(fieldGroups))
+	fieldErrors := make([]FieldError, 0, len(el))
+	byPath := make(map[string]int, len(el))
 
-	for fieldPath, validationErrors := range fieldGroups {
-		errorInfos := make([]ValidationErrorInfo, 0, len(validationErrors))
-		var field string
-		var value interface{}
-
-		for _, validationErr := range validationErrors {
-			errorInfos = append(errorInfos, ValidationErrorInfo{
-				Rule:    validationErr.Rule,
-				Message: validationErr.Message,
-				Details: validationErr.Details,
-			})
-
-			// Use the first error's field and sanitized value
-			if field == "" {
-				field = validationErr.Field
-				value = validationErr.SanitizedValue()
-			}
+	add := func(field, path string, value interface{}, info ValidationErrorInfo) {
+		at, seen := byPath[path]
+		if !seen {
+			at = len(fieldErrors)
+			byPath[path] = at
+			fieldErrors = append(fieldErrors, FieldError{Field: field, FieldPath: path, Value: value})
 		}
+		fieldErrors[at].Errors = append(fieldErrors[at].Errors, info)
+	}
 
-		fieldErrors = append(fieldErrors, FieldError{
-			Field:     field,
-			FieldPath: fieldPath,
-			Value:     value,
-			Errors:    errorInfos,
-		})
+	for _, err := range el {
+		switch e := err.(type) {
+		case *ValidationError:
+			path := e.FieldPath
+			if path == "" {
+				path = e.Field
+			}
+			add(e.Field, path, e.SanitizedValue(), ValidationErrorInfo{Rule: e.Rule, Message: e.Message, Details: e.Details})
+		case *ParseError:
+			add(e.Field, e.Field, e.SanitizedValue(), ValidationErrorInfo{Rule: "parse", Message: e.Message})
+		default:
+			add("", "", nil, ValidationErrorInfo{Rule: "error", Message: err.Error()})
+		}
 	}
 
 	return &StructuredErrorReport{

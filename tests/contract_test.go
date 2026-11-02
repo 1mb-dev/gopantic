@@ -1193,6 +1193,9 @@ func contractRows() []contractRow {
 			return wantYAMLError[ctNumber]("n: .inf\n")
 		}},
 		{"numeric", ",string rejects padding", 0, func() error { return wantError[ctQuotedInt](`{"a":" 12 "}`) }},
+		{"numeric", "a time with no date is rejected", 0, func() error {
+			return wantError[ctTimeField](`{"at":"12:30:00"}`)
+		}},
 		{"numeric", "uint rejects a negative", 0, func() error { return wantError[ctUint](`{"v":-1}`) }},
 		{"numeric", "minimum int8 still fits", 0, func() error { return wantValue(`{"v":-128}`, ctI8{V: -128}) }},
 		{"numeric", "maximum uint8 still fits", 0, func() error { return wantValue(`{"v":"255"}`, ctU8{V: 255}) }},
